@@ -9,6 +9,9 @@ email:fancyzzy@163.com
 '''
 import tkinter as tk
 from tkinter import ttk
+from tkinter.filedialog import askopenfilename
+
+
 from project_info import *
 
 class MyTop(object):
@@ -73,8 +76,8 @@ class MyTop(object):
 		fm_button.pack()
 		#初始化不显示工程标题
 		#self.fm_pro.pack()
-
 	########__init__()################
+
 
 	def enter_top(self,event):  
 		if event.widget == self.top:
@@ -83,28 +86,32 @@ class MyTop(object):
 
 
 	def new_project(self):
-		my_pro = MyPro(self.top)
+		#None 表示新建文件工程
+		my_pro = MyPro(self.top, None)
 		print("new project")
 
-	######new_pro()#########
 
 	def open_project(self):
 		print("Opened project")
-	######open_pro()#########
+		f_path =askopenfilename(filetypes=[("监测日报项目文件","dr")])
+		my_pro = MyPro(self.top, f_path)
+
 
 	def update_title(self):
-		global PRO_L
+		global PRO_INFO
+		global IS_UPDATED
+		print("DEBUG IS_UPDATED:",IS_UPDATED)
 		if is_project_updated():
-			self.label_title.config(text=PRO_L[0].name)
+			self.label_title.config(text=PRO_INFO[D['name']])
 			self.fm_init.pack_forget()
 			self.fm_pro.pack()
-	#######show_title##########
+
+
 
 	def gen_report(self):
 		global PRO_INFO
-		global PRO_L
 		print("Generate Daily Report")
-		print(PRO_L)
+		print(PRO_INFO)
 	########gen_report########
 
 

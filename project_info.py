@@ -3,20 +3,17 @@
 '''
 日报信息汇总
 '''
-from collections import namedtuple
 import tkinter as tk
 from tkinter import ttk
-from tkinter.messagebox import askyesnocancel
+from tkinter.filedialog import asksaveasfilename
+from tkinter.messagebox import showerror
+from tkinter.messagebox import showwarning
+import os
 
 
 #工程项目名, 编号， 施工单位， 监理单位， 监测单位
-PRO_L = []
-PRO_INFO_TUP = namedtuple("Project_Info","name code contract builder\
- supervisor observor")
-PRO_INFO = PRO_INFO_TUP("xxx工程","xx编号","xx合同","xx施工单位",\
-	"xx监理单位","xx监测单位")
-PRO_L.append(PRO_INFO)
-
+D = {"name":0, "code":1, "contract":2, "builder":3, "supervisor":4, "observor":5}
+PRO_INFO = ["xxx工程","xx编号","xx合同","xx施工单位","xx监理单位","xx监测单位"]
 
 IS_UPDATED = False
 def is_project_updated():
@@ -24,15 +21,18 @@ def is_project_updated():
 
 
 class MyPro(object):
-	def __init__(self, parent_top):
+	def __init__(self, parent_top, file_path=None):
 		self.parent_top = parent_top
 		self.pro_top = tk.Toplevel(parent_top)
 		self.pro_top.title("工程信息")
 		self.pro_top.geometry('680x320+400+280')
-	
-		ttk.Label(self.pro_top, text='').pack()
+		#Always get focused
+		self.pro_top.grab_set()
+
+		self.project_path = file_path
 
 		#工程项目名称
+		ttk.Label(self.pro_top, text='').pack()
 		fm_name = tk.Frame(self.pro_top)
 		ttk.Label(fm_name, text='工程项目: ').pack(side=tk.LEFT)
 		self.v_name = tk.StringVar()
@@ -79,7 +79,7 @@ class MyPro(object):
 
 		#确认，退出按钮
 		fm_button = tk.Frame(self.pro_top)
-		ttk.Button(fm_button, text="确认", width=15, command=self.save_project).grid(\
+		ttk.Button(fm_button, text="确认", width=15, command=self.confirm_project).grid(\
 			row=0, column=0)
 		ttk.Label(fm_button, width=2, text='').grid(row=0, column=1)
 		ttk.Button(fm_button, text="退出", width=15, command=self.discard_project).grid(\
@@ -87,8 +87,32 @@ class MyPro(object):
 		fm_button.pack()
 
 
-	def save_project(self):
+		#项目文件非空，更新文件显示
+		if self.project_path:
+			if self.load_project():
+				self.retrieve_project_info()
+			else:
+				self.discard_project()
+
+
+	#############__init__()#####################
+
+
+	def confirm_project(self):
+		#如果有文件路径，说明是经过打开菜单进来的
+		#认直接保存原来的这个文件
+		if self.project_path:
+			pass
+		#如果文件路径是None,说明是新建菜单进来的
+		#保存时，打开文件保存对话框，选择保存的文件
+		else:
+			project_name = self.v_name.get() + ".dr"
+			#新建一个文件，用于监测项目工程文件
+			self.project_path = asksaveasfilename(initialfile= project_name,filetypes=[("监测日报项目文件","dr")])
+			with open(self.project_path, 'wb') as foj:
+				pass
 		self.update_project_info()
+		self.save_project()
 		self.pro_top.destroy()
 
 
@@ -101,12 +125,52 @@ class MyPro(object):
 	def update_project_info(self):
 		global PRO_INFO
 		global IS_UPDATED
-		global PRO_L
-		PRO_INFO = PRO_INFO._replace(name=self.v_name.get(), code=self.v_code.get(),\
-			contract=self.v_contract.get(), builder=self.v_builder.get(),\
-			supervisor=self.v_supervisor.get(), observor=self.v_observor.get())
-		PRO_L[0] = PRO_INFO
+		PRO_INFO[:] = [self.v_name.get(), self.v_code.get(), self.v_contract.get(), self.v_builder.get(),\
+			self.v_supervisor.get(), self.v_observor.get()]
 		IS_UPDATED = True
+		print("DEBUG updat_project_info done, IS_UPDATED:", IS_UPDATED)
+
+	def retrieve_project_info(self):
+		self.v_name.set(PRO_INFO[D['name']])
+		self.v_code.set(PRO_INFO[D['code']])
+		self.v_contract.set(PRO_INFO[D['contract']])
+		self.v_builder.set(PRO_INFO[D['builder']])
+		self.v_supervisor.set(PRO_INFO[D['supervisor']])
+		self.v_observor.set(PRO_INFO[D['observor']])
+
+
+	def save_project(self):
+		global PRO_INFO
+		with open(self.project_path, "wb") as fobj:
+			for item in PRO_INFO:
+				item = item + os.linesep
+				item = item.encode('utf-8')
+				fobj.write(item)
+		print("save success")
+
+
+	def load_project(self):
+		global PRO_INFO
+		with open(self.project_path, 'rb') as fobj:
+			lines = fobj.readlines()
+			ln = len(lines)
+			max_ln = len(PRO_INFO)
+			if max_ln != ln:
+				print("Warnning, mismatch")
+				print("{}, ln= {}, max_ln={}".format(self.project_path, ln, max_ln))
+				showerror(title="项目文件错误", message="文件{}, 行数={}, 应该={}".format(self.project_path, ln, max_ln))
+				return False
+			if ln == max_ln:
+				for i in range(max_ln):
+					ss = lines[i].decode('utf-8')
+					PRO_INFO[i] = ss.strip().strip(os.linesep)
+
+				print("DEBUG load success, PRO_INFO=",PRO_INFO)
+				if '' in PRO_INFO:
+					showwarning(title="警告", message="项目信息有缺失")
+
+				return True
+
 
 
 def check_project_info():
@@ -114,11 +178,9 @@ def check_project_info():
 
 if __name__ == '__main__':
 
-	'''
-	PRO_INFO = PRO_INFO_TUP("青岛市地铁1号线工程", "DSFJC02-RB", "M1-ZX-2016-222", \
+	PRO_INFO = ["青岛市地铁1号线工程", "DSFJC02-RB", "M1-ZX-2016-222", \
 	"中国中铁隧道局、十局集团有限公司", "北京铁城建设监理有限责任公司",\
-	"中国铁路设计集团有限公司")
-	'''
+	"中国铁路设计集团有限公司"]
 	print(PRO_INFO)
 
 	top = tk.Tk()
