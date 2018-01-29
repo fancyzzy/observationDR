@@ -12,6 +12,7 @@ from tkinter import ttk
 from tkinter.filedialog import askopenfilename
 import os
 from project_info import *
+import gen_docx
 
 class MyTop(object):
 	def __init__(self):
@@ -48,11 +49,15 @@ class MyTop(object):
 
 		#新工程
 		self.fm_pro = tk.Frame(self.top)
-		#标题
+		#工程项目名称, 区间
 		fm_title = tk.Frame(self.fm_pro)
 		self.label_title = ttk.Label(fm_title, text='XX工程监测日报')
 		self.label_title.pack()
+		self.label_area = ttk.Label(fm_title, text='XX区间')
+		self.label_area.pack()
 		fm_title.pack()
+
+
 
 		#No 编号
 		ttk.Label(self.fm_pro, text='').pack()
@@ -124,6 +129,7 @@ class MyTop(object):
 		global IS_UPDATED
 		if is_project_updated():
 			self.label_title.config(text=PRO_INFO[D['name']])
+			self.label_area.config(text=PRO_INFO[D['area']])
 			self.fm_init.pack_forget()
 			self.fm_pro.pack()
 			self.menu_bar.entryconfig("工程", state="normal")

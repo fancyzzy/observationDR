@@ -12,9 +12,9 @@ from tkinter.messagebox import showwarning
 import os
 
 
-#工程项目名, 编号， 施工单位， 监理单位， 监测单位
-D = {"name":0, "code":1, "contract":2, "builder":3, "supervisor":4, "observor":5}
-PRO_INFO = ["xxx工程","xx编号","xx合同","xx施工单位","xx监理单位","xx监测单位"]
+#工程项目名, 编号， 施工单位， 监理单位， 监测单位, 区间
+D = {"name":0, "area":1, "code":2, "contract":3, "builder":4, "supervisor":5, "observor":6}
+PRO_INFO = ["xxx工程","xx区间","xx编号","xx合同","xx施工单位","xx监理单位","xx监测单位"]
 
 IS_UPDATED = False
 def is_project_updated():
@@ -42,9 +42,16 @@ class MyPro(object):
 		ttk.Entry(fm_name, width=45, textvariable=self.v_name).pack()
 		fm_name.pack()
 
+		#工程区间
+		fm_area = tk.Frame(self.pro_top)
+		ttk.Label(fm_area, text='项目区间: ').pack(side=tk.LEFT)
+		self.v_area = tk.StringVar()
+		ttk.Entry(fm_area, width=35, textvariable=self.v_area).pack()
+		fm_area.pack()
+
 		ttk.Label(self.pro_top, text='').pack()
 
-		#工程信息
+		#其他工程信息
 		fm_info = tk.Frame(self.pro_top)
 		#单位
 		fm_company = tk.Frame(fm_info)
@@ -138,18 +145,22 @@ class MyPro(object):
 
 
 	def update_project_info(self):
+		'''
+		保存页面显示值到全局变量
+		'''
 		global PRO_INFO
 		global IS_UPDATED
-		PRO_INFO[:] = [self.v_name.get(), self.v_code.get(), self.v_contract.get(), self.v_builder.get(),\
-			self.v_supervisor.get(), self.v_observor.get()]
+		PRO_INFO[:] = [self.v_name.get(), self.v_area.get(), self.v_code.get(),\
+		 self.v_contract.get(), self.v_builder.get(), self.v_supervisor.get(), self.v_observor.get()]
 		IS_UPDATED = True
 
 
 	def retrieve_project_info(self):
 		'''
-		显示页面值
+		刷新页面显示值
 		'''
 		self.v_name.set(PRO_INFO[D['name']])
+		self.v_area.set(PRO_INFO[D['area']])
 		self.v_code.set(PRO_INFO[D['code']])
 		self.v_contract.set(PRO_INFO[D['contract']])
 		self.v_builder.set(PRO_INFO[D['builder']])
@@ -159,7 +170,7 @@ class MyPro(object):
 
 	def save_project(self):
 		'''
-		保存项目信息到文件
+		保存项目信息到本地硬盘文件
 		'''
 		global PRO_INFO
 		with open(self.project_path, "wb") as fobj:
@@ -172,7 +183,7 @@ class MyPro(object):
 
 	def load_project(self):
 		'''
-		读取项目文件中的值
+		从硬盘读取项目文件
 		'''
 		global PRO_INFO
 		with open(self.project_path, 'rb') as fobj:
@@ -200,7 +211,7 @@ def check_project_info():
 
 if __name__ == '__main__':
 
-	PRO_INFO = ["青岛市地铁1号线工程", "DSFJC02-RB", "M1-ZX-2016-222", \
+	PRO_INFO = ["青岛市地铁1号线工程", "一二工区", "DSFJC02-RB", "M1-ZX-2016-222", \
 	"中国中铁隧道局、十局集团有限公司", "北京铁城建设监理有限责任公司",\
 	"中国铁路设计集团有限公司"]
 	print(PRO_INFO)
