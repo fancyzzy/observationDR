@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 '''
-日报信息汇总
+工程项目信息汇总
+新建，打开菜单
 '''
 import tkinter as tk
 from tkinter import ttk
@@ -19,6 +20,8 @@ IS_UPDATED = False
 def is_project_updated():
 	return IS_UPDATED
 
+#工程文件目录
+PRO_PATH = []
 
 class MyPro(object):
 	def __init__(self, parent_top, file_path=None):
@@ -34,7 +37,7 @@ class MyPro(object):
 		#工程项目名称
 		ttk.Label(self.pro_top, text='').pack()
 		fm_name = tk.Frame(self.pro_top)
-		ttk.Label(fm_name, text='工程项目: ').pack(side=tk.LEFT)
+		ttk.Label(fm_name, text='项目工程: ').pack(side=tk.LEFT)
 		self.v_name = tk.StringVar()
 		ttk.Entry(fm_name, width=45, textvariable=self.v_name).pack()
 		fm_name.pack()
@@ -82,23 +85,24 @@ class MyPro(object):
 		ttk.Button(fm_button, text="确认", width=15, command=self.confirm_project).grid(\
 			row=0, column=0)
 		ttk.Label(fm_button, width=2, text='').grid(row=0, column=1)
-		ttk.Button(fm_button, text="退出", width=15, command=self.discard_project).grid(\
+		ttk.Button(fm_button, text="取消", width=15, command=self.discard_project).grid(\
 			row=0, column=2)
 		fm_button.pack()
 
-
-		#项目文件非空，更新文件显示
-		if self.project_path:
+		#当加载的项目文件非空，更新页面项目信息为文件中的信息
+		if self.project_path and os.path.exists(self.project_path):
 			if self.load_project():
 				self.retrieve_project_info()
 			else:
 				self.discard_project()
-
-
 	#############__init__()#####################
 
 
 	def confirm_project(self):
+		'''
+		保存确认按钮函数
+		'''
+		global PRO_PATH
 		#如果有文件路径，说明是经过打开菜单进来的
 		#认直接保存原来的这个文件
 		if self.project_path:
@@ -109,14 +113,25 @@ class MyPro(object):
 			project_name = self.v_name.get() + ".dr"
 			#新建一个文件，用于监测项目工程文件
 			self.project_path = asksaveasfilename(initialfile= project_name,filetypes=[("监测日报项目文件","dr")])
-			with open(self.project_path, 'wb') as foj:
-				pass
+
+			if self.project_path:
+				#创建空文件
+				with open(self.project_path, 'wb') as foj:
+					pass
+			else:
+				return
+
+		PRO_PATH.append(self.project_path)
+
 		self.update_project_info()
 		self.save_project()
 		self.pro_top.destroy()
 
 
 	def discard_project(self):
+		'''
+		退出按钮函数
+		'''
 		global IS_UPDATED
 		IS_UPDATED = False
 		self.pro_top.destroy()
@@ -128,9 +143,12 @@ class MyPro(object):
 		PRO_INFO[:] = [self.v_name.get(), self.v_code.get(), self.v_contract.get(), self.v_builder.get(),\
 			self.v_supervisor.get(), self.v_observor.get()]
 		IS_UPDATED = True
-		print("DEBUG updat_project_info done, IS_UPDATED:", IS_UPDATED)
+
 
 	def retrieve_project_info(self):
+		'''
+		显示页面值
+		'''
 		self.v_name.set(PRO_INFO[D['name']])
 		self.v_code.set(PRO_INFO[D['code']])
 		self.v_contract.set(PRO_INFO[D['contract']])
@@ -140,6 +158,9 @@ class MyPro(object):
 
 
 	def save_project(self):
+		'''
+		保存项目信息到文件
+		'''
 		global PRO_INFO
 		with open(self.project_path, "wb") as fobj:
 			for item in PRO_INFO:
@@ -150,6 +171,9 @@ class MyPro(object):
 
 
 	def load_project(self):
+		'''
+		读取项目文件中的值
+		'''
 		global PRO_INFO
 		with open(self.project_path, 'rb') as fobj:
 			lines = fobj.readlines()
@@ -165,12 +189,10 @@ class MyPro(object):
 					ss = lines[i].decode('utf-8')
 					PRO_INFO[i] = ss.strip().strip(os.linesep)
 
-				print("DEBUG load success, PRO_INFO=",PRO_INFO)
-				if '' in PRO_INFO:
-					showwarning(title="警告", message="项目信息有缺失")
-
+				print("load success, PRO_INFO=",PRO_INFO)
+				#if '' in PRO_INFO:
+				#	showwarning(title="警告", message="项目信息有缺失")
 				return True
-
 
 
 def check_project_info():
