@@ -59,10 +59,48 @@ class MyDocx(object):
 		p = d.add_paragraph("单位名称: ")
 		p.add_run("  (盖章)   ").underline = True
 
-
 		d.add_paragraph("")
 		p = d.add_paragraph("%s" %self.proj.date)
+
+		###page###########
+		d.add_page_break()
+		###page###########
+
+
+		self.project_header(d)
+		d.add_paragraph("第三方检测审核单")
+		t = d.add_table(rows=1, cols=1)
+		t.cell(0, 0).text = "审核意见:\n\n\n监理工程师：   日期:  " 
+
+		###page###########
+		d.add_page_break()
+		###page###########
+
+		d.add_paragraph("检测分析报告")
+		d.add_paragraph("一、施工概况")
+
+		###page###########
+		d.add_page_break()
+		###page###########
+
+
 	##################make_head_page()################	
+	def project_header(self, d):
+		d.add_paragraph("%s" % self.proj.name)
+
+		p = d.add_paragraph("施工单位: ")
+		p.add_run("%s" % self.proj.builder).underline = True
+		p.add_run("    合同号: ")
+		p.add_run("%s" % self.proj.contract).underline = True
+
+		p = d.add_paragraph("监理单位: ")
+		p.add_run("%s" % self.proj.supervisor).underline = True
+		p.add_run("    编号: ")
+		p.add_run("%s" % self.proj.code).underline = True
+
+		p = d.add_paragraph("第三方检测单位: ")
+		p.add_run("%s" % self.proj.observor).underline = True
+
 
 if __name__ == '__main__':
 
