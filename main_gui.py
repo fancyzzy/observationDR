@@ -136,9 +136,26 @@ class MyTop(object):
 
 
 	def gen_report(self):
+		'''
+		生成日报按钮
+		'''
+		global D
 		global PRO_INFO
 		print("Generate Daily Report")
-		print(PRO_INFO)
+
+		#更新编码+期号
+		project_info = PRO_INFO[:]
+		project_info[D['code']] += '-%s'%(self.v_no.get())
+		#更新日期
+		project_info[D['date']] = '%s'%(self.v_date.get())
+
+		print(project_info)
+
+		#生成日报
+		
+
+		#还原期号，日期
+		project_info = PRO_INFO[:]
 	########gen_report########
 
 

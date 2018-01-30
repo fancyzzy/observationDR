@@ -2,7 +2,7 @@
 
 '''
 工程项目信息汇总
-新建，打开菜单
+新建, 打开, 保存
 '''
 import tkinter as tk
 from tkinter import ttk
@@ -10,11 +10,14 @@ from tkinter.filedialog import asksaveasfilename
 from tkinter.messagebox import showerror
 from tkinter.messagebox import showwarning
 import os
+from tkinter.filedialog import askopenfilename
 
 
 #工程项目名, 编号， 施工单位， 监理单位， 监测单位, 区间
-D = {"name":0, "area":1, "code":2, "contract":3, "builder":4, "supervisor":5, "observor":6}
-PRO_INFO = ["xxx工程","xx区间","xx编号","xx合同","xx施工单位","xx监理单位","xx监测单位"]
+D = {"name":0, "area":1, "code":2, "contract":3, "builder":4, "supervisor":5, "observor":6,\
+	"xlsx_path":7, "date":8}
+PRO_INFO = ["xxx工程","xx区间","xx编号","xx合同","xx施工单位","xx监理单位","xx监测单位",\
+	 "数据源文件地址","x年x月x日"]
 
 IS_UPDATED = False
 def is_project_updated():
@@ -87,6 +90,19 @@ class MyPro(object):
 
 		ttk.Label(self.pro_top, text='').pack()
 
+		#xlsx数据源
+		fm_xlsx = tk.Frame(self.pro_top)
+		ttk.Label(fm_xlsx, text='excel数据源: ').pack(side=tk.LEFT)
+		self.v_xlsx_path = tk.StringVar()
+		ttk.Entry(fm_xlsx, width=65, textvariable=self.v_xlsx_path).pack(side=tk.LEFT)
+		ttk.Button(fm_xlsx, text="...", width=5, command=self.select_xlsx).pack(side=tk.LEFT)
+		fm_xlsx.pack()
+
+
+		ttk.Label(self.pro_top, text='').pack()
+		ttk.Label(self.pro_top, text='').pack()
+
+
 		#确认，退出按钮
 		fm_button = tk.Frame(self.pro_top)
 		ttk.Button(fm_button, text="确认", width=15, command=self.confirm_project).grid(\
@@ -105,6 +121,18 @@ class MyPro(object):
 	#############__init__()#####################
 
 
+	def select_xlsx(self):
+		'''
+		选择数据源文件
+		'''
+		print("select xlsx file")
+		xlsx_path =askopenfilename(filetypes=[("excel数据源文件","xlsx")])
+		if xlsx_path and os.path.exists(xlsx_path):
+			self.v_xlsx_path.set(xlsx_path)
+		else:
+			pass
+
+
 	def confirm_project(self):
 		'''
 		保存确认按钮函数
@@ -114,9 +142,11 @@ class MyPro(object):
 		#认直接保存原来的这个文件
 		if self.project_path:
 			pass
-		#如果文件路径是None,说明是新建菜单进来的
-		#保存时，打开文件保存对话框，选择保存的文件
 		else:
+			if not self.v_name.get():
+				return
+			#如果文件路径是None,说明是新建菜单进来的
+			#保存时，打开文件保存对话框，选择保存的文件
 			project_name = self.v_name.get() + ".dr"
 			#新建一个文件，用于监测项目工程文件
 			self.project_path = asksaveasfilename(initialfile= project_name,filetypes=[("监测日报项目文件","dr")])
@@ -151,7 +181,8 @@ class MyPro(object):
 		global PRO_INFO
 		global IS_UPDATED
 		PRO_INFO[:] = [self.v_name.get(), self.v_area.get(), self.v_code.get(),\
-		 self.v_contract.get(), self.v_builder.get(), self.v_supervisor.get(), self.v_observor.get()]
+		 self.v_contract.get(), self.v_builder.get(), self.v_supervisor.get(), \
+		 self.v_observor.get(), self.v_xlsx_path.get(), 'x年x月x日']
 		IS_UPDATED = True
 
 
@@ -166,6 +197,7 @@ class MyPro(object):
 		self.v_builder.set(PRO_INFO[D['builder']])
 		self.v_supervisor.set(PRO_INFO[D['supervisor']])
 		self.v_observor.set(PRO_INFO[D['observor']])
+		self.v_xlsx_path.set(PRO_INFO[D['xlsx_path']])
 
 
 	def save_project(self):
