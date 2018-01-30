@@ -58,7 +58,6 @@ class MyTop(object):
 		fm_title.pack()
 
 
-
 		#No 编号
 		ttk.Label(self.fm_pro, text='').pack()
 		fm_no = tk.Frame(self.fm_pro)
@@ -75,7 +74,7 @@ class MyTop(object):
 		self.v_date = tk.StringVar()
 		self.entry_date = ttk.Entry(fm_date, width=20, textvariable=self.v_date)
 		self.entry_date.grid(row=1,column=1)
-		ttk.Label(fm_date, text='年/月/日').grid(row=1,column=2)
+		ttk.Label(fm_date, text='年.月.日').grid(row=1,column=2)
 		fm_date.pack()
 
 		#生成日报按钮
@@ -107,7 +106,7 @@ class MyTop(object):
 
 	def open_project(self):
 		print("Opened project")
-		self.f_path =askopenfilename(filetypes=[("监测日报项目文件","dr")])
+		self.f_path = os.path.normpath(askopenfilename(filetypes=[("监测日报项目文件","dr")]))
 		if self.f_path and os.path.exists(self.f_path):
 			my_pro = MyPro(self.top, self.f_path)
 		else:
@@ -145,17 +144,29 @@ class MyTop(object):
 
 		#更新编码+期号
 		project_info = PRO_INFO[:]
-		project_info[D['code']] += '-%s'%(self.v_no.get())
+		if self.v_no.get():
+			project_info[D['code']] += '-%s'%(self.v_no.get())
+
+		#检查日期是否合法	
+		pass
+		
 		#更新日期
 		project_info[D['date']] = '%s'%(self.v_date.get())
-
 		print(project_info)
 
-		#生成日报
-		
+		#日报文件名
+		docx_name = project_info[D['name']] + '日报' + project_info[D['date']] + '.docx'
+		#默认日报文件地址和项目文件地址一个文件夹
+		docx_path = os.path.join(os.path.dirname(self.f_path), docx_name)
+		with open(docx_path, 'wb') as fobj:
+			pass
 
-		#还原期号，日期
-		project_info = PRO_INFO[:]
+		#########生成日报##########
+		my_docx = gen_docx.MyDocx(docx_path, project_info, project_info[D['xlsx_path']])
+		res = my_docx.gen_docx()	
+		if res:
+			print("Done, saved as: '%s'" %docx_path)
+
 	########gen_report########
 
 

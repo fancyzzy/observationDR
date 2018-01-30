@@ -126,7 +126,7 @@ class MyPro(object):
 		选择数据源文件
 		'''
 		print("select xlsx file")
-		xlsx_path =askopenfilename(filetypes=[("excel数据源文件","xlsx")])
+		xlsx_path = os.path.normpath(askopenfilename(filetypes=[("excel数据源文件","xlsx")]))
 		if xlsx_path and os.path.exists(xlsx_path):
 			self.v_xlsx_path.set(xlsx_path)
 		else:
