@@ -105,14 +105,6 @@ class MyDocx(object):
 		t = d.add_table(rows=1, cols=1, style = 'Table Grid')
 		t.cell(0, 0).text = "审核意见:\n\n\n\n\n" + " "*80 +"监理工程师:" + " "*30 + "日期:" 
 
-		###page###########
-		d.add_page_break()
-		###page###########
-
-		p = d.add_paragraph("检测分析报告")
-		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-		p = d.add_paragraph()
-		p.add_run("一、施工概况")
 
 		result = True
 		return result
@@ -125,10 +117,24 @@ class MyDocx(object):
 		'''
 		result = False
 		d = self.docx
-		p = d.add_paragraph()
-		p.add_run("一、数据分析")
 
-		pass
+		###page###########
+		d.add_page_break()
+		###page###########
+
+		p = d.add_paragraph("检测分析报告")
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+		p = d.add_paragraph()
+		p.add_run("一、施工概况")
+		p = d.add_paragraph()
+
+		###page###########
+		d.add_page_break()
+		###page###########
+		p.add_run("二、数据分析")
+
+		#表标题
+		table_cap = "监测数据分析表"
 
 
 

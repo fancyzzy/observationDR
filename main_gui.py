@@ -43,7 +43,7 @@ class MyTop(object):
 		#初始标题
 		ttk.Label(self.top, text='').pack()
 		self.fm_init = tk.Frame(self.top)
-		label_init = ttk.Label(self.fm_init, text='工程监测日报自动生成系统')
+		label_init = ttk.Label(self.fm_init, text='监测日报助手1.0')
 		label_init.pack()
 		self.fm_init.pack()
 
@@ -74,7 +74,7 @@ class MyTop(object):
 		self.v_date = tk.StringVar()
 		self.entry_date = ttk.Entry(fm_date, width=20, textvariable=self.v_date)
 		self.entry_date.grid(row=1,column=1)
-		ttk.Label(fm_date, text='年.月.日').grid(row=1,column=2)
+		ttk.Label(fm_date, text='年/月/日').grid(row=1,column=2)
 		fm_date.pack()
 
 		#生成日报按钮
@@ -155,7 +155,8 @@ class MyTop(object):
 		print(project_info)
 
 		#日报文件名
-		docx_name = project_info[D['name']] + '日报' + project_info[D['date']] + '.docx'
+		docx_name = project_info[D['name']] + '监测日报' + \
+		project_info[D['date']].replace('/','.') + '.docx'
 		#默认日报文件地址和项目文件地址一个文件夹
 		docx_path = os.path.join(os.path.dirname(self.f_path), docx_name)
 		with open(docx_path, 'wb') as fobj:
