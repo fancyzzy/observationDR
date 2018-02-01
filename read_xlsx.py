@@ -2,6 +2,8 @@
 
 '''
 读取xlsx数据源
+解析所有sheet名称
+获取每个sheet的所有区间的名字和行范围
 '''
 import openpyxl
 
@@ -69,7 +71,7 @@ class MyXlsx(object):
 		sheet_areas_range = {}
 		area_name = ''
 		print("DEBUG get_one_sheet_areas_range start, sheet_name=", sheet_name)
-		sheet = self.xlsx.get_sheet_by_name(sheet_name)
+		sheet = self.xlsx[sheet_name]
 		print("DEBUG sheet got: ", sheet)
 		print("DEBUG sheet got type: ", type(sheet))
 		start = 0
@@ -78,26 +80,39 @@ class MyXlsx(object):
 		for i in range(1, 500):
 			#表格格式注意, 区间必须是在A列, A列开始为空
 			v_1_col = sheet.cell(row=i, column=1).value
+			print("DEBUG i:{}, v_1_col:{}".format(i, v_1_col))
 			v_2_col = sheet.cell(row=i, column=2).value
 			if v_1_col != None and (not start_count):
 				area_name = v_1_col
+				print("DEBUG found an area area_name=", v_1_col)
 				start = i
 				start_count = True
 
-			#发现新的area, 保存之前area的信息
+			#发现新的area, 保存之前area的name,和上一行的行号i-1
 			elif v_1_col != None and start_count:
-				sheet_areas_range[area_name] = (start,i)
-				area__name = v_1_col
+				sheet_areas_range[area_name] = (start,i-1)
+				print("DEBUG added an area{},({})".format(area_name, (start,i-1)))
+				print("DEBUG total:",sheet_areas_range)
+				#start 重新开始记录
+				area_name = v_1_col
 				start = i
 
-			#最后一个的后一个
+			#最后一行结束以2列的值全为空，为结束，并且已经开始计数
 			#表格格式注意, 观测点之间不能有空行
-			elif v_1_col == None and v_2_col == None:
-				sheet_areas_range[area_name] = (start,i)
+			elif v_1_col == None and v_2_col == None and start_count:
+				sheet_areas_range[area_name] = (start,i-1)
+				print("DEBUG added an area{},({})".format(area_name, (start,i-1)))
+				print("DEBUG total:",sheet_areas_range)
 				break
+
+			else:
+				#继续寻找
+				continue
 
 		print("DEBUG sheet '{}' has areas_range: {}".format(\
 			sheet_name, sheet_areas_range))
+
+		return sheet_areas_range
 	#######get_one_sheet_areas_range()###########################
 
 
