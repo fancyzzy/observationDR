@@ -139,6 +139,7 @@ class MyDocx(object):
 		一个区间的监测数据分析表
 		'''
 		d = self.docx
+		px = self.my_xlsx
 		t = d.add_table(rows=1, cols=8, style='Table Grid')
 		t.cell(0,0).text = '监测项目'
 		t.cell(0,1).text = '本次\n变化\n最大点'
@@ -162,8 +163,42 @@ class MyDocx(object):
 				related_sheets.append({sheet:all_range[sheet][area_name]})
 
 		print("DEBUG area: {}, related_sheets: {}".format(area_name,related_sheets))
+
+		#遍历这个站所有有关的测量数据	
 		for sheet in related_sheet:
-			pass
+			#获取这个sheet，这个日期的列坐标
+			col_index = px.get_item_col(sheet, self.date)
+			range_values = px.get_range_values(sheet, area_name, col_index)
+
+			#获取前一天的值, 这里是否应该找到有测量值的上一次？
+			last_range_values = px.get_range_values(sheet, area_name, col_index - 1)
+
+			#找到其中最大变化的
+			diff_range_values = []
+			ln = len(range_values)
+			for i in range(ln):
+				new_v = range_values[i]
+				last_v = last_range_values[i]
+				if new_v != None and last_v != None:
+					diff_range_values.append(abs(float(new_v) - float(last_v)))
+				else:
+					diff_range_values.append(0)
+
+
+			#对应位进行相减，放到新的def中，然后找到绝对值最大的，作为变换最大量
+			#None的位算0
+
+			#如果有最大值，不为None
+
+			#通过变化最大量的index和area的range找到行坐标
+
+			#通过行坐标，找到测量点列的测量点id
+
+			#新加一行，写入测量项目sheet，写入这个测量点id
+
+			#继续写日变化速率，累计变化最大点，累计变化量
+
+
 
 
 		

@@ -104,34 +104,42 @@ class MyXlsx(object):
 	#######get_one_sheet_areas_range()###########################
 
 
-	def get_col(self, sheet, val):
+	def get_item_col(self, sheet, item):
 		'''
-		通过一个日期，或者列字符，
-		找得这个值所在的列坐标
+		寻找第一第二排的某一项的在sheet里的列坐标
 		'''
-		#从后往前找
 		sh = self.wb[sheet]
+		#从后往前找
 		for i in range(self.d_maxcol[sheet], 0, -1):
-
 			#查找前两排，找到这个值，返回这个值的列坐标
 			#表格格式注意，日期用日期格式，python里面是
 			#datetime.datetime类型
 			#每个sheet的行表头在row1和row2
-			if val == sh.cell(1,i).value or val == sh.cell(2,i).value:
-				print("find! i=", i)
+			if item == sh.cell(1,i).value or item == sh.cell(2,i).value:
+				print("find column index! i=", i)
 				return i
 
 		return None
 
-	#########get_col()##########################################
+	#########get_item_col()##########################################
 
 
-	def get_values(self, sheet, area_name, col):
+	def get_range_values(self, sheet, area_name, col):
 		'''
-		通过sheet，area和列
-		返回area的这列的值[]
+		通过sheet，area和列坐标
+		返回area这一列的所有值, 到一个列表[]
+		列入返回1月1日这一列的衡山路站的测量值
 		'''
-		pass
+		sh = self.wb[sheet]
+		range_values = []
+
+		#获取area的测量点行范围row_range
+		start_row, end_row = self.all_areas_row_range[sheet][area_name]
+
+		for i in range(start_row, end_row+1):
+			range_values.append(sh.cell(i, col).value)
+
+		return
 	#########get_values()######################################
 
 
@@ -158,7 +166,7 @@ if __name__ == '__main__':
 	sd = datetime.strptime(ss, '%Y/%m/%d')
 	print("DEBUG sd=",sd)
 
-	i = my_xlsx.get_col('地表沉降', sd)
+	i = my_xlsx.get_item_col('地表沉降', sd)
 	print("i=",i)
 
 	'''
