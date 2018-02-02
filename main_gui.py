@@ -13,6 +13,8 @@ from tkinter.filedialog import askopenfilename
 import os
 from project_info import *
 import gen_docx
+import read_xlsx
+from datetime import datetime
 
 class MyTop(object):
 	def __init__(self):
@@ -25,6 +27,8 @@ class MyTop(object):
 
 		#工程文件路径
 		self.f_path = None
+		#xlsx类实例
+		self.my_xlsx = None
 
 		#菜单
 		self.menu_bar = tk.Menu(self.top)
@@ -37,7 +41,8 @@ class MyTop(object):
 		file_menu.add_command(label="新建工程", command=self.new_project)
 		file_menu.add_command(label="打开工程", command=self.open_project)
 		#file_menu.add_separator()
-		proj_menu.add_command(label="更改工程信息", command=self.display_update_project)
+		proj_menu.add_command(label="更改工程信息", command=\
+			self.display_update_project)
 		self.menu_bar.entryconfig("工程", state="disable")
 
 		#初始标题
@@ -80,7 +85,8 @@ class MyTop(object):
 		#生成日报按钮
 		ttk.Label(self.fm_pro, text='').pack()
 		fm_button = tk.Frame(self.fm_pro)
-		self.button_gen =ttk.Button(fm_button, text="生成日报", command=self.gen_report)
+		self.button_gen =ttk.Button(fm_button, text="生成日报", \
+			command=self.gen_report)
 		self.button_gen.pack()
 		fm_button.pack()
 		#初始化不显示工程标题
@@ -103,11 +109,12 @@ class MyTop(object):
 		my_pro = MyPro(self.top, None)
 
 
-
 	def open_project(self):
 		print("Opened project")
-		self.f_path = os.path.normpath(askopenfilename(filetypes=[("监测日报项目文件","dr")]))
+		self.f_path = askopenfilename(filetypes=[("监测日报项目文件","dr")])
+		print("DEBUG self.f_path = ",self.f_path)
 		if self.f_path and os.path.exists(self.f_path):
+			self.f_path = os.path.normpath(self.f_path)
 			my_pro = MyPro(self.top, self.f_path)
 		else:
 			pass
@@ -133,43 +140,66 @@ class MyTop(object):
 			self.fm_pro.pack()
 			self.menu_bar.entryconfig("工程", state="normal")
 
+	def load_xlsx(self):
+		'''
+		读取解析xlsx数据库
+		'''
+		global PRO_INFO
+		global D
+		print("start to load xlsx database")
+		self.my_xlsx = read_xlsx.MyXlsx(PRO_INFO[D['xlsx_path']])
+
+		print("load finished")
+		return True
+	#######load_xlsx()##############################################
+
 
 	def gen_report(self):
 		'''
-		生成日报按钮
+		生成日报
 		'''
 		global D
 		global PRO_INFO
-		print("Generate Daily Report")
+		print("Generate report start")
 
-		#更新编码+期号
+		#更新code = code+期号
 		project_info = PRO_INFO[:]
 		if self.v_no.get():
 			project_info[D['code']] += '-%s'%(self.v_no.get())
-
-		#检查日期是否合法	
-		pass
 		
 		#更新日期
-		project_info[D['date']] = '%s'%(self.v_date.get())
-		print(project_info)
+		s = self.v_date.get()
+		s.replace(r'\\', '/')
+		s.replace(r'.', '/')
+		datetime_value = datetime.strptime(s, '%Y/%m/%d')
+		project_info[D['date']] = datetime_value
+		#检查日期是否合法	
+		#pass
 
 		#日报文件名
 		docx_name = project_info[D['name']] + '监测日报' + \
 		project_info[D['date']].replace('/','.') + '.docx'
-		#默认日报文件地址和项目文件地址一个文件夹
+
+		#获取xlsx数据源
+		if not self.my_xlsx:
+			if not self.load_xlsx():
+				print("load xlsx failed")
+				return False
+		else:
+			pass
+
+		#创建日报docx文件, 默认存放日报文件地址和项目文件一个文件夹
 		docx_path = os.path.join(os.path.dirname(self.f_path), docx_name)
 		with open(docx_path, 'wb') as fobj:
 			pass
 
-		#########生成日报##########
-		my_docx = gen_docx.MyDocx(docx_path, project_info, project_info[D['xlsx_path']])
-		res = my_docx.gen_docx()	
-		if res:
-			print("Done, saved as: '%s'" %docx_path)
+		#生成日报
+		my_docx = gen_docx.MyDocx(docx_path, project_info, self.my_xlsx)
+		if my_docx.gen_docx():
+			print("Gen report done, saved as: '%s'" %docx_path)
 
-	########gen_report########
-
+		return True
+	########gen_report#########################################################
 
 
 

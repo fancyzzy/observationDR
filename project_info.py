@@ -14,10 +14,10 @@ from tkinter.filedialog import askopenfilename
 
 
 #工程项目名, 编号， 施工单位， 监理单位， 监测单位, 区间
-D = {"name":0, "area":1, "code":2, "contract":3, "builder":4, "supervisor":5, "observor":6,\
-	"xlsx_path":7, "date":8}
-PRO_INFO = ["xxx工程","xx区间","xx编号","xx合同","xx施工单位","xx监理单位","xx监测单位",\
-	 "数据源文件地址","x年x月x日"]
+D = {"name":0,"area":1,"code":2,"contract":3,"builder":4,"supervisor":5,\
+ "observor":6,"xlsx_path":7,"date":8}
+PRO_INFO = ["xxx工程","xx区间","xx编号","xx合同","xx施工单位","xx监理单位",\
+"xx监测单位","数据源文件地址","x年x月x日"]
 
 IS_UPDATED = False
 def is_project_updated():
@@ -28,6 +28,8 @@ PRO_PATH = []
 
 class MyPro(object):
 	def __init__(self, parent_top, file_path=None):
+		print("__init__ MyPro")
+
 		self.parent_top = parent_top
 		self.pro_top = tk.Toplevel(parent_top)
 		self.pro_top.title("工程信息")
@@ -60,15 +62,18 @@ class MyPro(object):
 		fm_company = tk.Frame(fm_info)
 		ttk.Label(fm_company, text='施工单位: ').grid(row=0, column=0)
 		self.v_builder = tk.StringVar()
-		ttk.Entry(fm_company, width=35, textvariable=self.v_builder).grid(row=0, column=1)
+		ttk.Entry(fm_company, width=35, textvariable=self.v_builder)\
+		.grid(row=0, column=1)
 
 		ttk.Label(fm_company, text='监理单位: ').grid(row=1, column=0)
 		self.v_supervisor = tk.StringVar()
-		ttk.Entry(fm_company, width=35, textvariable=self.v_supervisor).grid(row=1, column=1)
+		ttk.Entry(fm_company, width=35, textvariable=self.v_supervisor)\
+		.grid(row=1, column=1)
 
 		ttk.Label(fm_company, text='监测单位: ').grid(row=2, column=0)
 		self.v_observor = tk.StringVar()
-		ttk.Entry(fm_company, width=35, textvariable=self.v_observor).grid(row=2, column=1)
+		ttk.Entry(fm_company, width=35, textvariable=self.v_observor)\
+		.grid(row=2, column=1)
 		fm_company.pack(side=tk.LEFT)
 
 		ttk.Label(fm_info, width=2, text='').pack(side=tk.LEFT)
@@ -77,11 +82,13 @@ class MyPro(object):
 		fm_con = tk.Frame(fm_info)
 		ttk.Label(fm_con, text='合同号: ').grid(row=0, column=0)
 		self.v_contract = tk.StringVar()
-		ttk.Entry(fm_con, width=35, textvariable=self.v_contract).grid(row=0, column=1)
+		ttk.Entry(fm_con, width=35, textvariable=self.v_contract)\
+		.grid(row=0, column=1)
 
 		ttk.Label(fm_con, text='编号: ').grid(row=1, column=0)
 		self.v_code = tk.StringVar()
-		ttk.Entry(fm_con, width=35, textvariable=self.v_code).grid(row=1, column=1)
+		ttk.Entry(fm_con, width=35, textvariable=self.v_code)\
+		.grid(row=1, column=1)
 
 		ttk.Label(fm_con, text='').grid(row=2, column=0)
 		ttk.Label(fm_con, text='').grid(row=2, column=1)
@@ -94,22 +101,22 @@ class MyPro(object):
 		fm_xlsx = tk.Frame(self.pro_top)
 		ttk.Label(fm_xlsx, text='excel数据源: ').pack(side=tk.LEFT)
 		self.v_xlsx_path = tk.StringVar()
-		ttk.Entry(fm_xlsx, width=65, textvariable=self.v_xlsx_path).pack(side=tk.LEFT)
-		ttk.Button(fm_xlsx, text="...", width=5, command=self.select_xlsx).pack(side=tk.LEFT)
+		ttk.Entry(fm_xlsx, width=65, textvariable=self.v_xlsx_path)\
+		.pack(side=tk.LEFT)
+		ttk.Button(fm_xlsx, text="...", width=5, command=self.select_xlsx)\
+		.pack(side=tk.LEFT)
 		fm_xlsx.pack()
 
-
 		ttk.Label(self.pro_top, text='').pack()
 		ttk.Label(self.pro_top, text='').pack()
-
 
 		#确认，退出按钮
 		fm_button = tk.Frame(self.pro_top)
-		ttk.Button(fm_button, text="确认", width=15, command=self.confirm_project).grid(\
-			row=0, column=0)
+		ttk.Button(fm_button, text="确认", width=15, command=self.confirm_project)\
+		.grid(row=0, column=0)
 		ttk.Label(fm_button, width=2, text='').grid(row=0, column=1)
-		ttk.Button(fm_button, text="取消", width=15, command=self.discard_project).grid(\
-			row=0, column=2)
+		ttk.Button(fm_button, text="取消", width=15, command=self.discard_project)\
+		.grid(row=0, column=2)
 		fm_button.pack()
 
 		#当加载的项目文件非空，更新页面项目信息为文件中的信息
@@ -126,8 +133,9 @@ class MyPro(object):
 		选择数据源文件
 		'''
 		print("select xlsx file")
-		xlsx_path = os.path.normpath(askopenfilename(filetypes=[("excel数据源文件","xlsx")]))
+		xlsx_path = askopenfilename(filetypes=[("excel数据源文件","xlsx")])
 		if xlsx_path and os.path.exists(xlsx_path):
+			xlsx_path = os.path.normpath(xlsx_path)
 			self.v_xlsx_path.set(xlsx_path)
 		else:
 			pass
@@ -149,7 +157,8 @@ class MyPro(object):
 			#保存时，打开文件保存对话框，选择保存的文件
 			project_name = self.v_name.get() + ".dr"
 			#新建一个文件，用于监测项目工程文件
-			self.project_path = asksaveasfilename(initialfile= project_name,filetypes=[("监测日报项目文件","dr")])
+			self.project_path = asksaveasfilename(initialfile= project_name,\
+				filetypes=[("监测日报项目文件","dr")])
 
 			if self.project_path:
 				#创建空文件
@@ -218,6 +227,7 @@ class MyPro(object):
 		从硬盘读取项目文件
 		'''
 		global PRO_INFO
+		print("DEBUG self.project_path =", self.project_path)
 		with open(self.project_path, 'rb') as fobj:
 			lines = fobj.readlines()
 			ln = len(lines)
@@ -225,7 +235,8 @@ class MyPro(object):
 			if max_ln != ln:
 				print("Warnning, mismatch")
 				print("{}, ln= {}, max_ln={}".format(self.project_path, ln, max_ln))
-				showerror(title="项目文件错误", message="文件{}, 行数={}, 应该={}".format(self.project_path, ln, max_ln))
+				showerror(title="项目文件错误", message="文件{}, 行数={}, 应该={}\
+					".format(self.project_path, ln, max_ln))
 				return False
 			if ln == max_ln:
 				for i in range(max_ln):

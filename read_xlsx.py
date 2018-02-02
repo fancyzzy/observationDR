@@ -11,11 +11,12 @@ from datetime import datetime
 
 class MyXlsx(object):
 	def __init__(self, xlsx_path):
-		self.path = xlsx_path
+		print("__init__ MyXlsx")
 
-		print("init to load datasource...")
+		self.path = xlsx_path
+		print("load workbook %s..."%(xlsx_path))
 		self.wb = openpyxl.load_workbook(xlsx_path)
-		print("xlsx load finished.")
+		print("load finished.")
 
 		#获得所有的sheet页名单, 即观测项目
 		self.sheets =  self.wb.sheetnames[:]
@@ -25,14 +26,14 @@ class MyXlsx(object):
 		for sheet in self.sheets:
 			self.d_maxcol[sheet] = len(tuple(self.wb[sheet].columns))
 
-
 		#获取所有sheet的区间的行范围, 以字典形式为数据索引
 		#{'sheet1':{'area1':(1,10), 'area2':(11,15),...}, 'sheet2':{'area4':(1,23)}}
 		self.all_areas_row_range = self.get_all_sheets_areas_range()
+		print("get all sheets areas range done")
 
+		#疑问，是否可以用地表沉降的区间作为全部区间?
 		#获得'地表沉降'页的A列元素, 作为总区间汇总
 		#['area1','area2','area3',...'area8']
-		#疑问，是否可以用地表沉降的区间作为全部区间?
 		sheet_name = '地表沉降'
 		d_areas = self.all_areas_row_range[sheet_name]
 		self.areas = list(d_areas.keys())
@@ -43,9 +44,10 @@ class MyXlsx(object):
 		'''
 		获取所有sheet的area名和其观测点的行数范围
 		用一个字典嵌套字典作为将来获取表信息的索引数据库，例如下:
-		all_sheets_areas_range = {'sheet1':{'area1':(1,10), 'area2':(11,15),...}, 'sheet2':{'area4':(1,23)}}
-
+		all_sheets_areas_range = {'sheet1':{'area1':(1,10), 'area2':(11,15),...}, \
+		'sheet2':{'area4':(1,23)}}
 		'''
+		print("start 'get_all_sheets_areas_range'")
 		all_sheets_areas_range = {}
 		sheet_areas_range = {}
 
@@ -108,6 +110,9 @@ class MyXlsx(object):
 		'''
 		寻找第一第二排的某一项的在sheet里的列坐标
 		'''
+		print("start 'get_item_col'")
+		print("Debug to find sheet = {}, item = {}".format(sheet, item))
+
 		sh = self.wb[sheet]
 		#从后往前找
 		for i in range(self.d_maxcol[sheet], 0, -1):
@@ -115,6 +120,8 @@ class MyXlsx(object):
 			#表格格式注意，日期用日期格式，python里面是
 			#datetime.datetime类型
 			#每个sheet的行表头在row1和row2
+			#print("DEBUG finding, sh.cell(1,i).value:{}, sh.cell(2,i).value:{}".\
+				#format(sh.cell(1,i).value, sh.cell(2,i).value))
 			if item == sh.cell(1,i).value or item == sh.cell(2,i).value:
 				print("find column index! i=", i)
 				return i
@@ -130,6 +137,8 @@ class MyXlsx(object):
 		返回area这一列的所有值, 到一个列表[]
 		列入返回1月1日这一列的衡山路站的测量值
 		'''
+		print("start 'get_range_values'")
+		print("sheet = {}, area_name = {}, col = {}".format(sheet,area_name,col))
 		sh = self.wb[sheet]
 		range_values = []
 
@@ -139,7 +148,7 @@ class MyXlsx(object):
 		for i in range(start_row, end_row+1):
 			range_values.append(sh.cell(i, col).value)
 
-		return
+		return range_values
 	#########get_values()######################################
 
 
@@ -176,8 +185,5 @@ if __name__ == '__main__':
 	print("Debug ddd=",ddd)
 	print("DEBUG type(ddd)=",type(ddd))
 	'''
-
-
-
-	print("DEBUG done")
+	print("main end")
 
