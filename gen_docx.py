@@ -165,44 +165,109 @@ class MyDocx(object):
 		print("DEBUG area: {}, related_sheets: {}".format(area_name,related_sheets))
 
 		#遍历这个站所有有关的测量数据	
-		for sheet in related_sheet:
+		for sheet in related_sheets:
 			#获取这个sheet，这个日期的列坐标
 			col_index = px.get_item_col(sheet, self.date)
-			range_values = px.get_range_values(sheet, area_name, col_index)
+			today_range_values = px.get_range_values(sheet, area_name, col_index)
 
 			#获取前一天的值, 这里是否应该找到有测量值的上一次？
 			last_range_values = px.get_range_values(sheet, area_name, col_index - 1)
 
 			#找到其中最大变化的
-			diff_range_values = []
-			ln = len(range_values)
-			for i in range(ln):
-				new_v = range_values[i]
-				last_v = last_range_values[i]
-				if new_v != None and last_v != None:
-					diff_range_values.append(abs(float(new_v) - float(last_v)))
-				else:
-					diff_range_values.append(0)
-
-
 			#对应位进行相减，放到新的def中，然后找到绝对值最大的，作为变换最大量
 			#None的位算0
+			diff_original_values = []
+			diff_abs_values = []
+			ln = len(today_range_values)
+			for i in range(ln):
+				new_v = today_range_values[i]
+				last_v = last_range_values[i]
+				if new_v != None and last_v != None:
+					diff_original_values.append((float(new_v) - float(last_v))*1000)
+				else:
+					diff_original_values.append(0)
 
-			#如果有最大值，不为None
+			#求出绝对值最大的值
+			diff_abs_values = list(map(abs,diff_original_values))
+			max_change = max(diff_abs_values)
+			#如果有最大值，且不为0
+			if max_change != 0:
+				#通过变化最大量的index和area的range找到行坐标
+				#疑惑，这里有相同的最大值怎么办? 目前只找最前面的一个
+				max_idx = diff_abs_values.index(max_change)
+				row_start, row_end = related_sheets[sheet]
+				row_index = max_idx+ row_start
+				#通过行坐标，找到测量点列的测量点id
+				s_index = 'B%d'%row_index
+				obser_id = px.wb[sheet][s_index].value
+				print("DEBUG '本次变化最大点是': ", obser_id)
 
-			#通过变化最大量的index和area的range找到行坐标
+				#新加一行，写入测量项目sheet，写入这个测量点id
+				row = t.add_row()
+				#监测项目
+				row.cells[0].text = sheet
+				#本次变化最大点
+				row.cells[1].text = obser_id
+				#日变化速率
+				#保留两位小数
+				row.cells[2].text = round(diff_original_values[max_idx],2)
 
-			#通过行坐标，找到测量点列的测量点id
+				#日变量报警值空着
+				row.cells[3].text = ' '
 
-			#新加一行，写入测量项目sheet，写入这个测量点id
+				#求本次累计值 = 当前值-初值+旧累计值
+				acc_values = []
+				acc_abs_values = []
+				#获取'初值'这一列，在第3列
+				initial_range_values = px.get_range_values(sheet, area_name, 2)
+				print("DEBUG initial_range_values =", intial_range_values)
+				#获取'旧累计'这一列，在第4列
+				old_acc_range_values = px.get_range_values(sheet, area_name, 3)
+				for i in range(ln):
+					new_v = today_range_values[i]
+					init_v = initial_range_values[i]
+					oacc_v = old_acc_range_values[i]
+					if oacc_n == None:
+						oacc_v = 0
+					acc_values.append((float(new_v)-float(last_v))*1000 + float(oacc_v))
+				acc_abs_values = list(map(abs,acc_values))
+				max_acc = max(acc_abs_values)
+				max_acc_idx = acc_abs_values.index(max_acc)
+				row_index = max_acc_idx + row_start
+				s_index = 'B%d'%row_index
+				obser_id = px.wb[sheet][s_index].value
+				print("DBUGG '本次累计变化最大点是'：",obser_id)
+				row.cells[4].text = obser_id
+				row.cells[5].text = round(acc_values[max_acc_idx],2) 
 
-			#继续写日变化速率，累计变化最大点，累计变化量
+				#累计变量报警值 空着
+				row.cells[6].text = ' '
+				#累计变量控制值 空着
+				row.cells[7].text = ' '
+
+		#遍历这个站所有有关的测量数据	
+		#end for sheet in related_sheets
+
+		#爆破振动 行
+		row = t.add_row()
+		row.cells[0].text = '爆破振动'
+		second_cell = row.cells[1]
+		second_cell.merage(row.cells[7])
+		#巡检 行
+		row = t.add_row()
+		row.cells[0].text = '巡检'
+		second_cell = row.cells[1]
+		second_cell.merage(row.cells[7])
+		#数据分析 行
+		row = t.add_row()
+		first_cell = row.cells[0]
+		first_cell.merge(row.cells[7])
+		row.cells[0].text = '数据分析: '
 
 
-
-
-		
+		return
 	##########one_overview_table()############
+
 
 	def make_overview_pages(self):
 		'''
