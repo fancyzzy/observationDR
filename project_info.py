@@ -15,9 +15,9 @@ from tkinter.filedialog import askopenfilename
 
 #工程项目名, 编号， 施工单位， 监理单位， 监测单位, 区间
 D = {"name":0,"area":1,"code":2,"contract":3,"builder":4,"supervisor":5,\
- "observor":6,"xlsx_path":7,"date":8}
+ "third_observer":6,"builder_observer":7, "xlsx_path":8,"date":9}
 PRO_INFO = ["xxx工程","xx区间","xx编号","xx合同","xx施工单位","xx监理单位",\
-"xx监测单位","数据源文件地址","x年x月x日"]
+"xx第三方监测单位","xx施工方监测单位","数据源文件地址","x年x月x日"]
 
 IS_UPDATED = False
 def is_project_updated():
@@ -70,10 +70,16 @@ class MyPro(object):
 		ttk.Entry(fm_company, width=35, textvariable=self.v_supervisor)\
 		.grid(row=1, column=1)
 
-		ttk.Label(fm_company, text='监测单位: ').grid(row=2, column=0)
-		self.v_observor = tk.StringVar()
-		ttk.Entry(fm_company, width=35, textvariable=self.v_observor)\
+		ttk.Label(fm_company, text='第三方监测单位: ').grid(row=2, column=0)
+		self.v_third_observer = tk.StringVar()
+		ttk.Entry(fm_company, width=35, textvariable=self.v_third_observer)\
 		.grid(row=2, column=1)
+
+		ttk.Label(fm_company, text='施工方监测单位: ').grid(row=3, column=0)
+		self.v_builder_observer = tk.StringVar()
+		ttk.Entry(fm_company, width=35, textvariable=self.v_builder_observer)\
+		.grid(row=3, column=1)
+
 		fm_company.pack(side=tk.LEFT)
 
 		ttk.Label(fm_info, width=2, text='').pack(side=tk.LEFT)
@@ -191,7 +197,8 @@ class MyPro(object):
 		global IS_UPDATED
 		PRO_INFO[:] = [self.v_name.get(), self.v_area.get(), self.v_code.get(),\
 		 self.v_contract.get(), self.v_builder.get(), self.v_supervisor.get(), \
-		 self.v_observor.get(), self.v_xlsx_path.get(), 'x年x月x日']
+		 self.v_third_observer.get(), self.v_builder_observer.get(),\
+		  self.v_xlsx_path.get(), 'x年x月x日']
 		IS_UPDATED = True
 
 
@@ -205,7 +212,8 @@ class MyPro(object):
 		self.v_contract.set(PRO_INFO[D['contract']])
 		self.v_builder.set(PRO_INFO[D['builder']])
 		self.v_supervisor.set(PRO_INFO[D['supervisor']])
-		self.v_observor.set(PRO_INFO[D['observor']])
+		self.v_third_observer.set(PRO_INFO[D['third_observer']])
+		self.v_builder_observer.set(PRO_INFO[D['builder_observer']])
 		self.v_xlsx_path.set(PRO_INFO[D['xlsx_path']])
 
 

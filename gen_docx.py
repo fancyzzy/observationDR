@@ -10,9 +10,10 @@ import os
 
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 import read_xlsx
+from datetime import datetime
 
 ProInfo = namedtuple("ProInfo", ['name', 'area', 'code', 'contract', 'builder',\
-		'supervisor', 'observer', 'xlsx_path', 'date'])
+		'supervisor', 'third_observer', 'builder_observer', 'xlsx_path', 'date'])
 
 
 
@@ -31,6 +32,9 @@ class MyDocx(object):
 		self.docx = None
 		self.path = docx_path
 		self.date = proj_info[-1]
+		ds =  self.date.strftime("%Y/%m/%d")
+		self.str_date = ds.split('/')[0] + '年' + ds.split('/')[1] + '月' + \
+		ds.split('/')[2] + '日'
 		#xlsx实例
 		self.my_xlsx = my_xlsx
 	#########__init__()#####################################
@@ -91,7 +95,7 @@ class MyDocx(object):
 		p.add_run("%s" % self.proj.code).underline = True
 
 		p = d.add_paragraph("第三方检测单位: ")
-		p.add_run("%s" % self.proj.observer).underline = True
+		p.add_run("%s" % self.proj.third_observer).underline = True
 	################write_header()########################
 
 
@@ -112,7 +116,7 @@ class MyDocx(object):
 		p = d.add_paragraph("编号: ")
 		p.add_run("%s" % self.proj.code).underline = True
 		p = d.add_paragraph("检测日期: ")
-		p.add_run("%s" % self.proj.date).underline = True
+		p.add_run("%s" % self.str_date).underline = True
 
 		d.add_paragraph("报警: 是      否")
 		d.add_paragraph("报警内容: ")
@@ -128,7 +132,7 @@ class MyDocx(object):
 		p.add_run("  (盖章)   ").underline = True
 
 		d.add_paragraph("")
-		p = d.add_paragraph("%s" %self.proj.date)
+		p = d.add_paragraph("%s" %self.str_date)
 
 		###new page###########
 		d.add_page_break()
@@ -149,7 +153,7 @@ class MyDocx(object):
 		'''
 		一个区间的监测数据分析表
 		'''
-		print("Start 'one_overview_table' for area_name:",area_name,self.date)
+		print("Start 'one_overview_table' for area_name:",area_name,self.str_date)
 
 		d = self.docx
 		px = self.my_xlsx
@@ -371,17 +375,16 @@ class MyDocx(object):
 		return result
 	##################make_overview_pages()##############################
 
+
 	def one_security_table(self, area_name):
 		'''
 		一个区间的现场巡查报表
 		'''
-		print("Start 'one_security_table' for area_name:",area_name,self.date)
+		print("Start 'one_security_table' for area_name:",area_name,self.str_date)
 
 		d = self.docx
 		proj = self.proj
-		ds = proj.date.strftime("%Y/%m/%d")
-		dss = ds.split('/')[0] + '年' + ds.split('/')[1] + '月' + \
-		ds.split('/')[2] + '日'
+		ds = self.str_date
 
 		t = d.add_table(rows=10, cols=6, style='Table Grid')
 		t.cell(0,0).text = '线路名称'
@@ -395,7 +398,7 @@ class MyDocx(object):
 		t.cell(1,1).merge(t.cell(1,3))
 		t.cell(1,1).text = ''
 		t.cell(1,2).text = '第三方监测单位'
-		t.cell(1,3).text = proj.observer
+		t.cell(1,3).text = proj.third_observer
 
 		t.cell(2,0).text = '施工部位'
 		t.cell(2,1).text = proj.name + '主体'
@@ -438,10 +441,10 @@ class MyDocx(object):
 
 		t.cell(8,0).text = '现场巡视人'
 		t.cell(8,1).merge(t.cell(8,2))
-		t.cell(8,1).text = '          '+ dss
+		t.cell(8,1).text = '          '+ ds
 		t.cell(8,3).text = '项目技术负责人'
 		t.cell(8,4).merge(t.cell(8,5))
-		t.cell(8,4).text = '          '+ dss
+		t.cell(8,4).text = '          '+ ds
 
 		t.cell(9,0).merge(t.cell(9,5))
 		t.cell(9,0).text = '备注: '
@@ -492,7 +495,6 @@ class MyDocx(object):
 
 if __name__ == '__main__':
 
-	from datetime import datetime
 	#测试
 	date_v = '2018/1/1'
 	date_v = datetime.strptime(date_v, '%Y/%m/%d')
@@ -500,7 +502,7 @@ if __name__ == '__main__':
 	project_info = ["青岛市地铁1号线工程", "一、二工区", "DSFJC02-RB-594", \
 	"M1-ZX-2016-222", "中国中铁隧道局、十局集团有限公司",\
 	 "北京铁城建设监理有限责任公司", "中国铁路设计集团有限公司",\
-	  xlsx_path, date_v]
+	 '中铁隧道勘察设计研究院有限公司', xlsx_path, date_v]
 
 	docx_path = r'C:\Users\tarzonz\Desktop\demo1.docx'
 	#with open(docx_path, 'wb') as fobj:
