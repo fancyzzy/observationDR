@@ -10,11 +10,13 @@ email:fancyzzy@163.com
 import tkinter as tk
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename
+from tkinter.messagebox import showinfo
 import os
 from project_info import *
 import gen_docx
 import read_xlsx
 from datetime import datetime
+
 
 class MyTop(object):
 	def __init__(self):
@@ -62,7 +64,6 @@ class MyTop(object):
 		self.label_area.pack()
 		fm_title.pack()
 
-
 		#No 编号
 		ttk.Label(self.fm_pro, text='').pack()
 		fm_no = tk.Frame(self.fm_pro)
@@ -91,25 +92,36 @@ class MyTop(object):
 		fm_button.pack()
 		#初始化不显示工程标题
 		#self.fm_pro.pack()
-	########__init__()################
+	########__init__()#################################################
 
 
 	def enter_top(self,event):  
+		'''
+		当焦点在主界面时，根据工程是否存在，刷新主界面的显示内容
+		'''
 		global PRO_PATH
 		if event.widget == self.top:
 			print("Main GUI get the focus")
 			self.update_title()
 			if len(PRO_PATH) > 0:
 				self.f_path = PRO_PATH[-1]
+	#########enter_top()###############################################
 
 
 	def new_project(self):
+		'''
+		新建空的工程文件
+		'''
 		print("new project")
 		#None 表示新建文件工程
 		my_pro = MyPro(self.top, None)
+	#########new_project()###############################################
 
 
 	def open_project(self):
+		'''
+		选择工程dr文件，打开并且显示工程信息
+		'''
 		print("Opened project")
 		self.f_path = askopenfilename(filetypes=[("监测日报项目文件","dr")])
 		print("DEBUG self.f_path = ",self.f_path)
@@ -118,6 +130,7 @@ class MyTop(object):
 			my_pro = MyPro(self.top, self.f_path)
 		else:
 			pass
+	##################open_project()#####################################
 
 
 	def display_update_project(self):
@@ -128,6 +141,7 @@ class MyTop(object):
 			my_pro = MyPro(self.top, self.f_path)
 		else:
 			pass
+	#############display_update_project()#################################
 
 
 	def update_title(self):
@@ -139,6 +153,8 @@ class MyTop(object):
 			self.fm_init.pack_forget()
 			self.fm_pro.pack()
 			self.menu_bar.entryconfig("工程", state="normal")
+	############update_title()####################################		
+
 
 	def load_xlsx(self):
 		'''
@@ -196,11 +212,22 @@ class MyTop(object):
 		#生成日报
 		my_docx = gen_docx.MyDocx(docx_path, project_info, self.my_xlsx)
 		if my_docx.gen_docx():
-			print("Gen report done, saved as: '%s'" %docx_path)
+			s = "成功生成日报文件!\n %s" %docx_path
+			print(s)
+			self.popup_window(s)
 
 		return True
 	########gen_report#########################################################
 
+
+	def popup_window(self, s):
+		'''
+		弹出信息通知窗口
+		'''
+		showinfo(message = s)
+
+
+#class MyTop(object) end
 
 
 if __name__ == '__main__':
