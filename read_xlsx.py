@@ -29,7 +29,7 @@ class MyXlsx(object):
 		#获取所有sheet的区间的行范围, 以字典形式为数据索引
 		#{'sheet1':{'area1':(1,10), 'area2':(11,15),...}, 'sheet2':{'area4':(1,23)}}
 		self.all_areas_row_range = self.get_all_sheets_areas_range()
-		print("get all sheets areas range done")
+		print("get all sheets areas range done: ",self.all_areas_row_range)
 
 		#疑问，是否可以用地表沉降的区间作为全部区间?
 		#获得'地表沉降'页的A列元素, 作为总区间汇总

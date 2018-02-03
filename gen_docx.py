@@ -12,7 +12,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 import read_xlsx
 
 ProInfo = namedtuple("ProInfo", ['name', 'area', 'code', 'contract', 'builder',\
-		'supervisor', 'observor', 'xlsx_path', 'date'])
+		'supervisor', 'observer', 'xlsx_path', 'date'])
 
 
 
@@ -50,19 +50,22 @@ class MyDocx(object):
 		self.docx = Document()
 
 		#创建首页
-		print("start making header pages")
 		if not self.make_header_pages():
 			print("DEBUG make_head_page error")
 		else:
 			pass
 
 		#创建数据分析页
-		print("start making overview pages")
 		if not self.make_overview_pages():
 			print("DEBUG make_overview_pages error")
 		else:
 			pass
 
+		#创建现场安全巡视页
+		if not self.make_security_pages():
+			print("DEBUG make_security_pages error")
+		else:
+			pass
 
 		print("Saving...")
 		self.docx.save(self.path)
@@ -88,7 +91,7 @@ class MyDocx(object):
 		p.add_run("%s" % self.proj.code).underline = True
 
 		p = d.add_paragraph("第三方检测单位: ")
-		p.add_run("%s" % self.proj.observor).underline = True
+		p.add_run("%s" % self.proj.observer).underline = True
 	################write_header()########################
 
 
@@ -127,10 +130,8 @@ class MyDocx(object):
 		d.add_paragraph("")
 		p = d.add_paragraph("%s" %self.proj.date)
 
-		###page###########
+		###new page###########
 		d.add_page_break()
-		###page###########
-
 		self.write_header()
 
 		d.add_paragraph("第三方检测审核单")
@@ -167,11 +168,12 @@ class MyDocx(object):
 		#'sheet2':{'area4':(1,23)}}
 		related_sheets = []
 		for sheet in px.sheets:
+			#表格格式注意，每个sheet的第一列的区间名字要一一对应
 			if area_name in px.all_areas_row_range[sheet].keys():
-				#还要考虑这一天的测量点有值:
-				#pass
-				#related_sheets.append = [sheet1,sheet2,...]
-				related_sheets.append(sheet)
+					#还要考虑这一天的测量点有值:
+					#pass
+					#related_sheets.append = [sheet1,sheet2,...]
+					related_sheets.append(sheet)
 
 		print("DEBUG {}涵盖这些观测项目:{}".format(area_name,related_sheets))
 
@@ -312,19 +314,17 @@ class MyDocx(object):
 		d = self.docx
 		areas = self.my_xlsx.areas
 
-		###page###########
+		###new page###########
 		d.add_page_break()
-		###page###########
-
-		p = d.add_paragraph("检测分析报告")
+		p = d.add_paragraph()
+		p.add_run("检测分析报告")
 		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 		p = d.add_paragraph()
 		p.add_run("一、施工概况")
-		p = d.add_paragraph()
 
-		###page###########
+		###new page###########
 		d.add_page_break()
-		###page###########
+		p = d.add_paragraph()
 		p.add_run("二、数据分析")
 
 		#表标题
@@ -334,7 +334,7 @@ class MyDocx(object):
 		for area_name in areas:
 			print("###开始生成 {} 数据分析表###".format(area_name))
 			#test debug only one area
-			if '衡山路' in area_name:
+			if '衡山路站' in area_name:
 				i += 1
 				ss = '表' + '%d'%i + area_name + table_cap
 				d.add_paragraph(ss).paragraph_format.alignment = \
@@ -343,15 +343,150 @@ class MyDocx(object):
 			#Test open to all	
 			else:
 				pass
+				'''
 				i += 1
 				ss = '表' + '%d'%i + area_name + table_cap
 				d.add_paragraph(ss).paragraph_format.alignment = \
 				WD_ALIGN_PARAGRAPH.CENTER
 				self.one_overview_table(area_name)
+				'''
+
+		###new page###########
+		d.add_page_break()
+		p = d.add_paragraph()
+		p.add_run("三、结论")
+		###new page###########
+		d.add_page_break()
+		p = d.add_paragraph()
+		p.add_run("四、建议")
+
+		ss = "监测单位:             （盖章）"
+		p = d.add_paragraph()
+		p.add_run(ss)
+		ss = "负责人：              年  月  日 "
+		p = d.add_paragraph()
+		p.add_run(ss)
 
 		result = True
 		return result
 	##################make_overview_pages()##############################
+
+	def one_security_table(self, area_name):
+		'''
+		一个区间的现场巡查报表
+		'''
+		print("Start 'one_security_table' for area_name:",area_name,self.date)
+
+		d = self.docx
+		proj = self.proj
+		ds = proj.date.strftime("%Y/%m/%d")
+		dss = ds.split('/')[0] + '年' + ds.split('/')[1] + '月' + \
+		ds.split('/')[2] + '日'
+
+		t = d.add_table(rows=10, cols=6, style='Table Grid')
+		t.cell(0,0).text = '线路名称'
+		t.cell(0,1).text = proj.name
+		t.cell(0,2).text = '监测标段'
+		t.cell(0,3).text = ''
+		t.cell(0,4).text = '工点名称'
+		t.cell(0,5).text = area_name
+
+		t.cell(1,0).text = '重点风险源'
+		t.cell(1,1).merge(t.cell(1,3))
+		t.cell(1,1).text = ''
+		t.cell(1,2).text = '第三方监测单位'
+		t.cell(1,3).text = proj.observer
+
+		t.cell(2,0).text = '施工部位'
+		t.cell(2,1).text = proj.name + '主体'
+		t.cell(2,2).text = '天气'
+		t.cell(2,3).text = ''
+		t.cell(2,4).text = '施工方监测单位'
+		t.cell(2,5).text = proj.builder
+
+		t.cell(3,0).text = '巡视内容'
+		t.cell(3,1).text = '存在的问题描述'
+		t.cell(3,2).text = '原因分析'
+		t.cell(3,3).text = '可能导致的后果'
+		t.cell(3,4).text = '安全状态评价'
+		t.cell(3,5).text = '处置措施建议'
+
+		t.cell(4,0).text = '开挖面地质状况'
+		t.cell(4,1).text = '--'
+		t.cell(4,2).text = '地质条件'
+		t.cell(4,3).text = '--'
+		t.cell(4,4).text = '安全可控状态'
+		t.cell(4,5).text = '--'
+
+		t.cell(5,0).text = '支护结构体系'
+		t.cell(5,1).text = '--'
+		t.cell(5,2).text = '--'
+		t.cell(5,3).text = '--'
+		t.cell(5,4).text = '安全可控状态'
+		t.cell(5,5).text = '--'
+
+		t.cell(6,0).text = '周边环境'
+		t.cell(6,1).text = 'xx附近有高层建筑群'
+		t.cell(6,2).text = '自身结构较稳定'
+		t.cell(6,3).text = '可能导致房屋出现裂缝'
+		t.cell(6,4).text = '安全可控状态'
+		t.cell(6,5).text = '控制爆破药量进尺'
+
+		t.cell(7,0).text = '监测设施'
+		t.cell(7,1).merge(t.cell(7,5))
+		t.cell(7,1).text = '良好'
+
+		t.cell(8,0).text = '现场巡视人'
+		t.cell(8,1).merge(t.cell(8,2))
+		t.cell(8,1).text = '          '+ dss
+		t.cell(8,3).text = '项目技术负责人'
+		t.cell(8,4).merge(t.cell(8,5))
+		t.cell(8,4).text = '          '+ dss
+
+		t.cell(9,0).merge(t.cell(9,5))
+		t.cell(9,0).text = '备注: '
+
+	##################one_security_table()###############################
+
+
+	def make_security_pages(self):
+		'''
+		现场巡查报表
+		'''
+		print("Start 'make_security_pages'")
+
+		result = False
+		d = self.docx
+		areas = self.my_xlsx.areas
+		proj = self.proj
+
+		table_cap = '现场巡查报表'
+		i = 0
+		for area_name in areas:
+			print("###开始生成 {} 现场巡查报表###".format(area_name))
+			#test debug only one area
+			if '衡山路站' in area_name:
+				i += 1
+				ss = '表' + '%d'%i + ' 现场安全巡视表'
+				p = d.add_paragraph()
+				p.add_run(ss)
+
+				p = d.add_paragraph()
+				p.add_run(area_name).underline = True
+				p.add_run(table_cap)
+				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+				p = d.add_paragraph()
+				p.add_run('编号: ')
+				p.add_run(proj.code).underline = True
+				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+				self.one_security_table(area_name)
+			#Test open to all	
+			else:
+				pass
+
+		result = True
+		return result
+	#################make_security_pages()###############################
 
 
 
