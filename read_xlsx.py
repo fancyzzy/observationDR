@@ -14,8 +14,8 @@ class MyXlsx(object):
 		print("__init__ MyXlsx")
 
 		self.path = xlsx_path
-		print("load workbook %s..."%(xlsx_path))
-		self.wb = openpyxl.load_workbook(xlsx_path)
+		print("load workbook '%s'..."%(xlsx_path))
+		self.wb = openpyxl.load_workbook(xlsx_path, data_only=True)
 		print("load finished.")
 
 		#获得所有的sheet页名单, 即观测项目
@@ -110,8 +110,9 @@ class MyXlsx(object):
 		'''
 		寻找第一第二排的某一项的在sheet里的列坐标
 		'''
-		print("start 'get_item_col'")
-		print("Debug to find sheet = {}, item = {}".format(sheet, item))
+		#print("start 'get_item_col'")
+		print("Debug get_item_col '{}', 最大列数:{}, 寻找:{}".format(\
+			sheet,self.d_maxcol[sheet],item))
 
 		sh = self.wb[sheet]
 		#从后往前找
@@ -122,10 +123,12 @@ class MyXlsx(object):
 			#每个sheet的行表头在row1和row2
 			#print("DEBUG finding, sh.cell(1,i).value:{}, sh.cell(2,i).value:{}".\
 				#format(sh.cell(1,i).value, sh.cell(2,i).value))
+			#表格格式注意:日期类型code中是datetime.datetime, Excel中单元格选择date格式
 			if item == sh.cell(1,i).value or item == sh.cell(2,i).value:
-				print("find column index! i=", i)
+				print("发现该项目{}所对应的列{}".format(item,i))
 				return i
 
+		print("DEBUG 在'{}'中第一二排没有发现'{}'".format(sheet,item))
 		return None
 
 	#########get_item_col()##########################################

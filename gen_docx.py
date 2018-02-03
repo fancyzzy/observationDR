@@ -42,8 +42,9 @@ class MyDocx(object):
 		'''
 		print("start 'gen_docx'")
 
-		if not self.path or not os.path.exists(self.path):
-			print("error, not an available path")
+		#if not self.path or not os.path.exists(self.path):
+		if not self.path:
+			print("error, no available docx path")
 			return
 		
 		self.docx = Document()
@@ -147,7 +148,7 @@ class MyDocx(object):
 		'''
 		一个区间的监测数据分析表
 		'''
-		print("Start 'one_overview_table' for area_name:",area_name)
+		print("Start 'one_overview_table' for area_name:",area_name,self.date)
 
 		d = self.docx
 		px = self.my_xlsx
@@ -172,20 +173,27 @@ class MyDocx(object):
 				#related_sheets.append = [sheet1,sheet2,...]
 				related_sheets.append(sheet)
 
-		print("DEBUG area: {}, related_sheets: {}".format(\
-			area_name,related_sheets))
+		print("DEBUG {}涵盖这些观测项目:{}".format(area_name,related_sheets))
 
 		#遍历这个站所有有关的测量数据	
 		for sheet in related_sheets:
+		#略过这几个观测sheet，excel表格有疑问
+			if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
+			 sheet == '支撑轴力':
+				print("由于excel表格以为，暂时略过 {}".format(sheet))
+				continue
+			print("------DEBUG, '{}, {}' 数据分析表-------".format(area_name, sheet))
 			#获取这个sheet，这个日期的列坐标
 			col_index = px.get_item_col(sheet, self.date)
 			if col_index == None:
 				print("DEBUG error, col_index not found!")
 				continue
 			today_range_values = px.get_range_values(sheet, area_name, col_index)
+			print("DEBUG '当天值列':{}".format(today_range_values))
 
 			#获取前一天的值, 这里是否应该找到有测量值的上一次？
 			last_range_values = px.get_range_values(sheet, area_name, col_index-1)
+			print("DEBUG '昨天值列':{}".format(last_range_values))
 
 			#找到其中最大变化的
 			#对应位进行相减，放到新的def中，然后找到绝对值最大的，作为变换最大量
@@ -204,7 +212,7 @@ class MyDocx(object):
 			#求出绝对值最大的值
 			diff_abs_values = list(map(abs,diff_original_values))
 			max_change = max(diff_abs_values)
-			print("DEBUG get the max_change=",max_change)
+			print("DEBUG '最大变化值'是:{}".format(max_change))
 			#如果有最大值，且不为0
 			if max_change != 0:
 				#通过变化最大量的index和area的range找到行坐标
@@ -216,7 +224,7 @@ class MyDocx(object):
 				#通过行坐标，找到测量点列的测量点id
 				s_index = 'B%d'%row_index
 				obser_id = px.wb[sheet][s_index].value
-				print("DEBUG '本次变化最大点是': ", obser_id)
+				print("DEBUG '本次变化最大点'是:{}".format(obser_id))
 
 				#新加一行，写入测量项目sheet，写入这个测量点id
 				row = t.add_row()
@@ -236,26 +244,29 @@ class MyDocx(object):
 				acc_abs_values = []
 				#获取'初值'这一列，在第3列
 				initial_range_values = px.get_range_values(sheet, area_name, 3)
-				print("DEBUG 初始值列 =", initial_range_values)
+				print("DEBUG '初始值列':{}".format(initial_range_values))
 				#获取'旧累计'这一列，在第4列
 				old_acc_range_values = px.get_range_values(sheet, area_name, 4)
-				print("DEBUG 旧累计列 =", old_acc_range_values)
+				print("DEBUG '旧累计值列':{}".format(old_acc_range_values))
 				for i in range(ln):
 					new_v = today_range_values[i]
 					init_v = initial_range_values[i]
 					oacc_v = old_acc_range_values[i]
 					if oacc_v == None:
 						oacc_v = 0
-					acc_values.append((float(new_v)-float(init_v))*1000+float(oacc_v))
-				print("DEBUG 本次累计值 得出:",acc_values)
+					if new_v != None and init_v != None:
+						acc_values.append((float(new_v)-float(init_v))*1000+float(oacc_v))
+					else:
+						acc_values.append(0)
+				print("DEBUG '本次累计值列':{}".format(acc_values))
 				acc_abs_values = list(map(abs,acc_values))
 				max_acc = max(acc_abs_values)
-				print("DEBUG get the max_acc: ",max_acc)
+				print("DEBUG '最大累计值'是:{} ".format(max_acc))
 				max_acc_idx = acc_abs_values.index(max_acc)
 				row_index = max_acc_idx + row_start
 				s_index = 'B%d'%row_index
 				obser_id = px.wb[sheet][s_index].value
-				print("DBUGG '本次累计变化最大点是'：",obser_id)
+				print("DBUGG '本次累计变化最大点'是:{}".format(obser_id))
 				row.cells[4].text = obser_id
 				row.cells[5].text = str(round(acc_values[max_acc_idx],2))
 
@@ -263,6 +274,8 @@ class MyDocx(object):
 				row.cells[6].text = ' '
 				#累计变量控制值 空着
 				row.cells[7].text = ' '
+			else:
+				print("Debug warning, 无最大点！")
 
 		#遍历这个站所有有关的测量数据	
 		#end for sheet in related_sheets
@@ -277,11 +290,13 @@ class MyDocx(object):
 		row.cells[0].text = '巡检'
 		second_cell = row.cells[1]
 		second_cell.merge(row.cells[7])
+		row.cells[1].text = '现场无异常情况。'
 		#数据分析 行
 		row = t.add_row()
 		first_cell = row.cells[0]
 		first_cell.merge(row.cells[7])
-		row.cells[0].text = '数据分析: '
+		s = '今日各监测项目数据变化量较小，数据在可控范围内；监测频率为1次/1d。'
+		row.cells[0].text = '数据分析: ' + s
 
 		return
 	##########one_overview_table()###############################
@@ -315,9 +330,19 @@ class MyDocx(object):
 		#表标题
 		table_cap = "监测数据分析表"
 		i = 0
+		print("DEBUG start all areas:",areas)
 		for area_name in areas:
+			print("###开始生成 {} 数据分析表###".format(area_name))
 			#test debug only one area
 			if '衡山路' in area_name:
+				i += 1
+				ss = '表' + '%d'%i + area_name + table_cap
+				d.add_paragraph(ss).paragraph_format.alignment = \
+				WD_ALIGN_PARAGRAPH.CENTER
+				self.one_overview_table(area_name)
+			#Test open to all	
+			else:
+				pass
 				i += 1
 				ss = '表' + '%d'%i + area_name + table_cap
 				d.add_paragraph(ss).paragraph_format.alignment = \
@@ -343,8 +368,8 @@ if __name__ == '__main__':
 	  xlsx_path, date_v]
 
 	docx_path = r'C:\Users\tarzonz\Desktop\demo1.docx'
-	with open(docx_path, 'wb') as fobj:
-		pass
+	#with open(docx_path, 'wb') as fobj:
+	#	pass
 
 	data_source = r'C:\Users\tarzonz\Desktop\oreport\一二工区计算表2018.1.1.xlsx'
 	my_xlsx = read_xlsx.MyXlsx(xlsx_path)
