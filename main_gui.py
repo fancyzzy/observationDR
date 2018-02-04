@@ -215,6 +215,10 @@ class MyTop(object):
 			s = "成功生成日报文件!\n %s" %docx_path
 			print(s)
 			self.popup_window(s)
+		else:
+			s = "日报文件生成失败!"
+			print(s)
+			self.popup_window(s)
 
 		return True
 	########gen_report#########################################################
