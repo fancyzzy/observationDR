@@ -178,7 +178,7 @@ class MyXlsx(object):
 			s_value = sh.cell(row_index,col).value
 			if s_value and is_number(s_value):
 				avail_rows.append(row_index)
-				avail_values.append(s_value)
+				avail_values.append(float(s_value))
 
 		return avail_rows,avail_values
 	###########get_avail_rows_values()################################

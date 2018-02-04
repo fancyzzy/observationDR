@@ -514,7 +514,7 @@ class MyDocx(object):
 		返回三个列表:
 		row_list = [row_index1, row_index2,...,row_indexy]
 		date_list = [date7, date6, date4,...date1]
-		value_list = [[date7_v1, date7_v2,...], [date6_v1, date6_v2,...],...] len(row_list) * len(date_list)
+		value_list = [[date7_v1, date7_v2,...], [date6_v1, date6_v2,...],...] len(date_list) * len(row_list)
 		'''
 		px = self.my_xlsx
 		row_list = []
@@ -538,7 +538,7 @@ class MyDocx(object):
 		#如果不够7天的数据，直到找到不为日期那一天为止
 		row_list = today_rows
 		date_list.append(self.date)
-		value_list.append(today_values)
+		value_list.append(list(map(float(today_values))))
 
 		already_number = 1
 		col_index
@@ -553,7 +553,7 @@ class MyDocx(object):
 			if old_rows == today_rows:
 				#找到一列有效值
 				date_list.append(px.get_value(sheet, date_row_index, col_index))
-				value_list.append(old_values)
+				value_list.append(list(map(float(old_values))))
 				already_number += 1
 				if already_number == needed_num:
 					break
@@ -569,11 +569,13 @@ class MyDocx(object):
 	##############find_avail_rows_dates_values()#############################################
 
 
-	def draw_settlement_table(self, row_list, date_list, value_list, init_values):
+	def draw_settlement_table(self, sheet, row_list, date_list, value_list,\
+		 init_values, cell_row):
 		'''
 		画沉降监测表格
 		'''
 		d = self.docx
+		px = self.my_xlsx
 
 		t = d.add_table(rows=13, cols=10, style='Table Grid')
 		t.cell(0,0).merge(t.cell(0,9))
@@ -602,6 +604,57 @@ class MyDocx(object):
 		t.cell(2,8).text = '累计变量'
 
 		#填入数值
+		last_diffs = []
+		this_diffs = []
+		acc_diffs = []
+
+		ln_row = len(row_list)
+		ln_date = len(date_list)
+		#value_list = [[date7_v1, date7_v2,...], [date6_v1, date6_v2,...],...]
+		#value_list should be ln_date*ln_row
+		#init_values should be ln_row*1
+
+		if ln_date > 2:
+			for i in range(ln_row):
+				this_diffs.append(value_list[0][i] - value_list[1][i])
+				last_diffs.append(value_list[1][i] - value_list[2][i])
+				acc_diffs.append(value_list[0][i] - init_values[i])
+
+		elif ln_date ==2:
+			for i in range(ln_row):
+				this_diffs.append(value_list[0][i]-value_list[1][i])
+				acc_diffs.append(value_list[0][i] - init_values[i])
+			last_diffs = [0 for j in range(ln_row)]
+
+		elif ln_date == 1:
+			for i in range(ln_row):
+				acc_diffs.append(value_list[0][i] - init_values[i])
+			this_diffs = [0 for j in range(ln_row)]
+			last_diffs = [0 for j in range(ln_row)]
+
+		else:
+			print("Error, date_list None")
+			this_diffs = [0 for j in range(ln_row)]
+			last_diffs = this_diffs
+			acc_diffx = this_diffs
+
+
+		base_index = 2
+		if ln_row > cell_row:
+			for i in range(cell_row):
+			row_index = ln_row - cell_row
+
+			cell(base_index+i,0).text = px.get_value(sheet,row_list(i),2)
+			cell(base_index+1,5).text = px.get_value(sheet,row_list(row_index),2)
+			cell(base_index+i,0)
+
+		else:
+
+
+
+
+
+
 
 		t.cell(10,0).text = '累计变化量曲线图'
 		t.cell(10,1).merge(t.cell(10,9))
@@ -681,10 +734,11 @@ class MyDocx(object):
 			'''
 			ln = len(row_list)
 			split_num = 0
-			if ln/16 > ln//16:
-				split_num = ln//16 + 1
+			total_row = 16
+			if ln/total_row > ln//total_row:
+				split_num = ln//total_row + 1
 			else:
-				split_num = ln//16
+				split_num = ln//total_row
 
 			start = 0
 			for i in range(1, split_num+1):
@@ -712,8 +766,8 @@ class MyDocx(object):
 				p.add_run('              本次监测时间: '+ self.str_date)
 	
 				#制表
-				self.draw_settlement_table(sub_row_list, date_list,\
-				 sub_value_list, sub_initial_values)
+				self.draw_settlement_table(sheet, sub_row_list, date_list,\
+				 sub_value_list, sub_initial_values, total_row//2)
 				self.write_settlement_foot()
 
 	#############one_settlement_table()################################
