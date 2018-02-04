@@ -109,6 +109,7 @@ class MyXlsx(object):
 	def get_item_col(self, sheet, item):
 		'''
 		寻找第一第二排的某一项的在sheet里的列坐标
+		返回列坐标和行坐标
 		'''
 		#print("start 'get_item_col'")
 		print("Debug get_item_col '{}', 最大列数:{}, 寻找:{}".format(\
@@ -124,12 +125,13 @@ class MyXlsx(object):
 			#print("DEBUG finding, sh.cell(1,i).value:{}, sh.cell(2,i).value:{}".\
 				#format(sh.cell(1,i).value, sh.cell(2,i).value))
 			#表格格式注意:日期类型code中是datetime.datetime, Excel中单元格选择date格式
-			if item == sh.cell(1,i).value or item == sh.cell(2,i).value:
-				print("发现该项目{}所对应的列{}".format(item,i))
-				return i
+			if item == sh.cell(1,i).value:
+				return i, 1
+			if item == sh.cell(2,i).value:
+				return i, 2
 
 		print("DEBUG 在'{}'中第一二排没有发现'{}'".format(sheet,item))
-		return None
+		return None, None
 
 	#########get_item_col()##########################################
 
@@ -153,6 +155,41 @@ class MyXlsx(object):
 
 		return range_values
 	#########get_values()######################################
+
+
+	def get_avail_rows_values(self, sheet, rows, col):
+		'''
+		返回rows列表范围的
+		有值的行的index列表和值列表
+		'''
+		def is_number(s):
+			try:
+				float(s)
+				return True
+			except ValueError:
+				pass
+			return False
+
+		sh = self.wb[sheet]
+		avail_rows = []
+		avail_values = []
+
+		for row_index in rows:
+			s_value = sh.cell(row_index,col).value
+			if s_value and is_number(s_value):
+				avail_rows.append(row_index)
+				avail_values.append(s_value)
+
+		return avail_rows,avail_values
+	###########get_avail_rows_values()################################
+
+
+	def get_value(self, sheet, row, col):
+		'''
+		获取该单元格值
+		'''
+		return self.wb[sheet].cell(row,col).value
+
 
 
 if __name__ == '__main__':

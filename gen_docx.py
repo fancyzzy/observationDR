@@ -9,6 +9,7 @@ from collections import namedtuple
 import os
 
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Cm
 import read_xlsx
 from datetime import datetime
 
@@ -19,9 +20,14 @@ ProInfo = namedtuple("ProInfo", ['name', 'area', 'code', 'contract', 'builder',\
 
 #日报信息头页，总体监测分析表， 现场巡查表， 沉降监测表(地表，建筑物，管线),
 #测斜监测表，爆破振动监测表，平面布点图
-PAGE_CATEGORY = ['header', 'overview', 'environment', 'settlement_ground',\
+PAGE_CATEGORY = ['header', 'overview', 'security', 'settlement_ground',\
 	'settlement_buidling', 'settlement_pipeline', 'inclinometer', 'blasting',\
 	'floor_layout']
+
+
+def date_to_str(date_str):
+	ds = date_str.strftime("%Y/%m/%d")
+	return ds.split('/')[0] + '年' + ds.split('/')[1] + '月' + ds.split('/')[2] + '日'
 
 
 class MyDocx(object):
@@ -32,9 +38,7 @@ class MyDocx(object):
 		self.docx = None
 		self.path = docx_path
 		self.date = proj_info[-1]
-		ds =  self.date.strftime("%Y/%m/%d")
-		self.str_date = ds.split('/')[0] + '年' + ds.split('/')[1] + '月' + \
-		ds.split('/')[2] + '日'
+		self.str_date = date_to_str(self.date)
 		#xlsx实例
 		self.my_xlsx = my_xlsx
 	#########__init__()#####################################
@@ -70,6 +74,13 @@ class MyDocx(object):
 			print("DEBUG make_security_pages error")
 		else:
 			pass
+
+		#创建沉降监测表页
+		if not self.make_settlement_pages():
+			print("DEBUG make_settlement_pages error")
+		else:
+			pass
+
 
 		print("Saving...")
 		self.docx.save(self.path)
@@ -190,7 +201,7 @@ class MyDocx(object):
 				continue
 			print("------DEBUG, '{}, {}' 数据分析表-------".format(area_name, sheet))
 			#获取这个sheet，这个日期的列坐标
-			col_index = px.get_item_col(sheet, self.date)
+			col_index,_ = px.get_item_col(sheet, self.date)
 			if col_index == None:
 				print("DEBUG error, col_index not found!")
 				continue
@@ -405,7 +416,7 @@ class MyDocx(object):
 		t.cell(2,2).text = '天气'
 		t.cell(2,3).text = ''
 		t.cell(2,4).text = '施工方监测单位'
-		t.cell(2,5).text = proj.builder
+		t.cell(2,5).text = proj.builder_observer
 
 		t.cell(3,0).text = '巡视内容'
 		t.cell(3,1).text = '存在的问题描述'
@@ -467,8 +478,13 @@ class MyDocx(object):
 		i = 0
 		for area_name in areas:
 			print("###开始生成 {} 现场巡查报表###".format(area_name))
+			#加docx session，使用更加宽的页面布局
+			#pass
+
 			#test debug only one area
 			if '衡山路站' in area_name:
+				###new page###########
+				d.add_page_break()
 				i += 1
 				ss = '表' + '%d'%i + ' 现场安全巡视表'
 				p = d.add_paragraph()
@@ -492,6 +508,294 @@ class MyDocx(object):
 	#################make_security_pages()###############################
 
 
+	def find_avail_rows_dates_values(self, sheet, area_name, needed_num):
+		'''
+		找到7天的有效值列
+		返回三个列表:
+		row_list = [row_index1, row_index2,...,row_indexy]
+		date_list = [date7, date6, date4,...date1]
+		value_list = [[date7_v1, date7_v2,...], [date6_v1, date6_v2,...],...] len(row_list) * len(date_list)
+		'''
+		px = self.my_xlsx
+		row_list = []
+		date_list = []
+		value_list = []
+		each_date_values = []
+
+		#当天的有效行数index列表和值列表
+		start_row, end_row = px.all_areas_row_range[sheet][area_name]
+		row_list = list(range(start_row, end_row+1))
+		#获取当天日期的列坐标
+		col_index, date_row_index = px.get_item_col(sheet, self.date)
+		if col_index == None:
+			print("DEBUG error, col_index not found!")
+			return None, None, None
+		today_rows, today_values = px.get_avail_rows_values(sheet, row_list, col_index)
+		if len(today_rows) == 0:
+			print("{},{},{}当天无有效数据".format(area_name,sheet,self.date))
+			return None, None, None
+		#找到一共邻近7天的有效数据，一旦某一天的某一行有none值，略过该天
+		#如果不够7天的数据，直到找到不为日期那一天为止
+		row_list = today_rows
+		date_list.append(self.date)
+		value_list.append(today_values)
+
+		already_number = 1
+		col_index
+		ignore_number = 0
+		while 1:
+			col_index -= 1
+			v = px.get_value(sheet, date_row_index, col_index)
+			#如果不是日期型，说明过了最早的开头了，退出循环
+			if not 'datetime' in str(type(v)):
+				break
+			old_rows, old_values = px.get_avail_rows_values(sheet, today_rows, col_index)
+			if old_rows == today_rows:
+				#找到一列有效值
+				date_list.append(px.get_value(sheet, date_row_index, col_index))
+				value_list.append(old_values)
+				already_number += 1
+				if already_number == needed_num:
+					break
+			else:
+				#这一天的有none值，略过
+				#如果有none值的情况隔了5天，就不在找了
+				ignore_number += 1
+				if ignore_number >= 5:
+					break
+				continue
+
+		return row_list, date_list, value_list
+	##############find_avail_rows_dates_values()#############################################
+
+
+	def draw_settlement_table(self, row_list, date_list, value_list, init_values):
+		'''
+		画沉降监测表格
+		'''
+		d = self.docx
+
+		t = d.add_table(rows=13, cols=10, style='Table Grid')
+		t.cell(0,0).merge(t.cell(0,9))
+		s1 = '仪器型号: '
+		s2 = '               仪器出厂编号：'
+		s3 = '               检定日期：'
+		t.cell(0,0).text = s1+s2+s3
+		t.cell(1,0).merge(t.cell(2,0))
+		t.cell(1,1).merge(t.cell(1,3))
+		t.cell(1,0).text = '监测点号'
+		t.cell(1,1).text = '沉降变化量(mm)'
+		t.cell(1,4).merge(t.cell(2,4))
+		t.cell(1,4).text = '备注'
+		t.cell(1,5).merge(t.cell(2,5))
+		t.cell(1,5).text = '监测点号'
+		t.cell(1,6).merge(t.cell(1,8))
+		t.cell(1,6).text = '沉降变化量(mm)'
+		t.cell(1,9).merge(t.cell(2,9))
+		t.cell(1,9).text = '备注'
+
+		t.cell(2,1).text = '上次变量'
+		t.cell(2,2).text = '本次变量'
+		t.cell(2,3).text = '累计变量'
+		t.cell(2,6).text = '上次变量'
+		t.cell(2,7).text = '本次变量'
+		t.cell(2,8).text = '累计变量'
+
+		#填入数值
+
+		t.cell(10,0).text = '累计变化量曲线图'
+		t.cell(10,1).merge(t.cell(10,9))
+
+		#插入曲线图
+		demo_jpg = r'C:\Users\tarzonz\Desktop\oreport\demo.jpg'
+		p = t.cell(10,1).paragraphs[0]
+		run = p.add_run()
+		run.add_picture(demo_jpg, width=Cm(8), height=Cm(4.5))
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+		t.cell(11,0).text = '备注'
+		t.cell(11,1).merge(t.cell(11,9))
+		t.cell(11,1).text = '1、“-”为下降、“+”为上升；2、监测点布设图见附图'
+
+	##################draw_settlement_table()###################################
+
+
+	def one_settlement_table(self, area_name):
+		'''
+		一个沉降区间的变化监测表
+		步骤：
+		找到初始值列，和邻近7天的有效值列
+		直到找到不为日期格式的列位置，有多少列有效值就添加多少列
+		如果只有一列，即当天的，那么上次变化值为0
+		根据当天有效值的行数确定矩阵行数即为坐标的观测点行数范围，
+		如果该行数范围内前一天有None值，则略过改天。最终要求所有
+		有效值列都是有值的。如果当天的值都为None，那么跳过该sheet.
+		'''
+		print("Start 'one_settlement_table' for area_name:",area_name,\
+			self.str_date)
+
+		px = self.my_xlsx
+		d = self.docx
+
+		#找到这个area的所有观测项目
+		related_sheets = []
+		for sheet in px.sheets:
+			if area_name in px.all_areas_row_range[sheet].keys():
+					#related_sheets.append = [sheet1,sheet2,...]
+					related_sheets.append(sheet)
+
+		print("DEBUG {}涵盖这些观测项目:{}".format(area_name,\
+			related_sheets))
+
+		#遍历这个站所有有关的测量数据,绘制表格	
+		for sheet in related_sheets:
+			#略过这几个观测sheet，excel表格有疑问
+			if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
+				 sheet == '支撑轴力':
+				print("由于excel表格格式疑惑，暂时略过 {}".format(sheet))
+				continue
+			print("DEBUG, '{}, {}' 沉降变化监测报表".format(area_name,\
+				sheet))
+			table_cap = area_name + sheet + '报表'
+
+			#找到7天的有效数据值,包括行坐标，日期纵坐标和测量数据值矩阵!
+			row_list = []
+			date_list = []
+			value_list = []
+			row_list,date_list,value_list = \
+			self.find_avail_rows_dates_values(sheet,area_name,7)
+			if not row_list:
+				print("没有有效值")
+				continue
+			#从第三列获取到相应行的初始值
+			initial_values = px.get_avail_rows_values(sheet, row_list, 3)
+
+			#计算每个表能填多少个观测点
+			'''
+			监测点号一边8个，共两边，按照总监测点是16的x倍数，
+			则以总点数/x 来分
+			x/16 > x//16:
+			y = x//16+1
+			or
+			y = x//16
+			'''
+			ln = len(row_list)
+			split_num = 0
+			if ln/16 > ln//16:
+				split_num = ln//16 + 1
+			else:
+				split_num = ln//16
+
+			start = 0
+			for i in range(1, split_num+1):
+				end = (ln//split_num)* i
+				sub_row_list = row_list[start:end]
+				sub_value_list = value_list[start:end]
+				sub_initial_values = initial_values[start:end]
+				start = end 
+
+				print("------DEBUG, '{}, {}' 沉降变化监测表{}/{}---".format(\
+					area_name, sheet,i,split_num))
+				###new page###########
+				d.add_page_break()
+				self.write_settlement_header(area_name)
+				p = d.add_paragraph()	
+				p.add_run(area_name+sheet+'监测报表'+'%d/%d'%(i,split_num))
+				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+				last_date = ''
+				if len(date_list)==1:
+					last_date = '初始值'
+				else:
+					last_date = date_to_str(date_list[1])
+				p = d.add_paragraph()	
+				p.add_run('上次监测时间: '+last_date)
+				p.add_run('              本次监测时间: '+ self.str_date)
+	
+				#制表
+				self.draw_settlement_table(sub_row_list, date_list,\
+				 sub_value_list, sub_initial_values)
+				self.write_settlement_foot()
+
+	#############one_settlement_table()################################
+
+
+	def write_settlement_header(self, area_name):
+		'''
+		沉降变化表头项目信息
+		'''
+		d = self.docx
+		p = d.add_paragraph()
+		p.add_run(self.proj.name)
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+		p = d.add_paragraph()
+		p.add_run("%s主体"%area_name).underline = True
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+		p = d.add_paragraph()
+		p.add_run("施工单位: ")
+		p.add_run(self.proj.builder).underline = True
+		p.add_run("    编号: ")
+		p.add_run(self.proj.code).underline = True
+
+		p = d.add_paragraph()
+		p.add_run("监理单位: ")
+		p.add_run(self.proj.supervisor).underline = True
+		p = d.add_paragraph()
+		p.add_run("施工监测单位: ")
+		p.add_run(self.proj.builder_observer).underline = True
+
+	################write_settlement_header()########################
+
+
+	def write_settlement_foot(self):
+		'''
+		沉降变化表页脚信息
+		'''
+		d = self.docx
+		p = d.add_paragraph()
+		s = '现场监测人:              '
+		p.add_run(s)
+		s = '计算人:              '
+		p.add_run(s)
+		s = '校核人:              '
+		p.add_run(s)
+
+		p = d.add_paragraph()
+		s = '检测项目负责人:              '
+		p.add_run(s)
+
+		s = '第三方监测单位: '
+		p.add_run(s)
+		p.add_run(self.proj.third_observer)
+	##################write_settlementn_foot()###########################
+
+
+	def make_settlement_pages(self):
+		'''
+		沉降变化监测表
+		'''
+		print("Start 'make_settlement_pages'")
+
+		result = False
+		d = self.docx
+		areas = self.my_xlsx.areas
+		proj = self.proj
+
+		for area_name in areas:
+			print("###开始生成 {} 沉降监测报表###".format(area_name))
+			#test debug only one area
+			if '衡山路站' in area_name:
+				self.one_settlement_table(area_name)
+			#Test open to all	
+			else:
+				pass
+				#self.one_settlement_table(area_name)
+
+		result = True
+		return result
+
+	################make_settlement_pages()##########################
+
 
 if __name__ == '__main__':
 
@@ -505,6 +809,7 @@ if __name__ == '__main__':
 	 '中铁隧道勘察设计研究院有限公司', xlsx_path, date_v]
 
 	docx_path = r'C:\Users\tarzonz\Desktop\demo1.docx'
+	demo_jpg = r'C:\Users\tarzonz\Desktop\oreport\demo.jpg'
 	#with open(docx_path, 'wb') as fobj:
 	#	pass
 
