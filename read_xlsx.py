@@ -157,7 +157,7 @@ class MyXlsx(object):
 	#########get_values()######################################
 
 
-	def get_avail_rows_values(self, sheet, rows, col):
+	def get_avail_rows_values(self, sheet, rows, col, accept_none = False):
 		'''
 		返回rows列表范围的
 		有值的行的index列表和值列表
@@ -179,6 +179,11 @@ class MyXlsx(object):
 			if s_value and is_number(s_value):
 				avail_rows.append(row_index)
 				avail_values.append(float(s_value))
+			else:
+				#当接受none值是，变为0。给旧累计值用
+				if accept_none:
+					avail_rows.append(row_index)
+					avail_values.append(0)
 
 		return avail_rows,avail_values
 	###########get_avail_rows_values()################################
