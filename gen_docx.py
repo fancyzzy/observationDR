@@ -15,6 +15,7 @@ from datetime import datetime
 
 #求七天累计变化列表
 from numpy import array
+import draw_plot
 
 ProInfo = namedtuple("ProInfo", ['name', 'area', 'code', 'contract', 'builder',\
 		'supervisor', 'third_observer', 'builder_observer', 'xlsx_path', 'date'])
@@ -32,6 +33,10 @@ def date_to_str(date_str):
 	ds = date_str.strftime("%Y/%m/%d")
 	return ds.split('/')[0] + '年' + ds.split('/')[1] + '月' + ds.split('/')[2] + '日'
 
+def d2s(date_str):
+	ds = date_str.strftime("%Y/%m/%d")
+	return ds.split('/')[1] + '月' + ds.split('/')[2] + '日'
+
 
 class MyDocx(object):
 	def __init__(self, docx_path, proj_info, my_xlsx):
@@ -44,6 +49,7 @@ class MyDocx(object):
 		self.str_date = date_to_str(self.date)
 		#xlsx实例
 		self.my_xlsx = my_xlsx
+		self.my_plot = draw_plot.MyPlot()
 	#########__init__()#####################################
 
 
@@ -671,26 +677,35 @@ class MyDocx(object):
 		print("DEBUG array(value_list)", array(value_list))
 		print("shape array = ", array(value_list).shape)
 		print("DEBUG init_values", init_values)
-		print("DEBUG init_vlaues len=",len(init_values))
+		print("DEBUG init_vlaues le2=",len(init_values))
 		all_acc_diffs = []
-		all_acc_diffs = array(value_list) - init_values
+		all_acc_diffs = (array(value_list) - init_values)*1000 + old_acc_values
+		print("DEBUG all_acc_diffs=",all_acc_diffs)
+		print("DEBUG all_acc_diffs.shape=",all_acc_diffs.shape)
 
 		#画图
-		pass
+		idx_list = []
+		for row_idx in row_list:
+			idx_list.append(px.get_value(sheet,row_idx,2))
+		fig_path = self.my_plot.draw_date_plot(list(map(date_to_str,date_list)), \
+			all_acc_diffs.transpose(), idx_list)
+		if not os.path.exists(fig_path):
+			print("Debug, ERROR, fig_path not exists!")
+			fig_path = r'C:\Users\tarzonz\Desktop\oreport\demo.jpg'
 
-		t.cell(10,0).text = '累计变化量曲线图'
-		t.cell(10,1).merge(t.cell(10,9))
+		t.cell(11,0).text = '累计变化量曲线图'
+		t.cell(11,1).merge(t.cell(11,9))
 
 		#插入曲线图
-		demo_jpg = r'C:\Users\tarzonz\Desktop\oreport\demo.jpg'
-		p = t.cell(10,1).paragraphs[0]
+		#demo_jpg = r'C:\Users\tarzonz\Desktop\oreport\demo.jpg'
+		p = t.cell(11,1).paragraphs[0]
 		run = p.add_run()
-		run.add_picture(demo_jpg, width=Cm(8), height=Cm(4.5))
+		run.add_picture(fig_path, width=Cm(8), height=Cm(4.5))
 		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-		t.cell(11,0).text = '备注'
-		t.cell(11,1).merge(t.cell(11,9))
-		t.cell(11,1).text = '1、“-”为下降、“+”为上升；2、监测点布设图见附图'
+		t.cell(12,0).text = '备注'
+		t.cell(12,1).merge(t.cell(12,9))
+		t.cell(12,1).text = '1、“-”为下降、“+”为上升；2、监测点布设图见附图'
 
 	##################draw_settlement_table()###################################
 
@@ -739,6 +754,7 @@ class MyDocx(object):
 			value_list = []
 			row_list,date_list,value_list = \
 			self.find_avail_rows_dates_values(sheet,area_name,7)
+			print("DEBUGGGGGGGG date_list=",date_list)
 			if not row_list:
 				print("没有有效值")
 				continue
