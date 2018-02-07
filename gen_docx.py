@@ -37,6 +37,9 @@ def d2s(date_str):
 	ds = date_str.strftime("%Y/%m/%d")
 	return ds.split('/')[1] + '月' + ds.split('/')[2] + '日'
 
+def d_s(date_str):
+	ds = date_str.strftime("%Y/%m/%d")
+	return ds
 
 class MyDocx(object):
 	def __init__(self, docx_path, proj_info, my_xlsx):
@@ -687,7 +690,7 @@ class MyDocx(object):
 		idx_list = []
 		for row_idx in row_list:
 			idx_list.append(px.get_value(sheet,row_idx,2))
-		fig_path = self.my_plot.draw_date_plot(list(map(date_to_str,date_list)), \
+		fig_path = self.my_plot.draw_date_plot(list(map(d_s,date_list)), \
 			all_acc_diffs.transpose(), idx_list)
 		if not os.path.exists(fig_path):
 			print("Debug, ERROR, fig_path not exists!")
@@ -700,7 +703,7 @@ class MyDocx(object):
 		#demo_jpg = r'C:\Users\tarzonz\Desktop\oreport\demo.jpg'
 		p = t.cell(11,1).paragraphs[0]
 		run = p.add_run()
-		run.add_picture(fig_path, width=Cm(8), height=Cm(4.5))
+		run.add_picture(fig_path, width=Cm(13), height=Cm(5))
 		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 		t.cell(12,0).text = '备注'

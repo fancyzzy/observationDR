@@ -13,10 +13,13 @@ len_marker = len(MARKERS_ARRAY)
 class MyPlot(object):
 	def __init__(self):
 		self.plt = plt
+		self.plt.rcParams['figure.figsize'] = (11,5)
 		self.plt.rcParams['font.sans-serif'] = ['SimHei']
 		self.plt.rcParams['axes.unicode_minus'] = False
 		self.plt.rcParams['xtick.direction'] = 'in' 
 		self.plt.rcParams['ytick.direction'] = 'in' 
+		self.plt.rcParams['xtick.labelsize'] = 'x-large'
+		self.plt.rcParams['ytick.labelsize'] = 15
 
 		#new
 		#fig = self.plt.figure()
@@ -35,38 +38,29 @@ class MyPlot(object):
 		#self.plt.gca().xaxis.set_major_locator(mdate.DayLocator())
 
 		for i in range(ln):
-			self.plt.plot(date_list, value_arrays[i],linewidth='0.8', linestyle='-',\
-			 marker=MARKERS_ARRAY[-(i%len_marker)], label= sample_list[i])
+			self.plt.plot(date_list, value_arrays[i],linewidth='2.3', linestyle='-',\
+			 marker=MARKERS_ARRAY[-(i%len_marker)], markersize=12,label= sample_list[i])
 			#self.ax.plot(date_list, value_arrays[i],linewidth='0.8', linestyle='-',\
 			# marker=MARKERS_ARRAY[-(i%len_marker)], label= sample_list[i])
 
 		#self.plt.legend(loc='upper center',bbox_to_anchor=(0.5,1.08),ncol=4,\
 		#	fancybox=True,shadow=False)
-		self.plt.legend(loc='center right',bbox_to_anchor=(1.1,0.5),ncol=2,\
-			fancybox=True,shadow=True,markerscale=0.8,borderpad = 0.1,labelspacing=0.5,handlelength=1.2,\
-			columnspacing=0.2)
-		self.plt.grid(color='#9B9B9B',linewidth='0.5',linestyle='-.')
+		self.plt.legend(loc='center right',bbox_to_anchor=(1.,0.5),ncol=1,\
+			fancybox=True,shadow=True,markerscale=1.1,borderpad = 0.1,labelspacing=0.02,handlelength=1.3,\
+			columnspacing=0.02, fontsize=20)
+		self.plt.grid(linewidth='0.5',linestyle='-.')
 
+		#旋转横轴刻度文字
 		#self.plt.gcf().autofmt_xdate()
 
-
-		self.plt.xlabel('日期')
-		self.plt.ylabel('累计变化量(mm)')
+		#self.plt.xlabel('日期', fontsize='x-large')
+		self.plt.ylabel('累计变化量(mm)', fontsize=22)
 		self.plt.xlim(0,len(date_list)+1)
 
-		'''
-		self.plt.grid(color='#9B9B9B',linewidth='0.5',linestyle='-.')
-		#self.plt.xlim(0,len(date_list))
-
-		#self.plt.legend(loc = 'upper center')
-		self.plt.legend()
-		self.plt.xlabel('日期')
-		self.plt.ylabel('累计变化量(mm)')
-		'''
-
+		self.plt.tight_layout()
 		if save_flag:
 			aim_path = 'temped_fig.png'
-			self.plt.savefig(aim_path, format='png',dpi=300)
+			self.plt.savefig(aim_path, format='png',dpi=200,bbox_inches='tight')
 			print("DEBUG png file: aim_path has been saved",os.path.join(os.getcwd(),aim_path))
 			self.plt.clf()
 			return aim_path
