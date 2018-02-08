@@ -103,6 +103,7 @@ class MyPro(object):
 
 		ttk.Label(self.pro_top, text='').pack()
 
+
 		#xlsx数据源
 		fm_xlsx = tk.Frame(self.pro_top)
 		ttk.Label(fm_xlsx, text='excel数据源: ').pack(side=tk.LEFT)
@@ -112,6 +113,8 @@ class MyPro(object):
 		ttk.Button(fm_xlsx, text="...", width=5, command=self.select_xlsx)\
 		.pack(side=tk.LEFT)
 		fm_xlsx.pack()
+		ttk.Label(self.pro_top, text='注:把平面布点图片文件放到excel数据源同目录下').\
+		pack()
 
 		ttk.Label(self.pro_top, text='').pack()
 		ttk.Label(self.pro_top, text='').pack()

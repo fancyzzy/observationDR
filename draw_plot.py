@@ -46,7 +46,7 @@ class MyPlot(object):
 		#self.plt.legend(loc='upper center',bbox_to_anchor=(0.5,1.08),ncol=4,\
 		#	fancybox=True,shadow=False)
 		self.plt.legend(loc='center right',bbox_to_anchor=(1.,0.5),ncol=1,\
-			fancybox=True,shadow=True,markerscale=1.1,borderpad = 0.1,labelspacing=0.02,handlelength=1.3,\
+			fancybox=True,shadow=True,markerscale=1.1,borderpad = 0.5,labelspacing=0.02,handlelength=1.3,\
 			columnspacing=0.02, fontsize=20)
 		self.plt.grid(linewidth='0.5',linestyle='-.')
 

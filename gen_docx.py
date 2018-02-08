@@ -5,16 +5,15 @@
 '''
 
 from docx import Document
-from collections import namedtuple
-import os
-
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.section import WD_ORIENT
+from docx.enum.section import WD_SECTION
 from docx.shared import Cm
-import read_xlsx
+import os
 from datetime import datetime
-
-#求七天累计变化列表
+from collections import namedtuple
 from numpy import array
+import read_xlsx
 import draw_plot
 
 ProInfo = namedtuple("ProInfo", ['name', 'area', 'code', 'contract', 'builder',\
@@ -41,6 +40,33 @@ def d_s(date_str):
 	ds = date_str.strftime("%Y/%m/%d")
 	return ds
 
+def get_file_list(dir,file_list):
+	'''
+	获取目录dir下的所有文件名(文件路径)
+	略过隐藏的特殊文件
+	支持子目录
+	'''
+	try:
+		new_dir = dir
+		if os.path.isfile(dir):
+			file_list.append(dir)
+		elif os.path.isdir(dir):
+			for s in os.listdir(dir):
+				#略过特殊字符开头的文件或者文件夹
+				if not s[0].isdigit() and not s[0].isalpha():
+					#logger.warning("Hidden file:%s"%(s))
+					#logger.warning("Hidden file:{}".format(s))
+					if s != '.':
+						continue
+				new_dir = os.path.join(dir,s)
+				get_file_list(new_dir,file_list)
+		else:
+			pass
+	except Exception as e:
+		#logger.warning(e)
+		print("warning,e:",e)
+	return file_list
+
 class MyDocx(object):
 	def __init__(self, docx_path, proj_info, my_xlsx):
 		print("__init__ MyDocx")
@@ -49,6 +75,8 @@ class MyDocx(object):
 		self.docx = None
 		self.path = docx_path
 		self.date = proj_info[-1]
+		self.xlsx_path = os.path.dirname(proj_info[-2])
+		print("DEBUG xlsx path=",self.xlsx_path)
 		self.str_date = date_to_str(self.date)
 		#xlsx实例
 		self.my_xlsx = my_xlsx
@@ -75,26 +103,49 @@ class MyDocx(object):
 		else:
 			pass
 
-		#创建数据分析页
+		#创建数据分析页****
 		if not self.make_overview_pages():
 			print("DEBUG make_overview_pages error")
 		else:
 			pass
 
 		#创建现场安全巡视页
+		#new section landscape
+		#页面布局为横向
+		pass
 		if not self.make_security_pages():
 			print("DEBUG make_security_pages error")
 		else:
 			pass
 
-		#创建沉降监测表页
+
+		#创建沉降监测表页*****
+		#回复页面布局为纵向
+		pass
 		if not self.make_settlement_pages():
 			print("DEBUG make_settlement_pages error")
 		else:
 			pass
 
+		#测斜监测报表***
+		pass
 
-		print("Saving...")
+
+		#爆破振动监测报表
+		#new section landscape
+		#页面布局为横向
+		new_section = d.add_section(WD_SECTION.ODD_PAGE)
+		new_section.orientation = WD_ORIENT.LANDSCAPE
+		new_section.page_width = Cm(27.94)
+		new_section.page_height = Cm(21.59)
+		pass
+
+		#链接布点图word文件
+		if not self.make_layout_pages():
+			print("DEBUG make_layout_pages error")
+
+
+		print("All pages done, saving docx file...")
 		self.docx.save(self.path)
 		return True
 	#######gen_docx()####################################
@@ -700,7 +751,6 @@ class MyDocx(object):
 		t.cell(11,1).merge(t.cell(11,9))
 
 		#插入曲线图
-		#demo_jpg = r'C:\Users\tarzonz\Desktop\oreport\demo.jpg'
 		p = t.cell(11,1).paragraphs[0]
 		run = p.add_run()
 		run.add_picture(fig_path, width=Cm(13), height=Cm(5))
@@ -901,28 +951,53 @@ class MyDocx(object):
 
 	################make_settlement_pages()##########################
 
+	def make_layout_pages(self):
+		'''
+		把self.xlsx_path下的图片文件追加的docx中
+		'''
+		print("DEBUG start make_layout_pages")
+
+
+		d = self.docx
+
+
+		#获取文件夹下的所有文件地址:
+		file_list = get_file_list(self.xlsx_path, [])
+
+		for item in file_list:
+			print(item)
+			sufx = os.path.basename(item)
+			if '.xlsx' in sufx or '.docx' in sufx or '.dr' in sufx or '.txt' in sufx:
+				continue
+			try:
+				d.add_picture(item, width=Cm(23), height=Cm(18))
+				print("DEBUG success inserted!")
+			except:
+				print("not a picture file ".format(item))
+
+		print("Insert pictures done")
+		return True
+	#####################concatenate_new_docx()#######################
+
 
 if __name__ == '__main__':
 
 	#测试
+	print("Start Test")
+	xlsx_path = r'C:\Users\tarzonz\Desktop\演示工程A\一二工区计算表2018.1.1.xlsx' 
+	docx_path = r'C:\Users\tarzonz\Desktop\演示工程A\demo1.docx'
 	date_v = '2018/1/1'
 	date_v = datetime.strptime(date_v, '%Y/%m/%d')
-	xlsx_path = r'C:\Users\tarzonz\Desktop\oreport\一二工区计算表2018.1.1.xlsx' 
 	project_info = ["青岛市地铁1号线工程", "一、二工区", "DSFJC02-RB-594", \
 	"M1-ZX-2016-222", "中国中铁隧道局、十局集团有限公司",\
 	 "北京铁城建设监理有限责任公司", "中国铁路设计集团有限公司",\
 	 '中铁隧道勘察设计研究院有限公司', xlsx_path, date_v]
 
-	docx_path = r'C:\Users\tarzonz\Desktop\demo1.docx'
-	demo_jpg = r'C:\Users\tarzonz\Desktop\oreport\demo.jpg'
-	#with open(docx_path, 'wb') as fobj:
-	#	pass
 
-	data_source = r'C:\Users\tarzonz\Desktop\oreport\一二工区计算表2018.1.1.xlsx'
 	my_xlsx = read_xlsx.MyXlsx(xlsx_path)
 	my_docx = MyDocx(docx_path, project_info, my_xlsx)
-	res = my_docx.gen_docx()	
 
+	res = my_docx.gen_docx()	
 	if res:
 		print("'{}' has been created".format(docx_path))
 		print("Done")
