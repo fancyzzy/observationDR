@@ -38,7 +38,7 @@ class MyPlot(object):
 		#self.plt.gca().xaxis.set_major_locator(mdate.DayLocator())
 
 		for i in range(ln):
-			self.plt.plot(date_list, value_arrays[i],linewidth='2.3', linestyle='-',\
+			self.plt.plot(date_list, value_arrays[i],linewidth='1.0', linestyle='-',\
 			 marker=MARKERS_ARRAY[-(i%len_marker)], markersize=12,label= sample_list[i])
 			#self.ax.plot(date_list, value_arrays[i],linewidth='0.8', linestyle='-',\
 			# marker=MARKERS_ARRAY[-(i%len_marker)], label= sample_list[i])

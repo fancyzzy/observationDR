@@ -127,6 +127,9 @@ class MyDocx(object):
 		else:
 			pass
 
+		print("first saving docx file...")
+		self.docx.save(self.path)
+
 		#测斜监测报表***
 		pass
 
@@ -134,17 +137,17 @@ class MyDocx(object):
 		#爆破振动监测报表
 		#new section landscape
 		#页面布局为横向
-		new_section = d.add_section(WD_SECTION.ODD_PAGE)
+		new_section = self.docx.add_section(WD_SECTION.ODD_PAGE)
 		new_section.orientation = WD_ORIENT.LANDSCAPE
 		new_section.page_width = Cm(27.94)
 		new_section.page_height = Cm(21.59)
 		pass
 
-		#链接布点图word文件
+		#平面布点图
 		if not self.make_layout_pages():
 			print("DEBUG make_layout_pages error")
 
-
+		#保存
 		print("All pages done, saving docx file...")
 		self.docx.save(self.path)
 		return True
