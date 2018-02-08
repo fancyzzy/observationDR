@@ -23,10 +23,13 @@ class MyXlsx(object):
 
 		#预先保存所有sheet的最大列数
 		self.d_maxcol = {}
+		self.d_maxrow = {}
 		for sheet in self.sheets:
 			self.d_maxcol[sheet] = len(tuple(self.wb[sheet].columns))
+			self.d_maxrow[sheet] = len(tuple(self.wb[sheet].rows))
 
 		#获取所有sheet的区间的行范围, 以字典形式为数据索引
+		#注意表格格式，只适用于第一列是区间名，第二列是点号
 		#{'sheet1':{'area1':(1,10), 'area2':(11,15),...}, 'sheet2':{'area4':(1,23)}}
 		self.all_areas_row_range = self.get_all_sheets_areas_range()
 		print("get all sheets areas range done: ",self.all_areas_row_range)
@@ -52,6 +55,9 @@ class MyXlsx(object):
 		sheet_areas_range = {}
 
 		for sheet in self.sheets:
+			#test one sheet
+			#if sheet != '全站仪收敛(TBM)':
+			#	continue
 			sheet_areas_range = self.get_one_sheet_areas_range(sheet)
 			all_sheets_areas_range[sheet] = sheet_areas_range
 
@@ -64,38 +70,44 @@ class MyXlsx(object):
 		获取一个sheet的所有区间的行范围
 		返回值: sheet_areas_range = {'area1':(1,10), 'area2':(11,15),...'area4':(30,35)} 
 		含义是{区间名:(起始行数,结束行数)
-
+		input:
+		sheet_name
+		output:
+		col_index, row_index
 		'''
+		#以初值列划定区间的行号范围
+		init_col,_ = self.get_item_col(sheet_name, '初值', False)
+
 		sheet_areas_range = {}
 		area_name = ''
 		sheet = self.wb[sheet_name]
 		start = 0
 		start_count = False
-		#最大支持500行的观测点个数
-		for i in range(1, 500):
+		#多找10行,避免只有一个区间的表最后一行就是区间的最后，无法满足
+		#三列都是空
+		len_max_rows = len(tuple(sheet.rows)) + 1+ 10
+		for i in range(1, len_max_rows):
 			#表格格式注意, 区间必须是在A列, A列开始为空
 			v_1_col = sheet.cell(row=i, column=1).value
-			#print("DEBUG i:{}, v_1_col:{}".format(i, v_1_col))
 			v_2_col = sheet.cell(row=i, column=2).value
+			v_init = sheet.cell(row=i, column=init_col).value
 			if v_1_col != None and (not start_count):
 				area_name = v_1_col
-				#print("DEBUG found an area area_name=", v_1_col)
 				start = i
 				start_count = True
 
 			#发现新的area, 保存之前area的name,和上一行的行号i-1
 			elif v_1_col != None and start_count:
 				sheet_areas_range[area_name] = (start,i-1)
-				#print("DEBUG added an area{},({})".format(area_name, (start,i-1)))
 				#start 重新开始记录
 				area_name = v_1_col
 				start = i
 
-			#最后一行结束以2列的值全为空，为结束，并且已经开始计数
+			#最后一行结束以3列的值全为空，为结束，并且已经开始计数
 			#表格格式注意, 观测点之间不能有空行
-			elif v_1_col == None and v_2_col == None and start_count:
+			elif v_1_col == None and v_2_col == None and start_count\
+			and v_init == None:
 				sheet_areas_range[area_name] = (start,i-1)
-				#print("DEBUG added an area{},({})".format(area_name, (start,i-1)))
 				break
 
 			else:
@@ -106,18 +118,28 @@ class MyXlsx(object):
 	#######get_one_sheet_areas_range()###########################
 
 
-	def get_item_col(self, sheet, item):
+	def get_item_col(self, sheet, item, from_last_search = True):
 		'''
 		寻找第一第二排的某一项的在sheet里的列坐标
 		返回列坐标和行坐标
 		'''
 		#print("start 'get_item_col'")
-		print("Debug get_item_col '{}', 最大列数:{}, 寻找:{}".format(\
-			sheet,self.d_maxcol[sheet],item))
+		print("Debug get_item_col '{}',最大行数:{}, 最大列数:{}, 寻找:{}".\
+			format(sheet,self.d_maxrow[sheet],self.d_maxcol[sheet],item))
 
+		start = 0
+		end = 0
+		step = 0
+		if from_last_search:
+			start = self.d_maxcol[sheet]
+			end = 0
+			step = -1
+		else:
+			start = 1
+			end = self.d_maxcol[sheet]+1
+			step = 1
 		sh = self.wb[sheet]
-		#从后往前找
-		for i in range(self.d_maxcol[sheet], 0, -1):
+		for i in range(start,end,step):
 			#查找前两排，找到这个值，返回这个值的列坐标
 			#表格格式注意，日期用日期格式，python里面是
 			#datetime.datetime类型
@@ -125,9 +147,9 @@ class MyXlsx(object):
 			#print("DEBUG finding, sh.cell(1,i).value:{}, sh.cell(2,i).value:{}".\
 				#format(sh.cell(1,i).value, sh.cell(2,i).value))
 			#表格格式注意:日期类型code中是datetime.datetime, Excel中单元格选择date格式
-			if item == sh.cell(1,i).value:
+			if sh.cell(1,i).value and item == sh.cell(1,i).value:
 				return i, 1
-			if item == sh.cell(2,i).value:
+			if sh.cell(2,i).value and item == sh.cell(2,i).value:
 				return i, 2
 
 		print("DEBUG 在'{}'中第一二排没有发现'{}'".format(sheet,item))
@@ -219,8 +241,7 @@ if __name__ == '__main__':
 	ss = '2018/1/1'
 	sd = datetime.strptime(ss, '%Y/%m/%d')
 	print("DEBUG sd=",sd)
-
-	i = my_xlsx.get_item_col('地表沉降', sd)
+	i,_ = my_xlsx.get_item_col('地表沉降', sd)
 	print("i=",i)
 
 	'''
