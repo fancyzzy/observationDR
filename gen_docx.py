@@ -127,12 +127,14 @@ class MyDocx(object):
 		else:
 			pass
 
-		print("first saving docx file...")
 		self.docx.save(self.path)
 
 		#测斜监测报表***
-		pass
+		if not self.make_inclinometer_pages():
+			print("DEBUG make_inclinometer_pages error")
 
+
+		self.docx.save(self.path)
 
 		#爆破振动监测报表
 		#new section landscape
@@ -228,7 +230,7 @@ class MyDocx(object):
 
 	def one_overview_table(self, area_name):
 		'''
-		一个区间的监测数据分析表
+		一个区间的各种观测监信息汇总表
 		'''
 		print("Start 'one_overview_table' for area_name:",area_name,self.str_date)
 
@@ -574,12 +576,12 @@ class MyDocx(object):
 	#################make_security_pages()###############################
 
 
-	def find_avail_rows_dates_values(self, sheet, area_name, needed_num):
+	def find_avail_rows_dates_values(self, sheet, area_name, needed_num=7):
 		'''
-		找到7天的有效值列
+		找到needed_num = 7天的有效值列
 		返回三个列表:
 		row_list = [row_index1, row_index2,...,row_indexy]
-		date_list = [date7, date6, date4,...date1]
+		date_list = [date7,date6,date5,date4,date3,date2,date1]
 		value_list = [[date7_v1, date7_v2,...], [date6_v1, date6_v2,...],...] len(date_list) * len(row_list)
 		'''
 		px = self.my_xlsx
@@ -590,13 +592,15 @@ class MyDocx(object):
 
 		#当天的有效行数index列表和值列表
 		start_row, end_row = px.all_areas_row_range[sheet][area_name]
+		#注意！list(range(3,5)) = [3,4], so need to add 1
 		row_list = list(range(start_row, end_row+1))
 		#获取当天日期的列坐标
-		col_index, date_row_index = px.get_item_col(sheet, self.date)
-		if col_index == None:
-			print("DEBUG error, col_index not found!")
+		today_col_index, today_row_index = px.get_item_col(sheet, self.date)
+		if today_col_index == None:
+			print("DEBUG error, today_col_index not found!")
 			return None, None, None
-		today_rows, today_values = px.get_avail_rows_values(sheet, row_list, col_index)
+		today_rows, today_values = px.get_avail_rows_values(sheet, row_list,\
+		 today_col_index)
 		if len(today_rows) == 0:
 			print("{},{},{}当天无有效数据".format(area_name,sheet,self.date))
 			return None, None, None
@@ -607,18 +611,18 @@ class MyDocx(object):
 		value_list.append(list(map(float,today_values)))
 
 		already_number = 1
-		col_index
+		col_index = today_col_index
 		ignore_number = 0
 		while 1:
 			col_index -= 1
-			v = px.get_value(sheet, date_row_index, col_index)
+			v = px.get_value(sheet, today_row_index, col_index)
 			#如果不是日期型，说明过了最早的开头了，退出循环
 			if not 'datetime' in str(type(v)):
 				break
 			old_rows, old_values = px.get_avail_rows_values(sheet, today_rows, col_index)
 			if old_rows == today_rows:
 				#找到一列有效值
-				date_list.append(px.get_value(sheet, date_row_index, col_index))
+				date_list.append(px.get_value(sheet, today_row_index, col_index))
 				value_list.append(list(map(float,old_values)))
 				already_number += 1
 				if already_number == needed_num:
@@ -766,9 +770,10 @@ class MyDocx(object):
 	##################draw_settlement_table()###################################
 
 
-	def one_settlement_table(self, area_name):
+	def multi_settlement_table(self, area_name):
 		'''
-		一个沉降区间的变化监测表
+		一个区间的多个沉降观测表
+
 		步骤：
 		找到初始值列，和邻近7天的有效值列
 		直到找到不为日期格式的列位置，有多少列有效值就添加多少列
@@ -777,7 +782,7 @@ class MyDocx(object):
 		如果该行数范围内前一天有None值，则略过改天。最终要求所有
 		有效值列都是有值的。如果当天的值都为None，那么跳过该sheet.
 		'''
-		print("Start 'one_settlement_table' for area_name:",area_name,\
+		print("Start 'multi_settlement_table' for area_name:",area_name,\
 			self.str_date)
 
 		px = self.my_xlsx
@@ -804,7 +809,8 @@ class MyDocx(object):
 				sheet))
 			table_cap = area_name + sheet + '报表'
 
-			#找到7天的有效数据值,包括行坐标，日期纵坐标和测量数据值矩阵!
+			#找到该区间所有观测点的邻近7天的有效数据值,
+			#包括行坐标，日期纵坐标和测量数据值矩阵!
 			row_list = []
 			date_list = []
 			value_list = []
@@ -874,12 +880,12 @@ class MyDocx(object):
 				self.write_settlement_foot()
 				print("----finished-----\n")
 
-	#############one_settlement_table()################################
+	#############multi_settlement_table()################################
 
 
 	def write_settlement_header(self, area_name):
 		'''
-		沉降变化表头项目信息
+		沉降变化表/测斜表，项目信息
 		'''
 		d = self.docx
 		p = d.add_paragraph()
@@ -907,7 +913,7 @@ class MyDocx(object):
 
 	def write_settlement_foot(self):
 		'''
-		沉降变化表页脚信息
+		沉降变化表/测斜表页脚信息
 		'''
 		d = self.docx
 		p = d.add_paragraph()
@@ -943,19 +949,191 @@ class MyDocx(object):
 			print("###开始生成 {} 沉降监测报表###".format(area_name))
 			#test debug only one area
 			if '衡山路站' in area_name:
-				self.one_settlement_table(area_name)
+				self.multi_settlement_table(area_name)
 			#Test open to all	
 			else:
 				pass
-				#self.one_settlement_table(area_name)
+				#self.multi_settlement_table(area_name)
 
 		result = True
 		return result
 
 	################make_settlement_pages()##########################
 
+
+	def one_inclinometer_table(self, sheet_name, area_name, obser_list,\
+		d_obser_deeps, today_col, deep_col, init_col, old_acc_col):
+		'''
+		一个测斜监测表, 含有两个或者一个观测点，按照深度的变化数据
+		input:
+		#d_area_obser = {'area1':('observer1','observ2','observer3'..),..}
+		#d_obser_deeps={'observer1:(3,33),'observer2:(34:74),...}
+		'''
+		print("Start 'one_inclinometer_table for{}, {}:".format(\
+			area_name,self.str_date))
+
+		px = self.my_xlsx
+		d = self.docx
+
+		#画表
+		
+
+		deep_values = []
+		today_values = []
+		lastday_values = []
+		init_values = []
+		old_acc_values = []
+		max_deep_values = []
+		for obser in obser_list:
+			start_row, end_row = d_obser_deeps[obser]
+			#注意！list(range(3,5)) = [3,4], so need to add 1
+			row_list = list(range(start_row, end_row+1))
+
+			#找到这个观测点对应行数范围内深度的数据
+			_, deep_values = px.get_avail_rows_values(sheet_name, row_list,\
+		 	deep_col, False)
+		 	if len(deep_values) > len(max_deep_values):
+		 		max_deep_values = deep_values
+			#初值
+			_, init_values = px.get_avail_rows_values(sheet_name, row_list,\
+		 	init_col, False)
+			#旧累计, true 可以为0
+			_, old_acc_values = px.get_avail_rows_values(sheet_name, row_list,\
+		 	old_acc_col, True)
+			#当天和前一天
+			_, today_values = px.get_avail_rows_values(sheet_name, row_list,\
+		 	today_col, False)
+
+			col_idx = today_col
+			#直到找到初值，和当天的一致
+			while(len(lastday_values)!= len(today_values)):
+				col_idx -=1
+				_, lastday_values = px.get_avail_rows_values(sheet_name, row_list,\
+		 	col_idx, False)
+				if col_idx <= 3:
+					break
+			if len(lastday_values)!= len(today_values)):
+				lastday_values = init_values
+
+			#画一个观测点的表
+			pass
+
+			#画一个观测点的图
+			pass
+
+		#填写最大深度的
+		#固定最大46个深度值
+		#max_deep_values
+
+
+
+
+
+
+	###########multi_inclinometer_table()##############################
+
+
+	def make_inclinometer_pages(self):
+		'''
+		测斜报表
+		1. 找到index的深度范围
+		2. 2个index一组做表，以深度最大的为第一列
+		3. 根据变化值填表
+		4. 画图
+		'''
+		px = self.my_xlsx
+		d = self.docx
+
+		#获取测斜sheet的所有观测点和其深度范围的字典:
+		#d_obser_deeps={'observer1:(3,33),'observer2:(34:74),...}
+		d_obser_deeps = {}
+		inc_sheet = ''
+
+		for sheet_name in px.sheets:
+			if '测斜' in sheet_name:
+				inc_sheet = sheet_name
+				#以第二列点号为锚点，找每个点号的深度范围
+				d_obser_deeps = px.get_one_sheet_areas_range(sheet_name,2)
+				break
+		print("DEBUG d_obser_deeps=",d_obser_deeps)
+
+		#获取区间和观测点的字典:
+		#d_area_obser = {'area1':('observer1','observ2','observer3'..),..}
+		d_area_obser = {}
+		tmp_l = []
+
+		for area_name in px.all_areass_row_range[inc_sheet].keys():
+			start, end = px.all_areas_row_range[inc_sheet][area_name]
+			for i in range(start, end+1):
+				#获取第二列点号的值
+				ss = px.get_value(inc_sheet, i, 2)
+				if ss != None:
+					tmp_l.append(ss)
+				else:
+					continue
+
+			if len(tmp_l)>0:
+				d_area_obser[area_name] = tmp_l[:]
+				tmp_l[:] = []
+		print("DEBUG d_area_obser=",d_area_obser)
+
+		#找到当天日期,初值，旧累计所在的列坐标
+		init_col_idx, _ = px.get_item_col(inc_sheet, '初值', False)
+		old_acc_col_idx,_ = px.get_item_col(inc_sheet, '旧累计', False)
+		today_col_idx,_ = px.get_item_col(inc_sheet, self.date, True)
+		deep_col_idx,_ = px.get_item_col(inc_sheet, '深度', False)
+
+		#开始生成每一个区间的测斜表
+		for area_name in d_area_obser.keys():
+
+			#找到测斜表该区间邻近2天的有效日期
+			_,date_list,_ =self.find_avail_rows_dates_values(inc_sheet,area_name,2)
+			if len(date_list)==0:
+					print("warning,没有有效值!")
+					continue
+			obser_list = d_area_obser[area_name]:
+			ln = len(obser_list)
+			table_num = 0
+			if ln/2 > ln//2:
+				table_num = ln//2 + 1
+			else:
+				table_num = ln//2
+			n = 1
+			#两个观测点一组，进行制表
+			for i in range(0,ln,2):
+				#页面头信息
+				d.add_page_break()
+				self.write_settlement_header(area_name)
+				#表标题
+				p = d.add_paragraph()	
+				p.add_run(area_name+inc_sheet+'监测报表'+'%d/%d'%(n,table_num))
+				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+				last_date = ''
+				if len(date_list)==1:
+					last_date = '初始值'
+				else:
+					last_date = date_to_str(date_list[1])
+				p = d.add_paragraph()	
+				p.add_run('上次监测时间: '+last_date)
+				p.add_run('              本次监测时间: '+ self.str_date)
+
+				#每次取出两个观测点来，深度取值范围为最多得那个
+				#和沉降表不同，这里为每次两个观测点单独取值，这样做比较简单
+				self.one_inclinometer_table(inc_sheet, area_name, obser_list[i:i+2],\
+					d_obser_deeps, today_col_idx, deep_col_idx, init_col_idx,\
+					old_acc_col_idx)
+
+				#页面尾信息
+				self.write_settlement_foot()
+				#该区间第几个子表计数	
+				n+=1
+
+	###############make_inclinometer_pages()#########################
+
+
 	def make_layout_pages(self):
 		'''
+		平面布点图
 		把self.xlsx_path下的图片文件追加的docx中
 		'''
 		print("DEBUG start make_layout_pages")

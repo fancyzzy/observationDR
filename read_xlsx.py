@@ -65,15 +65,18 @@ class MyXlsx(object):
 	#############get_all_sheets_areas_range()#################		
 
 
-	def get_one_sheet_areas_range(self, sheet_name):
+	def get_one_sheet_areas_range(self, sheet_name,target_col=1):
 		'''
 		获取一个sheet的所有区间的行范围
-		返回值: sheet_areas_range = {'area1':(1,10), 'area2':(11,15),...'area4':(30,35)} 
-		含义是{区间名:(起始行数,结束行数)
 		input:
-		sheet_name
+		sheet_name 页名
+		target_col 以哪一列为进准，根据初值列是否有值，判定找这个列的行范围
+		说白了就是要获取合并单元格的行范围!
+
 		output:
-		col_index, row_index
+		sheet_areas_range = {'area1':(1,10), 'area2':(11,15),...'area4':(30,35)} 
+		含义是{区间名:(起始行数,结束行数)
+
 		'''
 		#以初值列划定区间的行号范围
 		init_col,_ = self.get_item_col(sheet_name, '初值', False)
@@ -88,8 +91,8 @@ class MyXlsx(object):
 		len_max_rows = len(tuple(sheet.rows)) + 1+ 10
 		for i in range(1, len_max_rows):
 			#表格格式注意, 区间必须是在A列, A列开始为空
-			v_1_col = sheet.cell(row=i, column=1).value
-			v_2_col = sheet.cell(row=i, column=2).value
+			v_1_col = sheet.cell(row=i, column=target_col).value
+			v_2_col = sheet.cell(row=i, column=target_col+1).value
 			v_init = sheet.cell(row=i, column=init_col).value
 			if v_1_col != None and (not start_count):
 				area_name = v_1_col
@@ -122,6 +125,12 @@ class MyXlsx(object):
 		'''
 		寻找第一第二排的某一项的在sheet里的列坐标
 		返回列坐标和行坐标
+		input:
+		sheet_name页名字段
+		item查找的内容，可以使datetime类型
+		from_last_search true:从右边最大列往第一列找，false: 反向
+		output:
+		列坐标,行坐标
 		'''
 		#print("start 'get_item_col'")
 		print("Debug get_item_col '{}',最大行数:{}, 最大列数:{}, 寻找:{}".\
@@ -181,8 +190,12 @@ class MyXlsx(object):
 
 	def get_avail_rows_values(self, sheet, rows, col, accept_none = False):
 		'''
+		input:
+		rows 一个连续数字的列表比如[2,3,4,5]
 		返回rows列表范围的
 		有值的行的index列表和值列表
+		output:
+		返回有效值行数，返回这个rows区间的所有有效值
 		'''
 		def is_number(s):
 			try:
