@@ -9,6 +9,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.section import WD_ORIENT
 from docx.enum.section import WD_SECTION
 from docx.shared import Cm
+from docx.shared import Mm
 import os
 from datetime import datetime
 from collections import namedtuple
@@ -97,11 +98,18 @@ class MyDocx(object):
 		
 		self.docx = Document()
 
+		#页面布局为A4 宽210mm*高297mm
+		section = self.docx.sections[0]
+		section.page_width = Mm(210)
+		section.page_height = Mm(297)
+
 		#页面布局为纵向横向
+		'''
 		new_section = self.docx.add_section(WD_SECTION.ODD_PAGE)
 		new_section.orientation = WD_ORIENT.PORTRAIT
 		new_section.page_width = Cm(21)
 		new_section.page_height = Cm(29.7)
+		'''
 
 		#首页
 		if not self.make_header_pages():
@@ -116,10 +124,17 @@ class MyDocx(object):
 			self.docx.save(self.path)
 
 		#页面布局为横向
-		new_section = self.docx.add_section(WD_SECTION.ODD_PAGE)
+		new_section = self.docx.add_section(WD_SECTION.NEW_PAGE)
 		new_section.orientation = WD_ORIENT.LANDSCAPE
-		new_section.page_width = Cm(29.7)
-		new_section.page_height = Cm(21)
+		new_section.page_width = Mm(297)
+		new_section.page_height = Mm(210)
+		new_section.top_margin = Cm(2.8)
+		new_section.bottom_margin = Cm(2.6)
+		new_section.left_margin = Cm(2.5)
+		new_section.right_margin = Cm(2.7)
+		new_section.header_distance = Cm(1)
+		new_section.footer_distance = Cm(1)
+
 
 
 		#现场安全巡视页
@@ -129,10 +144,16 @@ class MyDocx(object):
 			pass
 
 		#页面布局为纵向横向
-		new_section = self.docx.add_section(WD_SECTION.ODD_PAGE)
+		new_section = self.docx.add_section(WD_SECTION.NEW_PAGE)
 		new_section.orientation = WD_ORIENT.PORTRAIT
-		new_section.page_width = Cm(21)
-		new_section.page_height = Cm(29.7)
+		new_section.page_width = Mm(210)
+		new_section.page_height = Mm(297)
+		new_section.top_margin = Cm(2.7)
+		new_section.bottom_margin = Cm(2.5)
+		new_section.left_margin = Cm(2.8)
+		new_section.right_margin = Cm(2.6)
+		new_section.header_distance = Cm(1)
+		new_section.footer_distance = Cm(1)
 
 		#沉降监测表页
 		if not self.make_settlement_pages():
@@ -149,16 +170,34 @@ class MyDocx(object):
 
 		#new section landscape
 		#页面布局为横向
-		new_section = self.docx.add_section(WD_SECTION.ODD_PAGE)
+		new_section = self.docx.add_section(WD_SECTION.NEW_PAGE)
 		new_section.orientation = WD_ORIENT.LANDSCAPE
-		new_section.page_width = Cm(29.7)
-		new_section.page_height = Cm(21)
+		new_section.page_width = Mm(297)
+		new_section.page_height = Mm(210)
+		new_section.top_margin = Cm(2.17)
+		new_section.bottom_margin = Cm(2.17)
+		new_section.left_margin = Cm(2.54)
+		new_section.right_margin = Cm(2.54)
+		new_section.header_distance = Cm(1.5)
+		new_section.footer_distance = Cm(1.75)
 
 		#爆破振动监测报表
 		if not self.make_blasting_pages():
 			print("DEBUG make_blasting_pages error")
 		else:
 			pass
+
+		#页面布局
+		new_section = self.docx.add_section(WD_SECTION.NEW_PAGE)
+		new_section.orientation = WD_ORIENT.LANDSCAPE
+		new_section.page_width = Mm(297)
+		new_section.page_height = Mm(210)
+		new_section.top_margin = Cm(3.17)
+		new_section.bottom_margin = Cm(3.17)
+		new_section.left_margin = Cm(2.54)
+		new_section.right_margin = Cm(2.54)
+		new_section.header_distance = Cm(1.5)
+		new_section.footer_distance = Cm(1.75)
 
 		#平面布点图
 		if not self.make_layout_pages():
@@ -203,8 +242,8 @@ class MyDocx(object):
 
 		result = False
 		d = self.docx
-		d.add_heading(self.proj.name, 0)
-		d.add_heading(self.proj.area, 0)
+		d.add_paragraph(self.proj.name)
+		d.add_paragraph(self.proj.area)
 
 		d.add_paragraph("第三方检测日报")
 		d.add_paragraph("(第%s次)" % self.proj.code.split('-')[-1])
@@ -346,10 +385,10 @@ class MyDocx(object):
 				acc_abs_values = []
 				#获取'初值'这一列，在第3列
 				initial_range_values = px.get_range_values(sheet, area_name, 3)
-				print("DEBUG '初始值列':{}".format(initial_range_values))
+				#print("DEBUG '初始值列':{}".format(initial_range_values))
 				#获取'旧累计'这一列，在第4列
 				old_acc_range_values = px.get_range_values(sheet, area_name, 4)
-				print("DEBUG '旧累计值列':{}".format(old_acc_range_values))
+				#print("DEBUG '旧累计值列':{}".format(old_acc_range_values))
 				for i in range(ln):
 					new_v = today_range_values[i]
 					init_v = initial_range_values[i]
@@ -360,10 +399,10 @@ class MyDocx(object):
 						acc_values.append((float(new_v)-float(init_v))*1000+float(oacc_v))
 					else:
 						acc_values.append(0)
-				print("DEBUG '本次累计值列':{}".format(acc_values))
+				#print("DEBUG '本次累计值列':{}".format(acc_values))
 				acc_abs_values = list(map(abs,acc_values))
 				max_acc = max(acc_abs_values)
-				print("DEBUG '最大累计值'是:{} ".format(max_acc))
+				#print("DEBUG '最大累计值'是:{} ".format(max_acc))
 				max_acc_idx = acc_abs_values.index(max_acc)
 				row_index = max_acc_idx + row_start
 				s_index = 'B%d'%row_index
@@ -460,12 +499,17 @@ class MyDocx(object):
 		p = d.add_paragraph()
 		p.add_run("四、建议")
 
-		ss = "监测单位:             （盖章）"
+		for i in range(12):
+			d.add_paragraph()
+
+		ss = "监测单位：                   （盖章）              "
 		p = d.add_paragraph()
 		p.add_run(ss)
-		ss = "负责人：              年  月  日 "
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+		ss = "负责人：                   年     月     日             "
 		p = d.add_paragraph()
 		p.add_run(ss)
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
 		result = True
 		return result
@@ -563,13 +607,9 @@ class MyDocx(object):
 		i = 0
 		for area_name in areas:
 			print("###开始生成 {} 现场巡查报表###".format(area_name))
-			#加docx session，使用更加宽的页面布局
-			#pass
 
 			#test debug only one area
 			if '衡山路站' in area_name:
-				###new page###########
-				d.add_page_break()
 				i += 1
 				ss = '表' + '%d'%i + ' 现场安全巡视表'
 				p = d.add_paragraph()
@@ -752,14 +792,14 @@ class MyDocx(object):
 
 		#求七天的累计变化列表
 		#array type 矩阵
-		print("DEBUG array(value_list)", array(value_list))
-		print("shape array = ", array(value_list).shape)
-		print("DEBUG init_values", init_values)
-		print("DEBUG init_vlaues le2=",len(init_values))
+		#print("DEBUG array(value_list)", array(value_list))
+		#print("shape array = ", array(value_list).shape)
+		#print("DEBUG init_values", init_values)
+		#print("DEBUG init_vlaues le2=",len(init_values))
 		all_acc_diffs = []
 		all_acc_diffs = (array(value_list) - init_values)*1000 + old_acc_values
-		print("DEBUG all_acc_diffs=",all_acc_diffs)
-		print("DEBUG all_acc_diffs.shape=",all_acc_diffs.shape)
+		#print("DEBUG all_acc_diffs=",all_acc_diffs)
+		#print("DEBUG all_acc_diffs.shape=",all_acc_diffs.shape)
 
 		#画图
 		idx_list = []
@@ -877,7 +917,7 @@ class MyDocx(object):
 				print("------DEBUG, '{}, {}' 沉降变化监测表{}/{}---".format(\
 					area_name, sheet,i,split_num))
 				###new page###########
-				d.add_page_break()
+				#d.add_page_break()
 				self.write_settlement_header(area_name)
 				p = d.add_paragraph()	
 				p.add_run(area_name+sheet+'监测报表'+'%d/%d'%(i,split_num))
@@ -1063,7 +1103,8 @@ class MyDocx(object):
 			fig_path = self.my_plot.draw_inclinometer_fig(deep_values,diff_values,acc_values)
 			p = t.cell(3,4+4*i).paragraphs[0]
 			run = p.add_run()
-			run.add_picture(fig_path, width=Cm(2.8), height=Cm(deep_values[-1])*0.68)
+			run.add_picture(fig_path, width=Cm(2.5), \
+				height=Cm(deep_values[-1])*0.68+2.11)
 			p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 		#end for i in range(len(sub_obser_list)):
@@ -1239,7 +1280,6 @@ class MyDocx(object):
 		d = self.docx
 		px = self.my_xlsx
 
-
 		p = d.add_paragraph()
 		p.add_run(self.proj.name)
 		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -1278,6 +1318,15 @@ class MyDocx(object):
 
 		t.cell(1,6).merge(t.cell(1,11))
 		t.cell(1,6).text = "振动速度及主频频率"
+
+		t.cell(2,6).merge(t.cell(2,7))
+		t.cell(2,6).text = "最大向径分量"
+		t.cell(2,8).merge(t.cell(2,9))
+		t.cell(2,8).text = "最大切向分量"
+		t.cell(2,10).merge(t.cell(2,11))
+		t.cell(2,10).text = "最大垂直分量"
+
+
 		t.cell(1,12).merge(t.cell(3,12))
 		t.cell(1,12).text = "允许爆破振速度(cm/s)"
 
@@ -1291,7 +1340,15 @@ class MyDocx(object):
 		t.cell(7,0).text = "备注: "
 		t.cell(7,1).merge(t.cell(7,12))
 
-		self.write_settlement_foot()
+		p = d.add_paragraph()
+		s = "现场监测人: "
+		p.add_run(s)
+		s = "                        计算人: "
+		p.add_run(s)
+		s = "                        校核人: "
+		p.add_run(s)
+		s = "                        监测项目负责人: "
+		p.add_run(s)
 
 		return True
 	###############make_blasting_pages()########################

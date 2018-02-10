@@ -6,7 +6,8 @@
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdate
 import os
-import numpy as np
+from math import ceil
+
 #显示中文
 MARKERS_ARRAY=['.', ',', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', \
 '*', 'h', 'H', '+', 'x', 'D', 'd', '|', '_', 'P', 'X']
@@ -34,9 +35,9 @@ class MyPlot(object):
 		'''
 		ln = len(sample_list)
 
-		print("DEBUG draw_date_plot")
-		print("DEBUG date_list=",date_list)
-		print("DEBUG sample_list=",sample_list)
+		print("DEBUG draw_settlement_fig")
+		#print("DEBUG date_list=",date_list)
+		#print("DEBUG sample_list=",sample_list)
 
 		#self.ax.xaxis.set_major_formatter(mdate.DateFormatter('%Y-%m-%d %H:%M:%S'))
 		#self.plt.gca().xaxis.set_major_formatter(mdate.DateFormatter('%m-%d'))
@@ -51,9 +52,9 @@ class MyPlot(object):
 		#self.plt.legend(loc='upper center',bbox_to_anchor=(0.5,1.08),ncol=4,\
 		#	fancybox=True,shadow=False)
 		self.plt.legend(loc='center right',bbox_to_anchor=(1.,0.5),ncol=1,\
-			fancybox=True,shadow=True,markerscale=1.1,borderpad = 0.5,labelspacing=0.02,\
-			handlelength=1.3,columnspacing=0.02, fontsize=20)
-		self.plt.grid(linewidth='0.5',linestyle='-.')
+			fancybox=True,shadow=True,markerscale=1.1,borderpad = 0.5,\
+			labelspacing=0.02,handlelength=1.3,columnspacing=0.02, fontsize=20)
+		self.plt.grid(linewidth='0.8',linestyle='-.')
 
 		#旋转横轴刻度文字
 		#self.plt.gcf().autofmt_xdate()
@@ -85,7 +86,7 @@ class MyPlot(object):
 		'''
 
 		self.plt = plt
-		self.plt.rcParams['figure.figsize'] = (3.2,deep_values[-1])
+		self.plt.rcParams['figure.figsize'] = (2.5,deep_values[-1]+4)
 		self.plt.rcParams['font.sans-serif'] = ['SimHei']
 		self.plt.rcParams['axes.unicode_minus'] = False
 		self.plt.rcParams['xtick.direction'] = 'in' 
@@ -120,7 +121,7 @@ class MyPlot(object):
 		#self.plt.ylim(0,len(acc_values))
 		ax.invert_yaxis()
 		#设置x轴标签的位置，靠外
-		ax.xaxis.labelpad = -160
+		ax.xaxis.labelpad = -150
 
 		#y坐标离轴多远
 		ax.tick_params(axis='y', which='major', pad=20)
@@ -128,14 +129,14 @@ class MyPlot(object):
 
 		self.plt.legend(loc='lower center',ncol=1,bbox_to_anchor=(0.5,-0.180),\
 			markerscale=1.5,borderpad=0.5,labelspacing=0.52,frameon=False,\
-			handlelength=2.8,columnspacing=0.12, fontsize=34,fancybox=False,\
+			handlelength=2.0,columnspacing=0.12, fontsize=28,fancybox=False,\
 			shadow=False)
 
 		y = self.plt.ylabel('深度(m)', fontsize=40,labelpad=20)
 		#y.set_rotation(0)
 		self.plt.xlabel('变化量(mm)', fontsize=40)
 		#使y轴显示整数深度的刻度
-		self.plt.yticks(list(map(int,deep_values)))
+		self.plt.yticks(list(map(ceil,deep_values)))
 
 		#刻度数值大小
 		self.plt.tick_params(axis='both', labelsize=35)
