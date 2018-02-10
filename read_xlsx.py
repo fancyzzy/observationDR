@@ -211,7 +211,8 @@ class MyXlsx(object):
 
 		for row_index in rows:
 			s_value = sh.cell(row_index,col).value
-			if s_value and is_number(s_value):
+			#print("DEBUG row:{},col:{},value='{}'".format(row_index,col,s_value))
+			if s_value != None and is_number(s_value):
 				avail_rows.append(row_index)
 				avail_values.append(float(s_value))
 			else:

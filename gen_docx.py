@@ -97,57 +97,74 @@ class MyDocx(object):
 		
 		self.docx = Document()
 
-		#创建首页
+		#页面布局为纵向横向
+		new_section = self.docx.add_section(WD_SECTION.ODD_PAGE)
+		new_section.orientation = WD_ORIENT.PORTRAIT
+		new_section.page_width = Cm(21)
+		new_section.page_height = Cm(29.7)
+
+		#首页
 		if not self.make_header_pages():
 			print("DEBUG make_head_page error")
 		else:
 			pass
 
-		#创建数据分析页****
+		#数据汇总分析页****
 		if not self.make_overview_pages():
 			print("DEBUG make_overview_pages error")
 		else:
-			pass
+			self.docx.save(self.path)
 
-		#创建现场安全巡视页
-		#new section landscape
 		#页面布局为横向
-		pass
+		new_section = self.docx.add_section(WD_SECTION.ODD_PAGE)
+		new_section.orientation = WD_ORIENT.LANDSCAPE
+		new_section.page_width = Cm(29.7)
+		new_section.page_height = Cm(21)
+
+
+		#现场安全巡视页
 		if not self.make_security_pages():
 			print("DEBUG make_security_pages error")
 		else:
 			pass
 
+		#页面布局为纵向横向
+		new_section = self.docx.add_section(WD_SECTION.ODD_PAGE)
+		new_section.orientation = WD_ORIENT.PORTRAIT
+		new_section.page_width = Cm(21)
+		new_section.page_height = Cm(29.7)
 
-		#创建沉降监测表页*****
-		#回复页面布局为纵向
-		pass
+		#沉降监测表页
 		if not self.make_settlement_pages():
 			print("DEBUG make_settlement_pages error")
 		else:
-			pass
+			self.docx.save(self.path)
 
-		self.docx.save(self.path)
-
-		#测斜监测报表***
+		#测斜监测表页
 		if not self.make_inclinometer_pages():
 			print("DEBUG make_inclinometer_pages error")
+		else:
+			self.docx.save(self.path)
 
 
-		self.docx.save(self.path)
-
-		#爆破振动监测报表
 		#new section landscape
 		#页面布局为横向
 		new_section = self.docx.add_section(WD_SECTION.ODD_PAGE)
 		new_section.orientation = WD_ORIENT.LANDSCAPE
-		new_section.page_width = Cm(27.94)
-		new_section.page_height = Cm(21.59)
-		pass
+		new_section.page_width = Cm(29.7)
+		new_section.page_height = Cm(21)
+
+		#爆破振动监测报表
+		if not self.make_blasting_pages():
+			print("DEBUG make_blasting_pages error")
+		else:
+			pass
 
 		#平面布点图
 		if not self.make_layout_pages():
 			print("DEBUG make_layout_pages error")
+		else:
+			pass
 
 		#保存
 		print("All pages done, saving docx file...")
@@ -748,7 +765,7 @@ class MyDocx(object):
 		idx_list = []
 		for row_idx in row_list:
 			idx_list.append(px.get_value(sheet,row_idx,2))
-		fig_path = self.my_plot.draw_date_plot(list(map(d_s,date_list)), \
+		fig_path = self.my_plot.draw_settlement_fig(list(map(d_s,date_list)), \
 			all_acc_diffs.transpose(), idx_list)
 		if not os.path.exists(fig_path):
 			print("Debug, ERROR, fig_path not exists!")
@@ -883,7 +900,7 @@ class MyDocx(object):
 	#############multi_settlement_table()################################
 
 
-	def write_settlement_header(self, area_name):
+	def write_settlement_header(self, area_name, show_area_name=True):
 		'''
 		沉降变化表/测斜表，项目信息
 		'''
@@ -891,9 +908,11 @@ class MyDocx(object):
 		p = d.add_paragraph()
 		p.add_run(self.proj.name)
 		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-		p = d.add_paragraph()
-		p.add_run("%s主体"%area_name).underline = True
-		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+		if show_area_name:
+			p = d.add_paragraph()
+			p.add_run("%s主体"%area_name).underline = True
+			p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 		p = d.add_paragraph()
 		p.add_run("施工单位: ")
@@ -961,74 +980,93 @@ class MyDocx(object):
 	################make_settlement_pages()##########################
 
 
-	def one_inclinometer_table(self, sheet_name, area_name, obser_list,\
-		d_obser_deeps, today_col, deep_col, init_col, old_acc_col):
+	def one_inclinometer_table(self, sub_obser_list, d_obser_data, max_deep_values):
 		'''
 		一个测斜监测表, 含有两个或者一个观测点，按照深度的变化数据
 		input:
-		#d_area_obser = {'area1':('observer1','observ2','observer3'..),..}
-		#d_obser_deeps={'observer1:(3,33),'observer2:(34:74),...}
+		#d_obser_data = {'obser1':(deep_values,today_values, this_diffs, acc_diffs),'obser2':..}
 		'''
 		print("Start 'one_inclinometer_table for{}, {}:".format(\
-			area_name,self.str_date))
+			sub_obser_list,self.str_date))
 
 		px = self.my_xlsx
 		d = self.docx
 
 		#画表
-		
+		t = d.add_table(rows=51, cols=9, style = 'Table Grid')
+		t.cell(0,0).merge(t.cell(0,8))
+		s1 = '仪器型号:                        仪器出厂编号：'
+		s2 = '                        检定日期: '
+		t.cell(0,0).text = s1+s2
 
-		deep_values = []
-		today_values = []
-		lastday_values = []
-		init_values = []
-		old_acc_values = []
-		max_deep_values = []
-		for obser in obser_list:
-			start_row, end_row = d_obser_deeps[obser]
-			#注意！list(range(3,5)) = [3,4], so need to add 1
-			row_list = list(range(start_row, end_row+1))
+		t.cell(1,0).text = '测点'
+		t.cell(1,1).merge(t.cell(1,4))
+		t.cell(1,5).merge(t.cell(1,8))
+		t.cell(2,0).text = '孔深'
+		t.cell(2,1).merge(t.cell(2,4))
+		t.cell(2,5).merge(t.cell(2,8))
 
-			#找到这个观测点对应行数范围内深度的数据
-			_, deep_values = px.get_avail_rows_values(sheet_name, row_list,\
-		 	deep_col, False)
-		 	if len(deep_values) > len(max_deep_values):
-		 		max_deep_values = deep_values
-			#初值
-			_, init_values = px.get_avail_rows_values(sheet_name, row_list,\
-		 	init_col, False)
-			#旧累计, true 可以为0
-			_, old_acc_values = px.get_avail_rows_values(sheet_name, row_list,\
-		 	old_acc_col, True)
-			#当天和前一天
-			_, today_values = px.get_avail_rows_values(sheet_name, row_list,\
-		 	today_col, False)
+		t.cell(3,0).text = '深度(m)'
+		for i in range(2):
+			t.cell(3,1+4*i).text = '本次测值(mm)'
+			t.cell(3,2+4*i).text = '本次变化(mm)'
+			t.cell(3,3+4*i).text = '累计变化(mm)'
+			t.cell(3,4+4*i).merge(t.cell(49,4+4*i))
+		t.cell(50,0).merge(t.cell(50,8))
+		s1 = '说明：1: 孔底起测; '
+		s2 = '2: "-"为向坑外倾斜，"+"为向坑内倾斜; '
+		s3 = '3: 日变化量报警值±2mm/d，累计变化量报警值±24mm.'
+		t.cell(50,0).text = s1+s2+s3 
 
-			col_idx = today_col
-			#直到找到初值，和当天的一致
-			while(len(lastday_values)!= len(today_values)):
-				col_idx -=1
-				_, lastday_values = px.get_avail_rows_values(sheet_name, row_list,\
-		 	col_idx, False)
-				if col_idx <= 3:
+		#填数据
+		ln_deep = len(max_deep_values)
+		for i in range(ln_deep):
+			#深度值列
+			t.cell(4+i,0).text = str(max_deep_values[i])
+
+		for i in range(len(sub_obser_list)):
+			deep_values = d_obser_data[sub_obser_list[i]][0]
+			today_values = d_obser_data[sub_obser_list[i]][1]
+			diff_values = d_obser_data[sub_obser_list[i]][2]
+			acc_values = d_obser_data[sub_obser_list[i]][3]
+			ln_value =len(deep_values)
+			ln_diff = len(diff_values)
+			ln_acc = len(acc_values)
+
+			print("DEBUG i:{},sub_obser_list:{}".format(i,sub_obser_list))
+			#观测点
+			t.cell(1,1+i*4).text = sub_obser_list[i]
+			#孔深
+			t.cell(2,1+i*4).text = str(deep_values[-1])+'m'
+
+			for j in range(ln_deep):
+				if j < ln_value:
+					#本次测值today_values
+					t.cell(4+j,1+i*4).text = str(round(today_values[j],2))
+				else:
 					break
-			if len(lastday_values)!= len(today_values)):
-				lastday_values = init_values
+				if j < ln_diff:
+					#本次变化this_diffs
+					t.cell(4+j,2+i*4).text = str(round(diff_values[j],2))
+				if j < ln_acc:
+					#累计变化acc_diffs
+					t.cell(4+j,3+i*4).text = str(round(acc_values[j],2))
 
-			#画一个观测点的表
-			pass
+			#画一个观测点的测斜变化量图
+			'''
+			print("DEBUG {},deep_values:{},today_values:{},diff_values:{},acc_values:{}".format(\
+				sub_obser_list[i],deep_values,list(map(lambda x:round(x,2),list(today_values))),\
+				list(map(lambda x:round(x,2),list(diff_values))),\
+				list(map(lambda x:round(x,2),list(acc_values)))))
+			'''
+			print("DEBUG start draw: ",sub_obser_list[i])
+			fig_path = self.my_plot.draw_inclinometer_fig(deep_values,diff_values,acc_values)
+			p = t.cell(3,4+4*i).paragraphs[0]
+			run = p.add_run()
+			run.add_picture(fig_path, width=Cm(2.8), height=Cm(deep_values[-1])*0.68)
+			p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-			#画一个观测点的图
-			pass
-
-		#填写最大深度的
-		#固定最大46个深度值
-		#max_deep_values
-
-
-
-
-
+		#end for i in range(len(sub_obser_list)):
 
 	###########multi_inclinometer_table()##############################
 
@@ -1062,7 +1100,7 @@ class MyDocx(object):
 		d_area_obser = {}
 		tmp_l = []
 
-		for area_name in px.all_areass_row_range[inc_sheet].keys():
+		for area_name in px.all_areas_row_range[inc_sheet].keys():
 			start, end = px.all_areas_row_range[inc_sheet][area_name]
 			for i in range(start, end+1):
 				#获取第二列点号的值
@@ -1078,20 +1116,18 @@ class MyDocx(object):
 		print("DEBUG d_area_obser=",d_area_obser)
 
 		#找到当天日期,初值，旧累计所在的列坐标
-		init_col_idx, _ = px.get_item_col(inc_sheet, '初值', False)
-		old_acc_col_idx,_ = px.get_item_col(inc_sheet, '旧累计', False)
-		today_col_idx,_ = px.get_item_col(inc_sheet, self.date, True)
-		deep_col_idx,_ = px.get_item_col(inc_sheet, '深度', False)
+		init_col, _ = px.get_item_col(inc_sheet, '初值', False)
+		old_acc_col,_ = px.get_item_col(inc_sheet, '旧累计', False)
+		today_col,_ = px.get_item_col(inc_sheet, self.date, True)
+		deep_col,_ = px.get_item_col(inc_sheet, '深度', False)
 
-		#开始生成每一个区间的测斜表
+		#遍历每个区间制作多个测斜表
 		for area_name in d_area_obser.keys():
 
-			#找到测斜表该区间邻近2天的有效日期
-			_,date_list,_ =self.find_avail_rows_dates_values(inc_sheet,area_name,2)
-			if len(date_list)==0:
-					print("warning,没有有效值!")
-					continue
-			obser_list = d_area_obser[area_name]:
+			_,date_list,_= self.find_avail_rows_dates_values(inc_sheet,area_name,2)
+			if len(date_list) == 0:
+				print("Error, {}，{}当天没有有效值".format(inc_sheet,area_name))
+			obser_list = d_area_obser[area_name]
 			ln = len(obser_list)
 			table_num = 0
 			if ln/2 > ln//2:
@@ -1101,15 +1137,73 @@ class MyDocx(object):
 			n = 1
 			#两个观测点一组，进行制表
 			for i in range(0,ln,2):
+				
+				#获取数据
+				#d_obser_data = {'obser1':(deep_values,today_values, this_diffs, acc_diffs),'obser2':..}
+				d_obser_data = {}
+				obser_data = []
+				deep_values = []
+				today_values = []
+				lastday_values = []
+				init_values = []
+				old_acc_values = []
+				max_deep_values = []
+				last_date = None
+				this_diffs = []
+				acc_diffs = []
+
+				sub_obser_list = obser_list[i:i+2]
+				for obser in sub_obser_list:
+					start_row, end_row = d_obser_deeps[obser]
+					#注意！list(range(3,5)) = [3,4], so need to add 1
+					#注意这个row_list是全深度的范围，不是当天有效值的范围
+					#如果遇到当天某个深度没有填写，记为0
+					#这列是否应该优化使用当天有效值的row_list	
+					row_list = list(range(start_row, end_row+1))
+		
+					#找到这个观测点对应行数范围内深度的数据
+					_, deep_values = px.get_avail_rows_values(sheet_name, row_list,\
+					deep_col, False)
+					if len(deep_values) > len(max_deep_values):
+						max_deep_values = deep_values
+					#初值
+					_, init_values = px.get_avail_rows_values(sheet_name, row_list,\
+					init_col, False)
+					if len(init_values) != len(row_list):
+						#不可能发生，因为row_list的范围就是根据初值锚定的
+						print("Error! 初始值缺失！")
+						print("DEBUG obser:{},row_list:{},init_values:{}".format(\
+							obser,row_list,init_values))
+
+					#旧累计, true 可以为0
+					#这里没有测的点按照0来算，可能不准
+					_, old_acc_values = px.get_avail_rows_values(sheet_name, row_list,\
+					old_acc_col, True)
+					#当天和前一天
+					_, today_values = px.get_avail_rows_values(sheet_name, row_list,\
+					today_col, True)
+					_, lastday_values = px.get_avail_rows_values(sheet_name, row_list,\
+					today_col-1, True)
+
+					this_diffs = array(today_values) - array(lastday_values)
+					acc_diffs = array(today_values) - array(init_values) + array(old_acc_values)
+					obser_data.append(deep_values[:])
+					obser_data.append(today_values[:])
+					obser_data.append(this_diffs[:])
+					obser_data.append(acc_diffs[:])
+					d_obser_data[obser] = obser_data[:]
+					obser_data[:] = []
+				#end获取数据 
+
 				#页面头信息
 				d.add_page_break()
-				self.write_settlement_header(area_name)
+				self.write_settlement_header(area_name, False)
 				#表标题
 				p = d.add_paragraph()	
 				p.add_run(area_name+inc_sheet+'监测报表'+'%d/%d'%(n,table_num))
 				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 				last_date = ''
-				if len(date_list)==1:
+				if lastday_values == init_values:
 					last_date = '初始值'
 				else:
 					last_date = date_to_str(date_list[1])
@@ -1117,18 +1211,91 @@ class MyDocx(object):
 				p.add_run('上次监测时间: '+last_date)
 				p.add_run('              本次监测时间: '+ self.str_date)
 
-				#每次取出两个观测点来，深度取值范围为最多得那个
-				#和沉降表不同，这里为每次两个观测点单独取值，这样做比较简单
-				self.one_inclinometer_table(inc_sheet, area_name, obser_list[i:i+2],\
-					d_obser_deeps, today_col_idx, deep_col_idx, init_col_idx,\
-					old_acc_col_idx)
+				#画表填值
+				self.one_inclinometer_table(sub_obser_list, d_obser_data,\
+					max_deep_values)
 
 				#页面尾信息
 				self.write_settlement_foot()
 				#该区间第几个子表计数	
 				n+=1
 
+			#end 两个观测点一组，进行制表
+			#for i in range(0,ln,2):
+
+		#end 遍历每个区间制作多个测斜表
+		#for area_name in d_area_obser.keys():
+
+		return True
 	###############make_inclinometer_pages()#########################
+
+
+	def make_blasting_pages(self):
+		'''
+		爆破振动监测报表
+		'''
+		print("Start 'make_blasting_pages'")
+
+		d = self.docx
+		px = self.my_xlsx
+
+
+		p = d.add_paragraph()
+		p.add_run(self.proj.name)
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+		p = d.add_paragraph()
+		p.add_run('爆破振动监测报表')
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+		p = d.add_paragraph()
+		p.add_run("施工监测单位: ")
+		p.add_run(self.proj.builder_observer)
+		p.add_run("                    ")
+		p.add_run("第三方监测单位: ")
+		p.add_run(self.proj.third_observer)
+
+		t = d.add_table(rows=8, cols=13, style='Table Grid')
+		t.cell(0,0).merge(t.cell(0,12))
+		s1 = "仪器型号: "
+		s2 = "                           仪器出厂编号: "
+		s3 = "                           检定日期: "
+		t.cell(0,0).text = s1+s2+s3
+		t.cell(1,0).merge(t.cell(3,0))
+		t.cell(1,0).text = "测量时间"
+		t.cell(1,1).merge(t.cell(3,1))
+		t.cell(1,1).text = "爆破位置"
+		t.cell(1,2).merge(t.cell(3,2))
+		t.cell(1,2).text = "测量地点"
+		t.cell(1,3).merge(t.cell(3,3))
+		t.cell(1,3).text = "爆破中心至测点距离(m)"
+
+		t.cell(1,4).merge(t.cell(1,5))
+		t.cell(1,4).text = '爆破参数'
+		t.cell(2,4).merge(t.cell(3,4))
+		t.cell(2,4).text = "起爆药量(kg)"
+		t.cell(2,5).merge(t.cell(3,5))
+		t.cell(2,5).text = "段最大药量(kg)"
+
+		t.cell(1,6).merge(t.cell(1,11))
+		t.cell(1,6).text = "振动速度及主频频率"
+		t.cell(1,12).merge(t.cell(3,12))
+		t.cell(1,12).text = "允许爆破振速度(cm/s)"
+
+		t.cell(3,6).text = "v1(cm/s)"
+		t.cell(3,7).text = "f1(Hz)"
+		t.cell(3,8).text = "v2(cm/)"
+		t.cell(3,9).text = "f(Hz)"
+		t.cell(3,10).text = "v3(cm/s)"
+		t.cell(3,11).text = "f3(Hz)"
+
+		t.cell(7,0).text = "备注: "
+		t.cell(7,1).merge(t.cell(7,12))
+
+		self.write_settlement_foot()
+
+		return True
+	###############make_blasting_pages()########################
+
 
 
 	def make_layout_pages(self):
@@ -1137,10 +1304,7 @@ class MyDocx(object):
 		把self.xlsx_path下的图片文件追加的docx中
 		'''
 		print("DEBUG start make_layout_pages")
-
-
 		d = self.docx
-
 
 		#获取文件夹下的所有文件地址:
 		file_list = get_file_list(self.xlsx_path, [])
