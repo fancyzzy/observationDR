@@ -6,10 +6,18 @@
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_LINE_SPACING
 from docx.enum.section import WD_ORIENT
 from docx.enum.section import WD_SECTION
+from docx.enum.style import WD_STYLE_TYPE
+from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.shared import Cm
 from docx.shared import Mm
+from docx.shared import Inches, Pt
+
+#样式，字体
+from docx.oxml.ns import qn
+
 import os
 from datetime import datetime
 from collections import namedtuple
@@ -31,7 +39,8 @@ PAGE_CATEGORY = ['header', 'overview', 'security', 'settlement_ground',\
 
 def date_to_str(date_str):
 	ds = date_str.strftime("%Y/%m/%d")
-	return ds.split('/')[0] + '年' + ds.split('/')[1] + '月' + ds.split('/')[2] + '日'
+	return ds.split('/')[0] + '年' + ds.split('/')[1].lstrip('0')\
+	 + '月' + ds.split('/')[2].lstrip('0') + '日'
 
 def d2s(date_str):
 	ds = date_str.strftime("%Y/%m/%d")
@@ -77,7 +86,6 @@ class MyDocx(object):
 		self.path = docx_path
 		self.date = proj_info[-1]
 		self.xlsx_path = os.path.dirname(proj_info[-2])
-		print("DEBUG xlsx path=",self.xlsx_path)
 		self.str_date = date_to_str(self.date)
 		#xlsx实例
 		self.my_xlsx = my_xlsx
@@ -98,18 +106,12 @@ class MyDocx(object):
 		
 		self.docx = Document()
 
+		self.set_document_style()
+
 		#页面布局为A4 宽210mm*高297mm
 		section = self.docx.sections[0]
 		section.page_width = Mm(210)
 		section.page_height = Mm(297)
-
-		#页面布局为纵向横向
-		'''
-		new_section = self.docx.add_section(WD_SECTION.ODD_PAGE)
-		new_section.orientation = WD_ORIENT.PORTRAIT
-		new_section.page_width = Cm(21)
-		new_section.page_height = Cm(29.7)
-		'''
 
 		#首页
 		if not self.make_header_pages():
@@ -211,25 +213,61 @@ class MyDocx(object):
 		return True
 	#######gen_docx()####################################
 
+	def set_document_style(self):
+		'''
+		设定全局字体样式
+		'''
+		d = self.docx
+		d.styles['Normal'].font.name = 'Times New Roman'
+		r = d.styles['Normal']._element
+		r.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
+	############set_document_style()####################
 
 	def write_header(self):
 		'''
 		项目信息
 		'''
 		d = self.docx
-		d.add_paragraph("%s" % self.proj.name)
+		styles = d.styles
+		p = d.add_paragraph()
+		r = p.add_run(self.proj.name)
+		r.font.size = Pt(18)
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+		p.paragraph_format.space_before = Pt(32)
+		p.paragraph_format.space_after = 0
+		p.paragraph_format.line_spacing_rule = 1
+		p.paragraph_line_spacing = None
 
-		p = d.add_paragraph("施工单位: ")
+
+		#add a new style 
+		new_style = d.styles.add_style('my_sub_header', WD_STYLE_TYPE.PARAGRAPH)
+		p_format = new_style.paragraph_format
+		p_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+		p_format.space_after = 0
+		p_format.space_before = 0
+		p_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+		p_format.line_spacing = Pt(21)
+
+		font = new_style.font
+		font.name = 'Times New Roman'
+		r = new_style._element
+		r.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
+		font.size = Pt(12)
+
+		p = d.add_paragraph("施工单位:  ")
+		p.style = styles['my_sub_header']
 		p.add_run("%s" % self.proj.builder).underline = True
-		p.add_run("    合同号: ")
+		p.add_run("    合同号:  ")
 		p.add_run("%s" % self.proj.contract).underline = True
 
-		p = d.add_paragraph("监理单位: ")
+		p = d.add_paragraph("监理单位:  ")
+		p.style = styles['my_sub_header']
 		p.add_run("%s" % self.proj.supervisor).underline = True
-		p.add_run("    编号: ")
+		p.add_run("               编号:  ")
 		p.add_run("%s" % self.proj.code).underline = True
 
-		p = d.add_paragraph("第三方检测单位: ")
+		p = d.add_paragraph("第三方检测单位:  ")
+		p.style = styles['my_sub_header']
 		p.add_run("%s" % self.proj.third_observer).underline = True
 	################write_header()########################
 
@@ -242,42 +280,150 @@ class MyDocx(object):
 
 		result = False
 		d = self.docx
-		d.add_paragraph(self.proj.name)
-		d.add_paragraph(self.proj.area)
 
-		d.add_paragraph("第三方检测日报")
-		d.add_paragraph("(第%s次)" % self.proj.code.split('-')[-1])
+		styles = d.styles
 
-		p = d.add_paragraph("编号: ")
-		p.add_run("%s" % self.proj.code).underline = True
-		p = d.add_paragraph("检测日期: ")
-		p.add_run("%s" % self.str_date).underline = True
+		p = d.add_paragraph()
+		r = p.add_run(self.proj.name)
+		r.bold = True
+		r.font.size = Pt(18)
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+		p.paragraph_format.space_before = Pt(32)
+		p.paragraph_format.space_after = 0
+		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+		p.paragraph_line_spacing = None
 
-		d.add_paragraph("报警: 是      否")
-		d.add_paragraph("报警内容: ")
-		d.add_paragraph("")
-		d.add_paragraph("")
-		d.add_paragraph("")
+		p = d.add_paragraph()
+		r = p.add_run(self.proj.area)
+		r.underline = True
+		r.font.size = Pt(16)
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+		p.paragraph_format.space_after = 0
+		p.paragraph_format.line_spacing = Pt(28)
 
-		p = d.add_paragraph("项目负责人: ")
-		p.add_run("      ").underline = True
-		p = d.add_paragraph("签发日期: ")
-		p.add_run("      ").underline = True
-		p = d.add_paragraph("单位名称: ")
-		p.add_run("  (盖章)   ").underline = True
+		p = d.add_paragraph()
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+		p.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+		p.paragraph_format.line_spacing = Pt(28)
 
-		d.add_paragraph("")
+		p = d.add_paragraph()
+		r = p.add_run("第三方检测日报")
+		r.bold = True
+		r.font.size = Pt(22)
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+		p.paragraph_format.space_before = 0
+		p.paragraph_format.space_after = 0
+		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+
+
+		p = d.add_paragraph()
+		r = p.add_run("(第%s次)"%self.proj.code.split('-')[-1])
+		r.font.size = Pt(16)
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+		p.paragraph_format.line_spacing = Pt(28)
+
+
+		#增加一个style
+		new_style = d.styles.add_style('my_header', WD_STYLE_TYPE.PARAGRAPH)
+		p_format = new_style.paragraph_format
+		p_format.first_line_indent = Cm(4.5)
+		p_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+		p_format.line_spacing = Pt(28)
+		p_format.space_after = 0
+		p_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+		font = new_style.font
+		font.name = 'Times New Roman'
+		r = new_style._element
+		r.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
+		font.size = Pt(15)
+
+		p = d.add_paragraph(style = styles['my_header'])
+
+		p = d.add_paragraph()
+		p.style = styles['my_header']
+		print("DEBUG sytle = ",p.style.name)
+		r = p.add_run("编        号:  ")
+		r = p.add_run("%s"%self.proj.code)
+		r.underline = True
+
+		p = d.add_paragraph("检测日期:  ")
+		p.style = styles['my_header']
+		p.add_run("%s"%self.str_date).underline = True
+
+		p = d.add_paragraph()
+		p.style = styles['my_header']
+
+		p = d.add_paragraph()
+		p.style = styles['my_header']
+		p.add_run("报        警:  是      否")
+
+		p = d.add_paragraph()
+		p.style = styles['my_header']
+		p.add_run("报警内容:  ")
+
+		for i in range(3):
+			d.add_paragraph(style=styles['my_header'])
+
+		p = d.add_paragraph("项目负责人:  ")
+		p.style = styles['my_header']
+		p.add_run(" "*20+".").underline = True
+
+		p = d.add_paragraph("签发日期:  ")
+		p.style = styles['my_header']
+		p.add_run(" "*22+".").underline = True
+
+		p = d.add_paragraph("单位名称:  ")
+		p.style = styles['my_header']
+		p.add_run("         (盖章)         ").underline = True
+
+		d.add_paragraph(style = styles['my_header'])
+
 		p = d.add_paragraph("%s" %self.str_date)
+		p.style = styles['my_header']
+
 
 		###new page###########
+		#审核意见单
 		d.add_page_break()
 		self.write_header()
 
-		d.add_paragraph("第三方检测审核单")
-		t = d.add_table(rows=1, cols=1, style = 'Table Grid')
-		t.cell(0, 0).text = "审核意见:\n\n\n\n\n" + " "*80 +"监理工程师:"\
-		 + " "*30 + "日期:" 
+		p = d.add_paragraph()
+		r = p.add_run("第三方检测审核单")
+		r.bold = True
+		r.font.size = Pt(18)
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+		p.paragraph_format.line_spacing = Pt(21)
+		p.paragraph_format.space_before = Pt(21)
 
+		t = d.add_table(rows=1, cols=1, style = 'Table Grid')
+		t.alignment = WD_TABLE_ALIGNMENT.CENTER
+		tr = t.rows[0]
+		tr.herght = Inches(6)
+		tr.width = Inches(6)
+
+		p = t.cell(0,0).paragraphs[0]
+		r = p.add_run("审核意见:   ")
+		r.font.size = Pt(14)
+
+		for i in range(8):
+			p = t.cell(0,0).add_paragraph()
+			r = p.add_run()
+			r.font.size = Pt(14)
+			p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+			p.paragraph_format.line_spacing = Pt(21)
+
+		p = t.cell(0,0).add_paragraph()
+		s = " "*60 +"监理工程师:" + " "*20 + "日期:" 
+		r = p.add_run(s)
+		r.font.size = Pt(12)
+
+		for i in range(3):
+			p = t.cell(0,0).add_paragraph()
+			p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+			p.paragraph_format.line_spacing = Pt(21)
 
 		result = True
 		return result
@@ -292,7 +438,12 @@ class MyDocx(object):
 
 		d = self.docx
 		px = self.my_xlsx
-		t = d.add_table(rows=1, cols=8, style='Table Grid')
+		#t = d.add_table(rows=1, cols=8, style='Table Grid')
+
+		for style in d.styles:
+			print("DDDDBUG,style:",style.name)
+		t = d.add_table(rows=1, cols=8, style='Light Grid Accent 1')
+
 		t.cell(0,0).text = '监测项目'
 		t.cell(0,1).text = '本次\n变化\n最大点'
 		t.cell(0,2).text = '日变化\n速率\n(mm/d)'
@@ -330,11 +481,11 @@ class MyDocx(object):
 				print("DEBUG error, col_index not found!")
 				continue
 			today_range_values = px.get_range_values(sheet, area_name, col_index)
-			print("DEBUG '当天值列':{}".format(today_range_values))
+			#print("DEBUG '当天值列':{}".format(today_range_values))
 
 			#获取前一天的值, 这里是否应该找到有测量值的上一次？
 			last_range_values = px.get_range_values(sheet, area_name, col_index-1)
-			print("DEBUG '昨天值列':{}".format(last_range_values))
+			#print("DEBUG '昨天值列':{}".format(last_range_values))
 
 			#找到其中最大变化的
 			#对应位进行相减，放到新的def中，然后找到绝对值最大的，作为变换最大量
@@ -353,7 +504,7 @@ class MyDocx(object):
 			#求出绝对值最大的值
 			diff_abs_values = list(map(abs,diff_original_values))
 			max_change = max(diff_abs_values)
-			print("DEBUG '最大变化值'是:{}".format(max_change))
+			#print("DEBUG '最大变化值'是:{}".format(max_change))
 			#如果有最大值，且不为0
 			if max_change != 0:
 				#通过变化最大量的index和area的range找到行坐标
@@ -434,10 +585,14 @@ class MyDocx(object):
 		row.cells[1].text = '现场无异常情况。'
 		#数据分析 行
 		row = t.add_row()
-		first_cell = row.cells[0]
-		first_cell.merge(row.cells[7])
+		row.cells[0].text = '数据分析'
+		row.cells[1].merge(row.cells[7])
 		s = '今日各监测项目数据变化量较小，数据在可控范围内；监测频率为1次/1d。'
-		row.cells[0].text = '数据分析: ' + s
+		row.cells[1].text = s
+
+		t.alignment = WD_TABLE_ALIGNMENT.CENTER
+		for cell in t.rows[0].cells:
+			cell.width = Pt(320)
 
 		return
 	##########one_overview_table()###############################
@@ -456,15 +611,31 @@ class MyDocx(object):
 		###new page###########
 		d.add_page_break()
 		p = d.add_paragraph()
-		p.add_run("检测分析报告")
+		r = p.add_run("监测分析报告")
+		r.font.size = Pt(15)
+		r.bold = True
 		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+		p.paragraph_format.space_before = 0
+		p.paragraph_format.space_after = 0
+		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+		p.paragraph_line_spacing = None
+
 		p = d.add_paragraph()
-		p.add_run("一、施工概况")
+		r = p.add_run("一、施工概况")
+		r.bold = True
+		r.font.size = Pt(14)
+
+		for i in range(10):
+			p = d.add_paragraph()
+			r = p.add_run()
+			r.font.size = Pt(12)
 
 		###new page###########
 		d.add_page_break()
 		p = d.add_paragraph()
-		p.add_run("二、数据分析")
+		r = p.add_run("二、数据分析")
+		r.bold = True
+		r.font.size = Pt(14)
 
 		#表标题
 		table_cap = "监测数据分析表"
@@ -476,8 +647,11 @@ class MyDocx(object):
 			if '衡山路站' in area_name:
 				i += 1
 				ss = '表' + '%d'%i + area_name + table_cap
-				d.add_paragraph(ss).paragraph_format.alignment = \
-				WD_ALIGN_PARAGRAPH.CENTER
+				p = d.add_paragraph()
+				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+				p.paragraph_format.space_before = Pt(12)
+				r = p.add_run(ss)
+				r.font.size = Pt(12)
 				self.one_overview_table(area_name)
 			#Test open to all	
 			else:
@@ -493,22 +667,37 @@ class MyDocx(object):
 		###new page###########
 		d.add_page_break()
 		p = d.add_paragraph()
-		p.add_run("三、结论")
+		r = p.add_run("三、结论")
+		r.bold = True
+		r.font.size = Pt(14)
+
+		for i in range(5):
+			p = d.add_paragraph()
+			r = p.add_run()
+			r.font.size = Pt(12)
+
+		#表标题
 		###new page###########
 		d.add_page_break()
 		p = d.add_paragraph()
-		p.add_run("四、建议")
+		r = p.add_run("四、建议")
+		r.bold = True
+		r.font.size = Pt(14)
 
-		for i in range(12):
-			d.add_paragraph()
+		for i in range(10):
+			p = d.add_paragraph()
+			r = p.add_run()
+			r.font.size = Pt(12)
 
 		ss = "监测单位：                   （盖章）              "
 		p = d.add_paragraph()
-		p.add_run(ss)
+		r = p.add_run(ss)
+		r.font.size = Pt(14)
 		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-		ss = "负责人：                   年     月     日             "
+		ss = "负责人：                   年     月     日        "
 		p = d.add_paragraph()
-		p.add_run(ss)
+		r = p.add_run(ss)
+		r.font.size = Pt(14)
 		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
 		result = True
@@ -873,7 +1062,7 @@ class MyDocx(object):
 			value_list = []
 			row_list,date_list,value_list = \
 			self.find_avail_rows_dates_values(sheet,area_name,7)
-			print("DEBUGGGGGGGG date_list=",date_list)
+			#print("DEBUGdate_list=",date_list)
 			if not row_list:
 				print("没有有效值")
 				continue
@@ -1295,6 +1484,7 @@ class MyDocx(object):
 		p.add_run(self.proj.third_observer)
 
 		t = d.add_table(rows=8, cols=13, style='Table Grid')
+		print("DEBUG t.style.name=",t.style.name)
 		t.cell(0,0).merge(t.cell(0,12))
 		s1 = "仪器型号: "
 		s2 = "                           仪器出厂编号: "

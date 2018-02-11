@@ -5,6 +5,7 @@
 '''
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdate
+from matplotlib.ticker import MultipleLocator
 import os
 from math import ceil
 
@@ -86,7 +87,7 @@ class MyPlot(object):
 		'''
 
 		self.plt = plt
-		self.plt.rcParams['figure.figsize'] = (2.5,deep_values[-1]+4)
+		self.plt.rcParams['figure.figsize'] = (4.0,deep_values[-1]*1.12+4)
 		self.plt.rcParams['font.sans-serif'] = ['SimHei']
 		self.plt.rcParams['axes.unicode_minus'] = False
 		self.plt.rcParams['xtick.direction'] = 'in' 
@@ -125,7 +126,7 @@ class MyPlot(object):
 
 		#y坐标离轴多远
 		ax.tick_params(axis='y', which='major', pad=20)
-		ax.tick_params(axis='x', which='major', pad=-40)
+		ax.tick_params(axis='x', which='major', pad=-44)
 
 		self.plt.legend(loc='lower center',ncol=1,bbox_to_anchor=(0.5,-0.180),\
 			markerscale=1.5,borderpad=0.5,labelspacing=0.52,frameon=False,\
@@ -137,9 +138,12 @@ class MyPlot(object):
 		self.plt.xlabel('变化量(mm)', fontsize=40)
 		#使y轴显示整数深度的刻度
 		self.plt.yticks(list(map(ceil,deep_values)))
-
+		#x轴刻度间隔倍数,
+		max_value = ceil(max(list(map(abs,acc_values))))
+		xmajorLocator   = MultipleLocator(int(max_value/2))
+		ax.xaxis.set_major_locator(xmajorLocator)
 		#刻度数值大小
-		self.plt.tick_params(axis='both', labelsize=35)
+		self.plt.tick_params(axis='both', labelsize=32)
 
 		#self.plt.tight_layout()
 		if save_flag:
