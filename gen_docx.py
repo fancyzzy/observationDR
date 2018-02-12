@@ -262,16 +262,16 @@ class MyDocx(object):
 		p = d.add_paragraph("施工单位:  ")
 		p.style = styles['my_sub_header']
 		p.add_run("%s" % self.proj.builder).underline = True
-		p.add_run("    合同号:  ")
+		p.add_run("    合同号：")
 		p.add_run("%s" % self.proj.contract).underline = True
 
-		p = d.add_paragraph("监理单位:  ")
+		p = d.add_paragraph("监理单位：")
 		p.style = styles['my_sub_header']
 		p.add_run("%s" % self.proj.supervisor).underline = True
-		p.add_run("               编号:  ")
+		p.add_run("               编号：")
 		p.add_run("%s" % self.proj.code).underline = True
 
-		p = d.add_paragraph("第三方检测单位:  ")
+		p = d.add_paragraph("第三方检测单位：")
 		p.style = styles['my_sub_header']
 		p.add_run("%s" % self.proj.third_observer).underline = True
 	################write_header()########################
@@ -349,11 +349,11 @@ class MyDocx(object):
 		p = d.add_paragraph()
 		p.style = styles['my_header']
 		print("DEBUG sytle = ",p.style.name)
-		r = p.add_run("编        号:  ")
+		r = p.add_run("编        号：")
 		r = p.add_run("%s"%self.proj.code)
 		r.underline = True
 
-		p = d.add_paragraph("检测日期:  ")
+		p = d.add_paragraph("检测日期：")
 		p.style = styles['my_header']
 		p.add_run("%s"%self.str_date).underline = True
 
@@ -362,7 +362,7 @@ class MyDocx(object):
 
 		p = d.add_paragraph()
 		p.style = styles['my_header']
-		p.add_run("报        警:  是      否")
+		p.add_run("报        警： 是         否")
 
 		p = d.add_paragraph()
 		p.style = styles['my_header']
@@ -371,15 +371,15 @@ class MyDocx(object):
 		for i in range(3):
 			d.add_paragraph(style=styles['my_header'])
 
-		p = d.add_paragraph("项目负责人:  ")
+		p = d.add_paragraph("项目负责人：")
 		p.style = styles['my_header']
 		p.add_run(" "*20+".").underline = True
 
-		p = d.add_paragraph("签发日期:  ")
+		p = d.add_paragraph("签发日期：")
 		p.style = styles['my_header']
 		p.add_run(" "*22+".").underline = True
 
-		p = d.add_paragraph("单位名称:  ")
+		p = d.add_paragraph("单位名称：")
 		p.style = styles['my_header']
 		p.add_run("      (盖章)     .").underline = True
 
@@ -412,7 +412,7 @@ class MyDocx(object):
 		tr.width = Inches(6)
 
 		p = t.cell(0,0).paragraphs[0]
-		r = p.add_run("审核意见:   ")
+		r = p.add_run("审核意见：  ")
 		r.font.size = Pt(14)
 
 		for i in range(8):
@@ -423,7 +423,7 @@ class MyDocx(object):
 			p.paragraph_format.line_spacing = Pt(21)
 
 		p = t.cell(0,0).add_paragraph()
-		s = " "*60 +"监理工程师:" + " "*20 + "日期:" 
+		s = " "*60 +"监理工程师：" + " "*20 + "日期：" 
 		r = p.add_run(s)
 		r.font.size = Pt(12)
 
@@ -740,7 +740,7 @@ class MyDocx(object):
 		proj = self.proj
 		ds = self.str_date
 
-		t = d.add_table(rows=10, cols=6, style='Table Grid')
+		t = d.add_table(rows=10, cols=6, style='security_table')
 		t.cell(0,0).text = '线路名称'
 		t.cell(0,1).text = proj.name
 		t.cell(0,2).text = '监测标段'
@@ -767,12 +767,7 @@ class MyDocx(object):
 		t.cell(3,3).text = '可能导致的后果'
 		t.cell(3,4).text = '安全状态评价'
 		t.cell(3,5).text = '处置措施建议'
-		#加粗:
-		for i in range(6):
-			p = t.cell(3,i).paragraphs[0]
-			for r in p.runs:
-				r.font.bold = True
-				r.font.size = Pt(12)
+
 
 		t.cell(4,0).text = '开挖面地质状况'
 		t.cell(4,1).text = ''
@@ -807,15 +802,33 @@ class MyDocx(object):
 		t.cell(8,4).text = ' '*40+ ds
 
 		t.cell(9,0).merge(t.cell(9,5))
-		t.cell(9,0).text = '备注: '
+		s1 = "备注：1、本表由施工方和第三方监测单位采用；\n" 
+		s2 = " "*12+"2、适用于矿山法施工；\n" 
+		s3 = " "*12+"3、主要巡视内容包括：1）开挖面地质状况：土层性质及稳定性、降水效果和其它情况；"
+		s4 = "支护结构体系：支护体系施作及时性、渗漏水情况、支护体系开裂、变形变化和其它情况；"
+		s5 = "3）周边环境：建构筑物变形及开裂情况、地表变形及开裂情况、管线沿线地面开裂、渗水、塌陷情况、管线检查井开裂及积水变化和其它情况。"
+		t.cell(9,0).text = s1+s2+s3+s4+s5
 
+		#表格样式
+		#加粗:
+		for i in range(6):
+			p = t.cell(3,i).paragraphs[0]
+			for r in p.runs:
+				r.font.bold = True
+				r.font.size = Pt(12)
+
+		for p in t.cell(9,0).paragraphs:
+			p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+			for r in p.runs:
+				r.font.bold = True
+				r.font.size = Pt(10.5)
 
 		#设置表格行高度
 		for i in range(4,len(t.rows)):
 			tr = t.rows[i]._tr
 			trPr = tr.get_or_add_trPr()
 			trHeight = OxmlElement('w:trHeight')
-			v_height = "500"
+			v_height = "600"
 			if i == len(t.rows) - 1:
 				v_height = "1800"
 			trHeight.set(qn('w:val'), v_height)
@@ -871,10 +884,12 @@ class MyDocx(object):
 					r.font.size = Pt(16)
 
 				p = d.add_paragraph()
-				p.add_run('编号: ')
+				p.add_run('编号：')
 				p.add_run(proj.code).underline = True
 				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 				p.paragraph_format.space_after = 0
+				for r in p.runs:
+					r.font.size = Pt(12)
 				self.one_security_table(area_name)
 			#Test open to all	
 			else:
@@ -958,11 +973,10 @@ class MyDocx(object):
 
 		t = d.add_table(rows=13, cols=10, style='settlement_table')
 
-		print("DEBUGGGGGGGGGGGGG t.cell(0,0).paragraph.style_name=",t.cell(0,0).paragraphs[0].style.name)
 		t.cell(0,0).merge(t.cell(0,9))
-		s1 = "仪器型号: "
-		s2 = " "*25 + "仪器出厂编号:  "
-		s3 = " "*25 + "检定日期:  "
+		s1 = "仪器型号："
+		s2 = " "*25 + "仪器出厂编号："
+		s3 = " "*25 + "检定日期："
 		t.cell(0,0).text = s1+s2+s3
 		t.cell(1,0).merge(t.cell(2,0))
 		t.cell(1,1).merge(t.cell(1,3))
@@ -1214,8 +1228,8 @@ class MyDocx(object):
 				else:
 					last_date = date_to_str(date_list[1])
 				p = d.add_paragraph()	
-				p.add_run('上次监测时间: '+last_date)
-				p.add_run(' '*32 + '本次监测时间: '+ self.str_date)
+				p.add_run('上次监测时间：'+last_date)
+				p.add_run(' '*28 + '本次监测时间：'+ self.str_date)
 				for r in p.runs:
 					r.font.size = Pt(12)
 				p.paragraph_format.space_before = 0
@@ -1256,9 +1270,9 @@ class MyDocx(object):
 			p.paragraph_format.line_spacing = Pt(26)
 
 		p = d.add_paragraph()
-		p.add_run("施工单位: ")
+		p.add_run("施工单位：")
 		p.add_run(self.proj.builder).underline = True
-		p.add_run(" "*20 + "编号: ")
+		p.add_run(" "*20 + "编号：")
 		p.add_run(self.proj.code).underline = True
 		for r in p.runs:
 			r.font.size = Pt(12)
@@ -1267,7 +1281,7 @@ class MyDocx(object):
 		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
 
 		p = d.add_paragraph()
-		p.add_run("监理单位: ")
+		p.add_run("监理单位：")
 		p.add_run(self.proj.supervisor).underline = True
 		for r in p.runs:
 			r.font.size = Pt(12)
@@ -1276,7 +1290,7 @@ class MyDocx(object):
 		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
 
 		p = d.add_paragraph()
-		p.add_run("施工监测单位: ")
+		p.add_run("施工监测单位：")
 		p.add_run(self.proj.builder_observer).underline = True
 		for r in p.runs:
 			r.font.size = Pt(12)
@@ -1293,11 +1307,11 @@ class MyDocx(object):
 		'''
 		d = self.docx
 		p = d.add_paragraph()
-		s = "现场监测人:  "
+		s = "现场监测人："
 		p.add_run(s)
-		s = " "*35 + "计算人:  "
+		s = " "*35 + "计算人："
 		p.add_run(s)
-		s = " "*30 + "校核人:  "
+		s = " "*30 + "校核人："
 		p.add_run(s)
 		for r in p.runs:
 			r.font.size = Pt(12)
@@ -1306,9 +1320,9 @@ class MyDocx(object):
 
 
 		p = d.add_paragraph()
-		s = "检测项目负责人:  "
+		s = "检测项目负责人："
 		p.add_run(s)
-		s = " "*27 + "第三方监测单位:  "
+		s = " "*27 + "第三方监测单位："
 		p.add_run(s)
 		p.add_run(self.proj.third_observer)
 		for r in p.runs:
@@ -1360,9 +1374,10 @@ class MyDocx(object):
 		#画表
 		t = d.add_table(rows=51, cols=9, style = 'Table Grid')
 		t.cell(0,0).merge(t.cell(0,8))
-		s1 = '仪器型号:                        仪器出厂编号：'
-		s2 = '                        检定日期: '
-		t.cell(0,0).text = s1+s2
+		s1 = "仪器型号："
+		s2 = " "*20 + "仪器出厂编号："
+		s3 = " "*20 + "检定日期："
+		t.cell(0,0).text = s1+s2+s3
 
 		t.cell(1,0).text = '测点'
 		t.cell(1,1).merge(t.cell(1,4))
@@ -1592,8 +1607,8 @@ class MyDocx(object):
 				else:
 					last_date = date_to_str(date_list[1])
 				p = d.add_paragraph()	
-				p.add_run('上次监测时间: '+last_date)
-				p.add_run(' '*32 + '本次监测时间: '+ self.str_date)
+				p.add_run('上次监测时间：'+last_date)
+				p.add_run(' '*28 + '本次监测时间：'+ self.str_date)
 				for r in p.runs:
 					r.font.size = Pt(12)
 				p.paragraph_format.space_before = 0
@@ -1640,9 +1655,9 @@ class MyDocx(object):
 		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 		p = d.add_paragraph()
-		p.add_run("施工监测单位:  ")
+		p.add_run("施工监测单位：")
 		p.add_run(self.proj.builder_observer)
-		p.add_run(" "*60 + "第三方监测单位:  ")
+		p.add_run(" "*60 + "第三方监测单位：")
 		p.add_run(self.proj.third_observer)
 		for r in p.runs:
 			r.font.size = Pt(12)
@@ -1651,9 +1666,9 @@ class MyDocx(object):
 		t = d.add_table(rows=8, cols=13, style='blasting_style')
 		print("DEBUG t.style.name=",t.style.name)
 		t.cell(0,0).merge(t.cell(0,12))
-		s1 = "仪器型号:  "
-		s2 = " "*40 + "仪器出厂编号:  "
-		s3 = " "*40 + "检定日期:  "
+		s1 = "仪器型号："
+		s2 = " "*40 + "仪器出厂编号： "
+		s3 = " "*40 + "检定日期："
 		t.cell(0,0).text = s1+s2+s3
 		t.cell(1,0).merge(t.cell(3,0))
 		t.cell(1,0).text = "测量时间"
@@ -1696,13 +1711,13 @@ class MyDocx(object):
 		t.cell(7,1).merge(t.cell(7,12))
 
 		p = d.add_paragraph()
-		s = "现场监测人:  "
+		s = "现场监测人："
 		p.add_run(s)
-		s = " "*50 + "计算人:  "
+		s = " "*50 + "计算人："
 		p.add_run(s)
-		s = " "*50 + "校核人:  "
+		s = " "*50 + "校核人："
 		p.add_run(s)
-		s = " "*50 + "监测项目负责人:  "
+		s = " "*50 + "监测项目负责人："
 		p.add_run(s)
 
 		#表格样式，字体 宋体
