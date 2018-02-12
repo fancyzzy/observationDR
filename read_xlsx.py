@@ -216,10 +216,10 @@ class MyXlsx(object):
 				avail_rows.append(row_index)
 				avail_values.append(float(s_value))
 			else:
-				#当接受none值是，变为0。给旧累计值用
+				#其他非法输出，当做None值接受
 				if accept_none:
 					avail_rows.append(row_index)
-					avail_values.append(0)
+					avail_values.append(None)
 
 		return avail_rows,avail_values
 	###########get_avail_rows_values()################################
@@ -257,6 +257,11 @@ if __name__ == '__main__':
 	print("DEBUG sd=",sd)
 	i,_ = my_xlsx.get_item_col('地表沉降', sd)
 	print("i=",i)
+
+	x = my_xlsx.get_value('地表沉降',2,8)
+	print("x=",x)
+	print("type(x)=",str(type(x)))
+	print("datetime.datetime==type(x)",'datetime'in str(type(x)))
 
 	'''
 	#获取某一个单元格的值

@@ -1511,15 +1511,12 @@ class MyDocx(object):
 		#找到当天日期,初值，旧累计所在的列坐标
 		init_col, _ = px.get_item_col(inc_sheet, '初值', False)
 		old_acc_col,_ = px.get_item_col(inc_sheet, '旧累计', False)
-		today_col,_ = px.get_item_col(inc_sheet, self.date, True)
+		today_col,today_row = px.get_item_col(inc_sheet, self.date, True)
 		deep_col,_ = px.get_item_col(inc_sheet, '深度', False)
 
 		#遍历每个区间制作多个测斜表
 		for area_name in d_area_obser.keys():
 
-			_,date_list,_= self.find_avail_rows_dates_values(inc_sheet,area_name,2)
-			if len(date_list) == 0:
-				print("Error, {}，{}当天没有有效值".format(inc_sheet,area_name))
 			obser_list = d_area_obser[area_name]
 			ln = len(obser_list)
 			table_num = 0
@@ -1550,8 +1547,7 @@ class MyDocx(object):
 					start_row, end_row = d_obser_deeps[obser]
 					#注意！list(range(3,5)) = [3,4], so need to add 1
 					#注意这个row_list是全深度的范围，不是当天有效值的范围
-					#如果遇到当天某个深度没有填写，记为0
-					#这列是否应该优化使用当天有效值的row_list	
+					#如果遇到当天某个深度没有填写，使用array的nan
 					row_list = list(range(start_row, end_row+1))
 		
 					#找到这个观测点对应行数范围内深度的数据
@@ -1562,29 +1558,40 @@ class MyDocx(object):
 					#初值
 					_, init_values = px.get_avail_rows_values(sheet_name, row_list,\
 					init_col, False)
-					if len(init_values) != len(row_list):
+					if (len(init_values)!=len(row_list)) or (len(deep_values)!=\
+						len(row_list)):
 						#不可能发生，因为row_list的范围就是根据初值锚定的
-						print("Error! 初始值缺失！")
+						print("Error! 测斜表初始值/深度值缺失！")
 						print("DEBUG obser:{},row_list:{},init_values:{}".format(\
 							obser,row_list,init_values))
+						#defence
+						pass
 
-					#旧累计, true 可以为0
-					#这里没有测的点按照0来算，可能不准
+					#旧累计, true 可以接受None
 					_, old_acc_values = px.get_avail_rows_values(sheet_name, row_list,\
 					old_acc_col, True)
-					#当天和前一天
+					#当天数据
 					_, today_values = px.get_avail_rows_values(sheet_name, row_list,\
 					today_col, True)
-					_, lastday_values = px.get_avail_rows_values(sheet_name, row_list,\
+					#寻找前一天数据
+					last_date = get_value(sheet_name, today_row, today_col-1)
+					if 'datetime' in str(type(last_date)):
+						_, lastday_values = px.get_avail_rows_values(sheet_name, row_list,\
 					today_col-1, True)
+					#前面一列不是日期值，表示昨天值不存在
+					else:
+						lastday_values = None
 
-					this_diffs = array(today_values) - array(lastday_values)
-					acc_diffs = array(today_values) - array(init_values) + array(old_acc_values)
-					obser_data.append(deep_values[:])
-					obser_data.append(today_values[:])
-					obser_data.append(this_diffs[:])
-					obser_data.append(acc_diffs[:])
-					d_obser_data[obser] = obser_data[:]
+					#使用array(list,dtype=float)来处理None值为nan
+					this_diffs = array(today_values, dtype=float) - array(\
+						lastday_values, dtype=float)
+					acc_diffs = array(today_values,dtype=float) - array(\
+						init_values,dtype=float) + array(old_acc_values,dtype=float)
+					obser_data.append(deep_values)
+					obser_data.append(today_values)
+					obser_data.append(this_diffs)
+					obser_data.append(acc_diffs)
+					d_obser_data[obser] = obser_data
 					obser_data[:] = []
 				#end获取数据 
 
@@ -1604,8 +1611,11 @@ class MyDocx(object):
 				last_date = ''
 				if lastday_values == init_values:
 					last_date = '初始值'
+				elif lastday_values == None:
+					last_date = '无上次监测'
 				else:
-					last_date = date_to_str(date_list[1])
+					last_date = date_to_str(px.get_value(inc_sheet, today_row, today_col-1))
+
 				p = d.add_paragraph()	
 				p.add_run('上次监测时间：'+last_date)
 				p.add_run(' '*28 + '本次监测时间：'+ self.str_date)
