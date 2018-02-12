@@ -151,7 +151,7 @@ class MyDocx(object):
 			pass
 
 		#页面布局为纵向横向
-		new_section = self.docx.add_section(WD_SECTION.NEW_PAGE)
+		new_section = self.docx.add_section()
 		new_section.orientation = WD_ORIENT.PORTRAIT
 		new_section.page_width = Mm(210)
 		new_section.page_height = Mm(297)
@@ -333,7 +333,7 @@ class MyDocx(object):
 		#增加一个style
 		new_style = d.styles.add_style('my_header', WD_STYLE_TYPE.PARAGRAPH)
 		p_format = new_style.paragraph_format
-		p_format.first_line_indent = Cm(4.5)
+		p_format.first_line_indent = Cm(4.2)
 		p_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 		p_format.line_spacing = Pt(28)
 		p_format.space_after = 0
@@ -381,12 +381,14 @@ class MyDocx(object):
 
 		p = d.add_paragraph("单位名称:  ")
 		p.style = styles['my_header']
-		p.add_run("         (盖章)         ").underline = True
+		p.add_run("      (盖章)     .").underline = True
 
 		d.add_paragraph(style = styles['my_header'])
 
-		p = d.add_paragraph("%s" %self.str_date)
-		p.style = styles['my_header']
+		p = d.add_paragraph()
+		r = p.add_run(self.str_date)
+		r.font.size = Pt(15)
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 
 		###new page###########
@@ -607,6 +609,16 @@ class MyDocx(object):
 		for cell in t.rows[0].cells:
 			cell.width = Inches(8.6)
 
+		#设置字体，宋体
+		ln = len(t.rows)
+		last_three = len(t.rows) - 3
+		for i in range(ln):
+			for cell in t.rows[i].cells:
+				for p in cell.paragraphs:
+					p.style = d.styles["my_song_style"]
+					if i >= last_three:
+						p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+				
 		return
 	##########one_overview_table()###############################
 
@@ -944,31 +956,33 @@ class MyDocx(object):
 		d = self.docx
 		px = self.my_xlsx
 
-		t = d.add_table(rows=13, cols=10, style='Table Grid')
+		t = d.add_table(rows=13, cols=10, style='settlement_table')
+
+		print("DEBUGGGGGGGGGGGGG t.cell(0,0).paragraph.style_name=",t.cell(0,0).paragraphs[0].style.name)
 		t.cell(0,0).merge(t.cell(0,9))
-		s1 = '仪器型号: '
-		s2 = '               仪器出厂编号：'
-		s3 = '               检定日期：'
+		s1 = "仪器型号: "
+		s2 = " "*25 + "仪器出厂编号:  "
+		s3 = " "*25 + "检定日期:  "
 		t.cell(0,0).text = s1+s2+s3
 		t.cell(1,0).merge(t.cell(2,0))
 		t.cell(1,1).merge(t.cell(1,3))
-		t.cell(1,0).text = '监测点号'
+		t.cell(1,0).text = '监测\n点号'
 		t.cell(1,1).text = '沉降变化量(mm)'
 		t.cell(1,4).merge(t.cell(2,4))
 		t.cell(1,4).text = '备注'
 		t.cell(1,5).merge(t.cell(2,5))
-		t.cell(1,5).text = '监测点号'
+		t.cell(1,5).text = '监测\n点号'
 		t.cell(1,6).merge(t.cell(1,8))
 		t.cell(1,6).text = '沉降变化量(mm)'
 		t.cell(1,9).merge(t.cell(2,9))
 		t.cell(1,9).text = '备注'
 
-		t.cell(2,1).text = '上次变量'
-		t.cell(2,2).text = '本次变量'
-		t.cell(2,3).text = '累计变量'
-		t.cell(2,6).text = '上次变量'
-		t.cell(2,7).text = '本次变量'
-		t.cell(2,8).text = '累计变量'
+		t.cell(2,1).text = '上次\n变量'
+		t.cell(2,2).text = '本次\n变量'
+		t.cell(2,3).text = '累计\n变量'
+		t.cell(2,6).text = '上次\n变量'
+		t.cell(2,7).text = '本次\n变量'
+		t.cell(2,8).text = '累计\n变量'
 
 		#填入数值
 		last_diffs = []
@@ -1057,12 +1071,37 @@ class MyDocx(object):
 		#插入曲线图
 		p = t.cell(11,1).paragraphs[0]
 		run = p.add_run()
-		run.add_picture(fig_path, width=Cm(13), height=Cm(5))
+		run.add_picture(fig_path, width=Cm(12), height=Cm(5))
 		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 		t.cell(12,0).text = '备注'
 		t.cell(12,1).merge(t.cell(12,9))
 		t.cell(12,1).text = '1、“-”为下降、“+”为上升；2、监测点布设图见附图'
+
+		#设置表格样式
+		t.alignment = WD_TABLE_ALIGNMENT.CENTER
+		for i in range(len(t.rows)):
+			tr = t.rows[i]._tr
+			trPr = tr.get_or_add_trPr()
+			trHeight = OxmlElement('w:trHeight')
+			v_height = "300"
+			if i == 11:
+				v_height = "3600"
+			trHeight.set(qn('w:val'), v_height)
+			trHeight.set(qn('w:hRule'), "atLeast")
+			trPr.append(trHeight)
+
+			#中间观测点数据字体缩小
+			if i >= 3 and i <= 10:
+				for cell in t.rows[i].cells:
+					for p in cell.paragraphs:
+						for r in p.runs:
+							r.font.size = Pt(8)
+
+			#设置表格段落字体为自定义宋体样式
+			for cell in t.rows[i].cells:
+				for p in cell.paragraphs:
+					p.style = d.styles["my_song_style"]
 
 	##################draw_settlement_table()###################################
 
@@ -1157,11 +1196,18 @@ class MyDocx(object):
 				print("------DEBUG, '{}, {}' 沉降变化监测表{}/{}---".format(\
 					area_name, sheet,i,split_num))
 				###new page###########
-				#d.add_page_break()
+				if i >1:
+					d.add_page_break()
 				self.write_settlement_header(area_name)
 				p = d.add_paragraph()	
-				p.add_run(area_name+sheet+'监测报表'+'%d/%d'%(i,split_num))
+				s = area_name+sheet+'监测报表'+'%d/%d'%(i,split_num)
+				r = p.add_run(s)
+				r.bold = True
+				r.font.size = Pt(15)
+				p.paragraph_format.space_before = Pt(6)
+				p.paragraph_format.space_after = Pt(6)
 				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
 				last_date = ''
 				if len(date_list)==1:
 					last_date = '初始值'
@@ -1169,7 +1215,12 @@ class MyDocx(object):
 					last_date = date_to_str(date_list[1])
 				p = d.add_paragraph()	
 				p.add_run('上次监测时间: '+last_date)
-				p.add_run('              本次监测时间: '+ self.str_date)
+				p.add_run(' '*32 + '本次监测时间: '+ self.str_date)
+				for r in p.runs:
+					r.font.size = Pt(12)
+				p.paragraph_format.space_before = 0
+				p.paragraph_format.space_after = 0
+				p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
 	
 				#制表
 				self.draw_settlement_table(sheet, sub_row_list, date_list,\
@@ -1186,26 +1237,52 @@ class MyDocx(object):
 		'''
 		d = self.docx
 		p = d.add_paragraph()
-		p.add_run(self.proj.name)
+		r = p.add_run(self.proj.name)
+		r.font.size = Pt(16)
 		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+		p.paragraph_format.space_before = 0
+		p.paragraph_format.space_after = 0
+		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
 
 		if show_area_name:
 			p = d.add_paragraph()
-			p.add_run("%s主体"%area_name).underline = True
+			r = p.add_run("%s主体"%area_name)
+			r.underline = True
+			r.font.size = Pt(16)
 			p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+			p.paragraph_format.space_before = 0
+			p.paragraph_format.space_after = Pt(2)
+			p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+			p.paragraph_format.line_spacing = Pt(26)
 
 		p = d.add_paragraph()
 		p.add_run("施工单位: ")
 		p.add_run(self.proj.builder).underline = True
-		p.add_run("    编号: ")
+		p.add_run(" "*20 + "编号: ")
 		p.add_run(self.proj.code).underline = True
+		for r in p.runs:
+			r.font.size = Pt(12)
+		p.paragraph_format.space_before = 0
+		p.paragraph_format.space_after = 0
+		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
 
 		p = d.add_paragraph()
 		p.add_run("监理单位: ")
 		p.add_run(self.proj.supervisor).underline = True
+		for r in p.runs:
+			r.font.size = Pt(12)
+		p.paragraph_format.space_before = 0
+		p.paragraph_format.space_after = 0
+		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+
 		p = d.add_paragraph()
 		p.add_run("施工监测单位: ")
 		p.add_run(self.proj.builder_observer).underline = True
+		for r in p.runs:
+			r.font.size = Pt(12)
+		p.paragraph_format.space_before = 0
+		p.paragraph_format.space_after = 0
+		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
 
 	################write_settlement_header()########################
 
@@ -1216,20 +1293,28 @@ class MyDocx(object):
 		'''
 		d = self.docx
 		p = d.add_paragraph()
-		s = '现场监测人:              '
+		s = "现场监测人:  "
 		p.add_run(s)
-		s = '计算人:              '
+		s = " "*35 + "计算人:  "
 		p.add_run(s)
-		s = '校核人:              '
+		s = " "*30 + "校核人:  "
 		p.add_run(s)
+		for r in p.runs:
+			r.font.size = Pt(12)
+		p.paragraph_format.space_before = 0
+		p.paragraph_format.space_after = 0
+
 
 		p = d.add_paragraph()
-		s = '检测项目负责人:              '
+		s = "检测项目负责人:  "
 		p.add_run(s)
-
-		s = '第三方监测单位: '
+		s = " "*27 + "第三方监测单位:  "
 		p.add_run(s)
 		p.add_run(self.proj.third_observer)
+		for r in p.runs:
+			r.font.size = Pt(12)
+		p.paragraph_format.space_before = 0
+		p.paragraph_format.space_after = 0
 	##################write_settlementn_foot()###########################
 
 
@@ -1348,8 +1433,20 @@ class MyDocx(object):
 			p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 		#end for i in range(len(sub_obser_list)):
-
-	###########multi_inclinometer_table()##############################
+		#表格样式，段落居中，字体数据为7.5磅
+		ln = len(t.rows)
+		for i in range(ln):
+			for cell in t.rows[i].cells:
+				for p in cell.paragraphs:
+					p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+					if i >= 3:
+						for r in p.runs:
+							r.font.size = Pt(7.5)
+					else:
+						for r in p.runs:
+							r.font.size = Pt(9)
+							#r.bold = True
+	###########one_inclinometer_table()##############################
 
 
 	def make_inclinometer_pages(self):
@@ -1481,8 +1578,14 @@ class MyDocx(object):
 				self.write_settlement_header(area_name, False)
 				#表标题
 				p = d.add_paragraph()	
-				p.add_run(area_name+inc_sheet+'监测报表'+'%d/%d'%(n,table_num))
+				s = area_name+inc_sheet+"监测报表"+"%d/%d"%(n,table_num)
+				r = p.add_run(s)
+				r.bold = True
+				r.font.size = Pt(14)
+				p.paragraph_format.space_before = Pt(6)
+				p.paragraph_format.space_after = Pt(0)
 				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
 				last_date = ''
 				if lastday_values == init_values:
 					last_date = '初始值'
@@ -1490,7 +1593,12 @@ class MyDocx(object):
 					last_date = date_to_str(date_list[1])
 				p = d.add_paragraph()	
 				p.add_run('上次监测时间: '+last_date)
-				p.add_run('              本次监测时间: '+ self.str_date)
+				p.add_run(' '*32 + '本次监测时间: '+ self.str_date)
+				for r in p.runs:
+					r.font.size = Pt(12)
+				p.paragraph_format.space_before = 0
+				p.paragraph_format.space_after = 0
+				p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
 
 				#画表填值
 				self.one_inclinometer_table(sub_obser_list, d_obser_data,\
@@ -1521,25 +1629,31 @@ class MyDocx(object):
 		px = self.my_xlsx
 
 		p = d.add_paragraph()
-		p.add_run(self.proj.name)
-		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-		p = d.add_paragraph()
-		p.add_run('爆破振动监测报表')
+		r = p.add_run(self.proj.name)
+		r.font.size = Pt(15)
 		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 		p = d.add_paragraph()
-		p.add_run("施工监测单位: ")
+		r = p.add_run('爆破振动监测报表')
+		r.font.size = Pt(15)
+		r.bold = True
+		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+		p = d.add_paragraph()
+		p.add_run("施工监测单位:  ")
 		p.add_run(self.proj.builder_observer)
-		p.add_run("                    ")
-		p.add_run("第三方监测单位: ")
+		p.add_run(" "*60 + "第三方监测单位:  ")
 		p.add_run(self.proj.third_observer)
+		for r in p.runs:
+			r.font.size = Pt(12)
+		p.paragraph_format.space_after = 0
 
-		t = d.add_table(rows=8, cols=13, style='Table Grid')
+		t = d.add_table(rows=8, cols=13, style='blasting_style')
 		print("DEBUG t.style.name=",t.style.name)
 		t.cell(0,0).merge(t.cell(0,12))
-		s1 = "仪器型号: "
-		s2 = "                           仪器出厂编号: "
-		s3 = "                           检定日期: "
+		s1 = "仪器型号:  "
+		s2 = " "*40 + "仪器出厂编号:  "
+		s3 = " "*40 + "检定日期:  "
 		t.cell(0,0).text = s1+s2+s3
 		t.cell(1,0).merge(t.cell(3,0))
 		t.cell(1,0).text = "测量时间"
@@ -1582,14 +1696,27 @@ class MyDocx(object):
 		t.cell(7,1).merge(t.cell(7,12))
 
 		p = d.add_paragraph()
-		s = "现场监测人: "
+		s = "现场监测人:  "
 		p.add_run(s)
-		s = "                        计算人: "
+		s = " "*50 + "计算人:  "
 		p.add_run(s)
-		s = "                        校核人: "
+		s = " "*50 + "校核人:  "
 		p.add_run(s)
-		s = "                        监测项目负责人: "
+		s = " "*50 + "监测项目负责人:  "
 		p.add_run(s)
+
+		#表格样式，字体 宋体
+		for row in t.rows:
+			for cell in row.cells:
+				for p in cell.paragraphs:
+					p.style = d.styles["my_song_style"]
+			#设置高度:
+			tr = row._tr
+			trPr = tr.get_or_add_trPr()
+			trHeight = OxmlElement('w:trHeight')
+			trHeight.set(qn('w:val'), "500")
+			trHeight.set(qn('w:hRule'), "atLeast")
+			trPr.append(trHeight)
 
 		return True
 	###############make_blasting_pages()########################
@@ -1613,7 +1740,7 @@ class MyDocx(object):
 			if '.xlsx' in sufx or '.docx' in sufx or '.dr' in sufx or '.txt' in sufx:
 				continue
 			try:
-				d.add_picture(item, width=Cm(23), height=Cm(18))
+				d.add_picture(item, width=Cm(25), height=Cm(14))
 				print("DEBUG success inserted!")
 			except:
 				print("not a picture file ".format(item))
