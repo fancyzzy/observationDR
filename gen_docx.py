@@ -15,7 +15,8 @@ from docx.shared import Cm
 from docx.shared import Mm
 from docx.shared import Inches, Pt
 
-#样式，字体
+#样式，字体,table宽度高度
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 import os
@@ -105,6 +106,10 @@ class MyDocx(object):
 			return
 		
 		self.docx = Document()
+
+		#Check for all the styles
+		for style in self.docx.styles:
+			print("这里有: ", style.name)
 
 		self.set_document_style()
 
@@ -439,10 +444,7 @@ class MyDocx(object):
 		d = self.docx
 		px = self.my_xlsx
 		#t = d.add_table(rows=1, cols=8, style='Table Grid')
-
-		for style in d.styles:
-			print("DDDDBUG,style:",style.name)
-		t = d.add_table(rows=1, cols=8, style='Light Grid Accent 1')
+		t = d.add_table(rows=1, cols=8, style='my_table_style')
 
 		t.cell(0,0).text = '监测项目'
 		t.cell(0,1).text = '本次\n变化\n最大点'
@@ -590,9 +592,20 @@ class MyDocx(object):
 		s = '今日各监测项目数据变化量较小，数据在可控范围内；监测频率为1次/1d。'
 		row.cells[1].text = s
 
+		#设置表格样式
 		t.alignment = WD_TABLE_ALIGNMENT.CENTER
+		for row in t.rows:
+			#设置高度:
+			tr = row._tr
+			trPr = tr.get_or_add_trPr()
+			trHeight = OxmlElement('w:trHeight')
+			trHeight.set(qn('w:val'), "500")
+			trHeight.set(qn('w:hRule'), "atLeast")
+			trPr.append(trHeight)
+
+		#设置宽度，不起作用？
 		for cell in t.rows[0].cells:
-			cell.width = Pt(320)
+			cell.width = Inches(8.6)
 
 		return
 	##########one_overview_table()###############################
@@ -651,7 +664,7 @@ class MyDocx(object):
 				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 				p.paragraph_format.space_before = Pt(12)
 				r = p.add_run(ss)
-				r.font.size = Pt(12)
+				r.font.size = Pt(14)
 				self.one_overview_table(area_name)
 			#Test open to all	
 			else:
@@ -726,11 +739,11 @@ class MyDocx(object):
 		t.cell(1,0).text = '重点风险源'
 		t.cell(1,1).merge(t.cell(1,3))
 		t.cell(1,1).text = ''
-		t.cell(1,2).text = '第三方监测单位'
-		t.cell(1,3).text = proj.third_observer
+		t.cell(1,4).text = '第三方监测单位'
+		t.cell(1,5).text = proj.third_observer
 
 		t.cell(2,0).text = '施工部位'
-		t.cell(2,1).text = proj.name + '主体'
+		t.cell(2,1).text = ''
 		t.cell(2,2).text = '天气'
 		t.cell(2,3).text = ''
 		t.cell(2,4).text = '施工方监测单位'
@@ -742,41 +755,70 @@ class MyDocx(object):
 		t.cell(3,3).text = '可能导致的后果'
 		t.cell(3,4).text = '安全状态评价'
 		t.cell(3,5).text = '处置措施建议'
+		#加粗:
+		for i in range(6):
+			p = t.cell(3,i).paragraphs[0]
+			for r in p.runs:
+				r.font.bold = True
+				r.font.size = Pt(12)
 
 		t.cell(4,0).text = '开挖面地质状况'
-		t.cell(4,1).text = '--'
+		t.cell(4,1).text = ''
 		t.cell(4,2).text = '地质条件'
-		t.cell(4,3).text = '--'
-		t.cell(4,4).text = '安全可控状态'
-		t.cell(4,5).text = '--'
+		t.cell(4,3).text = ''
+		t.cell(4,4).text = ''
+		t.cell(4,5).text = ''
 
 		t.cell(5,0).text = '支护结构体系'
-		t.cell(5,1).text = '--'
-		t.cell(5,2).text = '--'
-		t.cell(5,3).text = '--'
-		t.cell(5,4).text = '安全可控状态'
-		t.cell(5,5).text = '--'
+		t.cell(5,1).text = ''
+		t.cell(5,2).text = ''
+		t.cell(5,3).text = ''
+		t.cell(5,4).text = ''
+		t.cell(5,5).text = ''
 
 		t.cell(6,0).text = '周边环境'
-		t.cell(6,1).text = 'xx附近有高层建筑群'
-		t.cell(6,2).text = '自身结构较稳定'
-		t.cell(6,3).text = '可能导致房屋出现裂缝'
-		t.cell(6,4).text = '安全可控状态'
-		t.cell(6,5).text = '控制爆破药量进尺'
+		t.cell(6,1).text = ''
+		t.cell(6,2).text = ''
+		t.cell(6,3).text = ''
+		t.cell(6,4).text = ''
+		t.cell(6,5).text = ''
 
 		t.cell(7,0).text = '监测设施'
 		t.cell(7,1).merge(t.cell(7,5))
-		t.cell(7,1).text = '良好'
+		t.cell(7,1).text = ''
 
 		t.cell(8,0).text = '现场巡视人'
 		t.cell(8,1).merge(t.cell(8,2))
-		t.cell(8,1).text = '          '+ ds
+		t.cell(8,1).text = ' '*40+ ds
 		t.cell(8,3).text = '项目技术负责人'
 		t.cell(8,4).merge(t.cell(8,5))
-		t.cell(8,4).text = '          '+ ds
+		t.cell(8,4).text = ' '*40+ ds
 
 		t.cell(9,0).merge(t.cell(9,5))
 		t.cell(9,0).text = '备注: '
+
+
+		#设置表格行高度
+		for i in range(4,len(t.rows)):
+			tr = t.rows[i]._tr
+			trPr = tr.get_or_add_trPr()
+			trHeight = OxmlElement('w:trHeight')
+			v_height = "500"
+			if i == len(t.rows) - 1:
+				v_height = "1800"
+			trHeight.set(qn('w:val'), v_height)
+			trHeight.set(qn('w:hRule'), "atLeast")
+			trPr.append(trHeight)
+
+		#设置居中
+		for i in range(len(t.rows)-1):
+			row = t.rows[i]
+			for cell in row.cells:
+				for p in cell.paragraphs:
+					p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+					for r in p.runs:
+						r.font.size = Pt(12)
+
 
 	##################one_security_table()###############################
 
@@ -802,16 +844,25 @@ class MyDocx(object):
 				i += 1
 				ss = '表' + '%d'%i + ' 现场安全巡视表'
 				p = d.add_paragraph()
-				p.add_run(ss)
+				r = p.add_run(ss)
+				r.font.bold = True
+				r.font.size = Pt(12)
+				p.paragraph_format.space_after = 0
 
 				p = d.add_paragraph()
 				p.add_run(area_name).underline = True
 				p.add_run(table_cap)
 				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+				p.paragraph_format.space_after = 0
+				for r in p.runs:
+					r.font.bold = True
+					r.font.size = Pt(16)
+
 				p = d.add_paragraph()
 				p.add_run('编号: ')
 				p.add_run(proj.code).underline = True
 				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+				p.paragraph_format.space_after = 0
 				self.one_security_table(area_name)
 			#Test open to all	
 			else:
