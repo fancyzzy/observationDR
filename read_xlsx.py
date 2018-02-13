@@ -79,7 +79,7 @@ class MyXlsx(object):
 
 		'''
 		#以初值列划定区间的行号范围
-		init_col,_ = self.get_item_col(sheet_name, '初值', False)
+		init_col,_ = self.get_item_point(sheet_name, '初值', False)
 
 		sheet_areas_range = {}
 		area_name = ''
@@ -121,10 +121,11 @@ class MyXlsx(object):
 	#######get_one_sheet_areas_range()###########################
 
 
-	def get_item_col(self, sheet, item, from_last_search = True):
+	def get_item_point(self, sheet, item, from_last_search = True):
 		'''
-		寻找第一第二排的某一项的在sheet里的列坐标
-		返回列坐标和行坐标
+		寻找某一个item的在某一个sheet的坐标
+		返回列号和行号。
+		注意，excel里行号列号从1开始
 		input:
 		sheet_name页名字段
 		item查找的内容，可以使datetime类型
@@ -132,10 +133,6 @@ class MyXlsx(object):
 		output:
 		列坐标,行坐标
 		'''
-		#print("start 'get_item_col'")
-		print("Debug get_item_col '{}',最大行数:{}, 最大列数:{}, 寻找:{}".\
-			format(sheet,self.d_maxrow[sheet],self.d_maxcol[sheet],item))
-
 		start = 0
 		end = 0
 		step = 0
@@ -147,24 +144,17 @@ class MyXlsx(object):
 			start = 1
 			end = self.d_maxcol[sheet]+1
 			step = 1
+
 		sh = self.wb[sheet]
-		for i in range(start,end,step):
-			#查找前两排，找到这个值，返回这个值的列坐标
-			#表格格式注意，日期用日期格式，python里面是
-			#datetime.datetime类型
-			#每个sheet的行表头在row1和row2
-			#print("DEBUG finding, sh.cell(1,i).value:{}, sh.cell(2,i).value:{}".\
-				#format(sh.cell(1,i).value, sh.cell(2,i).value))
+		for col_number in range(start,end,step):
 			#表格格式注意:日期类型code中是datetime.datetime, Excel中单元格选择date格式
-			if sh.cell(1,i).value and item == sh.cell(1,i).value:
-				return i, 1
-			if sh.cell(2,i).value and item == sh.cell(2,i).value:
-				return i, 2
-
-		print("DEBUG 在'{}'中第一二排没有发现'{}'".format(sheet,item))
+			for row_number in range(1,5):
+				if sh.cell(row_number,col_number).value and\
+				 item == sh.cell(row_number,col_number).value:
+					return col_number, row_number
+		print("DEBUG 在'{}'中前五行都没有发现'{}'".format(sheet,item))
 		return None, None
-
-	#########get_item_col()##########################################
+	#########get_item_point()##########################################
 
 
 	def get_range_values(self, sheet, area_name, col):
@@ -182,6 +172,7 @@ class MyXlsx(object):
 		start_row, end_row = self.all_areas_row_range[sheet][area_name]
 
 		for i in range(start_row, end_row+1):
+			#接受包含None值
 			range_values.append(sh.cell(i, col).value)
 
 		return range_values
@@ -255,7 +246,7 @@ if __name__ == '__main__':
 	ss = '2018/1/1'
 	sd = datetime.strptime(ss, '%Y/%m/%d')
 	print("DEBUG sd=",sd)
-	i,_ = my_xlsx.get_item_col('地表沉降', sd)
+	i,_ = my_xlsx.get_item_point('地表沉降', sd)
 	print("i=",i)
 
 	x = my_xlsx.get_value('地表沉降',2,8)

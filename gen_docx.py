@@ -23,6 +23,7 @@ import os
 from datetime import datetime
 from collections import namedtuple
 from numpy import array
+from numpy import isnan
 import read_xlsx
 import draw_plot
 
@@ -457,80 +458,95 @@ class MyDocx(object):
 		t.cell(0,6).text = '累计\n变量\n报警值/mm'
 		t.cell(0,7).text = '累计\n变量\n控制值/mm'
 
-		#找到这个area的所有观测项目，作为首列内容
-		#all_areas_row_range = {'sheet1':{'area1':(1,10), 'area2':(11,15),...}, \
-		#'sheet2':{'area4':(1,23)}}
+		#找到这个area的所有相关的观测项目页
 		related_sheets = []
 		for sheet in px.sheets:
-			#表格格式注意，每个sheet的第一列的区间名字要一一对应
 			if area_name in px.all_areas_row_range[sheet].keys():
-					#还要考虑这一天的测量点有值:
-					#pass
-					#related_sheets.append = [sheet1,sheet2,...]
 					related_sheets.append(sheet)
+		print("区间'{}'所在观测页有: {}".format(area_name,related_sheets))
 
-		print("DEBUG {}涵盖这些观测项目:{}".format(area_name,related_sheets))
-
-		#遍历这个站所有有关的测量数据	
+		#遍历这个区间站所存在的观测页表格	
 		for sheet in related_sheets:
-		#略过这几个观测sheet，excel表格有疑问
+			#略过这几个观测sheet，excel表格有疑问
 			if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
 			 sheet == '支撑轴力':
-				print("由于excel表格以为，暂时略过 {}".format(sheet))
 				continue
-			print("------DEBUG, '{}, {}' 数据分析表-------".format(area_name, sheet))
-			#获取这个sheet，这个日期的列坐标
-			col_index,_ = px.get_item_col(sheet, self.date)
-			if col_index == None:
-				print("DEBUG error, col_index not found!")
-				continue
-			today_range_values = px.get_range_values(sheet, area_name, col_index)
-			#print("DEBUG '当天值列':{}".format(today_range_values))
 
-			#获取前一天的值, 这里是否应该找到有测量值的上一次？
-			last_range_values = px.get_range_values(sheet, area_name, col_index-1)
-			#print("DEBUG '昨天值列':{}".format(last_range_values))
-
-			#找到其中最大变化的
-			#对应位进行相减，放到新的def中，然后找到绝对值最大的，作为变换最大量
-			#None的位算0
+			print("------DEBUG, 开始生成'{}, {}' 数据分析表-------".format(area_name, sheet))
+			#获取数据
+			today_range_values = []
+			last_range_values = []
 			diff_original_values = []
 			diff_abs_values = []
-			ln = len(today_range_values)
-			for i in range(ln):
-				new_v = today_range_values[i]
-				last_v = last_range_values[i]
-				if new_v != None and last_v != None:
-					diff_original_values.append((float(new_v)-float(last_v))*1000)
-				else:
-					diff_original_values.append(0)
+			col_alpha = 'B'
+			obser_col,_ = px.get_item_point(sheet,'点号',from_last_search=False)
+			if obser_col == None:
+				obser_col = px.get_item_point(sheet,'测点',from_last_search=False)
+			if obser_col == 3:
+			col_alpha = 'C'
+			if obser_col == 4:
+			co_alpha = 'D'
+
+			#获取当天的数据
+			today_col,today_row = px.get_item_point(sheet, self.date)
+			if today_col == None:
+				print("DEBUG error, today_col not found!")
+				continue
+			today_range_values = px.get_range_values(sheet, area_name, today_col)
+
+			#寻找前一天数据
+			last_date = get_value(sheet, today_row, today_col-1)
+			if 'datetime' in str(type(last_date)):
+				last_range_values = px.get_range_values(sheet, area_name, today_col-1)
+			#前面一列不是日期值，表示昨天值不存在
+			else:
+				last_range_values = None
+
+			#找到其中绝对值最大为变化最大的
+			#在这里求变化量需要一个函数，如果轴力表是另外的算法的话
+			diff_original_values = (array(today_range_values, dtype=float) - \
+			array(last_range_values, dtype=float))*1000
 
 			#求出绝对值最大的值
-			diff_abs_values = list(map(abs,diff_original_values))
+			diff_abs_values = [abs(value) for value in diff_original_values]
 			max_change = max(diff_abs_values)
 			#print("DEBUG '最大变化值'是:{}".format(max_change))
-			#如果有最大值，且不为0
-			if max_change != 0:
-				#通过变化最大量的index和area的range找到行坐标
-				#疑惑，这里有相同的最大值怎么办? 目前只找最前面的一个
-				max_idx = diff_abs_values.index(max_change)
-				#找到区间的行范围, 加上最大值的相对index就是最大值的row_index
-				row_start, row_end = px.all_areas_row_range[sheet][area_name]
-				row_index = max_idx+ row_start
-				#通过行坐标，找到测量点列的测量点id
-				s_index = 'B%d'%row_index
-				obser_id = px.wb[sheet][s_index].value
-				print("DEBUG '本次变化最大点'是:{}".format(obser_id))
+
+			#列出所有max 点
+			max_obser_list = []
+			max_change_values = []
+			row_start, row_end = px.all_areas_row_range[sheet][area_name]
+			if max_change != 0 and not isnan(max_change):
+				for i, v in enumerate(diff_abs_values):
+					if max_change == v:
+						#找到区间的行范围, 加上最大值的相对index就是最大值的row_index
+						row_index = i + row_start
+					s_index = col_alpha + '%d'%row_index
+					obser_id = px.wb[sheet][s_index].value
+					max_obser_list.append(obser_id)
+					max_value = str(round(diff_original_values[i],2))
+					max_change_values.append(max_value)
+				print("DEBUG '本次变化最大点'是:{}".max_obser_list)
+				print("DEBUG '本次变化最大值'是:{}".max_change_values)
+			else:
+				print("warning, 没有最大值!")
+				max_obser_list.append("N/A")
+				max_change_values.aapend("N/A")
 
 				#新加一行，写入测量项目sheet，写入这个测量点id
 				row = t.add_row()
 				#监测项目
 				row.cells[0].text = sheet
 				#本次变化最大点
-				row.cells[1].text = obser_id
+				s = ''
+				for obser in max_obser_list:
+					s += obser + '\n' 
+				row.cells[1].text = s.strip('\n')
 				#日变化速率
-				#保留两位小数
-				row.cells[2].text = str(round(diff_original_values[max_idx],2))
+				s = ''
+				for max_v in max_change_values:
+					s += max_v + '\n'
+				row.cells[2].text = s.strip('\n')
 
 				#日变量报警值空着
 				row.cells[3].text = ' '
@@ -539,32 +555,55 @@ class MyDocx(object):
 				acc_values = []
 				acc_abs_values = []
 				#获取'初值'这一列，在第3列
-				initial_range_values = px.get_range_values(sheet, area_name, 3)
+				#获取当天的数据
+				init_col,init_row = px.get_item_point(sheet, '初值')
+				initial_range_values = px.get_range_values(sheet, area_name, init_col)
 				#print("DEBUG '初始值列':{}".format(initial_range_values))
 				#获取'旧累计'这一列，在第4列
-				old_acc_range_values = px.get_range_values(sheet, area_name, 4)
+				old_acc_col,_ = px.get_item_point(sheet, '旧累计')
+				old_acc_range_values = px.get_range_values(sheet, area_name, old_acc_col)
 				#print("DEBUG '旧累计值列':{}".format(old_acc_range_values))
-				for i in range(ln):
-					new_v = today_range_values[i]
-					init_v = initial_range_values[i]
-					oacc_v = old_acc_range_values[i]
-					if oacc_v == None:
-						oacc_v = 0
-					if new_v != None and init_v != None:
-						acc_values.append((float(new_v)-float(init_v))*1000+float(oacc_v))
-					else:
-						acc_values.append(0)
+				#这里是否需要另外的函数，如果轴力表的求累计变化量公式不一样
+				acc_values = (array(today_range_values, dtype=float) - \
+				array(initial_range_values, dtype=float))*1000 + array(old_acc_range_values,\
+				dtype=float)
 				#print("DEBUG '本次累计值列':{}".format(acc_values))
-				acc_abs_values = list(map(abs,acc_values))
+				acc_abs_values = [abs(v) for v in acc_values]
 				max_acc = max(acc_abs_values)
 				#print("DEBUG '最大累计值'是:{} ".format(max_acc))
-				max_acc_idx = acc_abs_values.index(max_acc)
-				row_index = max_acc_idx + row_start
-				s_index = 'B%d'%row_index
-				obser_id = px.wb[sheet][s_index].value
-				print("DBUGG '本次累计变化最大点'是:{}".format(obser_id))
-				row.cells[4].text = obser_id
-				row.cells[5].text = str(round(acc_values[max_acc_idx],2))
+
+				#列出所有max 点
+				max_obser_list = []
+				max_acc_values = []
+				#print("DEBUG '最大累计变化值'是:{}".format(max_change))
+				row_start, row_end = px.all_areas_row_range[sheet][area_name]
+				if max_acc != 0 and not isnan(max_acc):
+					for i, v in enumerate(acc_abs_values):
+						if max_acc == v:
+							#找到区间的行范围, 加上最大值的相对index就是最大值的row_index
+							row_index = i + row_start
+						s_index = col_alpha + '%d'%row_index
+						obser_id = px.wb[sheet][s_index].value
+						max_obser_list.append(obser_id)
+						max_acc_v = str(round(acc_values[i],2))
+						max_acc_values.append(max_acc_v)
+					print("DEBUG '本次累计最大点'是:{}".max_obser_list)
+					print("DEBUG '本次累计最大值'是:{}".max_acc_values)
+				else:
+					print("warning, 没有最大累计值!")
+					max_obser_list.append("N/A")
+					max_acc_values.aapend("N/A")				
+
+				s = ''
+				for obser in max_obser_list:
+					s += obser + '\n'
+				#累计变化最大点
+				row.cells[4].text = s.strip('\n')
+				s = ''
+				for max_acc_v in max_acc_values:
+					s += max_acc_v + '\n'
+				#累计变化率
+				row.cells[5].text = s.strip('\n')
 
 				#累计变量报警值 空着
 				row.cells[6].text = ' '
@@ -572,8 +611,6 @@ class MyDocx(object):
 				row.cells[7].text = ' '
 			else:
 				print("Debug warning, 无最大点！")
-
-		#遍历这个站所有有关的测量数据	
 		#end for sheet in related_sheets
 
 		#爆破振动 行
@@ -919,7 +956,7 @@ class MyDocx(object):
 		#注意！list(range(3,5)) = [3,4], so need to add 1
 		row_list = list(range(start_row, end_row+1))
 		#获取当天日期的列坐标
-		today_col_index, today_row_index = px.get_item_col(sheet, self.date)
+		today_col_index, today_row_index = px.get_item_point(sheet, self.date)
 		if today_col_index == None:
 			print("DEBUG error, today_col_index not found!")
 			return None, None, None
@@ -1509,10 +1546,10 @@ class MyDocx(object):
 		print("DEBUG d_area_obser=",d_area_obser)
 
 		#找到当天日期,初值，旧累计所在的列坐标
-		init_col, _ = px.get_item_col(inc_sheet, '初值', False)
-		old_acc_col,_ = px.get_item_col(inc_sheet, '旧累计', False)
-		today_col,today_row = px.get_item_col(inc_sheet, self.date, True)
-		deep_col,_ = px.get_item_col(inc_sheet, '深度', False)
+		init_col, _ = px.get_item_point(inc_sheet, '初值', False)
+		old_acc_col,_ = px.get_item_point(inc_sheet, '旧累计', False)
+		today_col,today_row = px.get_item_point(inc_sheet, self.date, True)
+		deep_col,_ = px.get_item_point(inc_sheet, '深度', False)
 
 		#遍历每个区间制作多个测斜表
 		for area_name in d_area_obser.keys():
