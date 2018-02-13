@@ -490,7 +490,7 @@ class MyDocx(object):
 			#获取当天的数据
 			today_col,today_row = px.get_item_point(sheet, self.date)
 			if today_col == None:
-				print("DEBUG error, today_col not found!")
+				print("DEBUG error, 观测页{}的区间{}没有当天值!".format(sheet,area_name))
 				continue
 			today_range_values = px.get_range_values(sheet, area_name, today_col)
 
@@ -562,6 +562,11 @@ class MyDocx(object):
 				#获取'旧累计'这一列，在第4列
 				old_acc_col,_ = px.get_item_point(sheet, '旧累计')
 				old_acc_range_values = px.get_range_values(sheet, area_name, old_acc_col)
+				#处理旧累计，如果为None就设为0
+				ln = len(old_acc_range_values)
+				for i in range(ln):
+					if old_acc_range_values[i] == None:
+						old_acc_range_values[i] = 0
 				#print("DEBUG '旧累计值列':{}".format(old_acc_range_values))
 				#这里是否需要另外的函数，如果轴力表的求累计变化量公式不一样
 				acc_values = (array(today_range_values, dtype=float) - \
@@ -840,7 +845,7 @@ class MyDocx(object):
 
 		t.cell(9,0).merge(t.cell(9,5))
 		s1 = "备注：1、本表由施工方和第三方监测单位采用；\n" 
-		s2 = " "*12+"2、适用于矿山法施工；\n" 
+		s2 = " "*12+"2、适用于XXX法施工；\n" 
 		s3 = " "*12+"3、主要巡视内容包括：1）开挖面地质状况：土层性质及稳定性、降水效果和其它情况；"
 		s4 = "支护结构体系：支护体系施作及时性、渗漏水情况、支护体系开裂、变形变化和其它情况；"
 		s5 = "3）周边环境：建构筑物变形及开裂情况、地表变形及开裂情况、管线沿线地面开裂、渗水、塌陷情况、管线检查井开裂及积水变化和其它情况。"
@@ -958,52 +963,38 @@ class MyDocx(object):
 		#获取当天日期的列坐标
 		today_col_index, today_row_index = px.get_item_point(sheet, self.date)
 		if today_col_index == None:
-			print("DEBUG error, today_col_index not found!")
+			print("error, 观测页{}的区间{}没有当天值!")
 			return None, None, None
-		today_rows, today_values = px.get_avail_rows_values(sheet, row_list,\
-		 today_col_index)
-		if len(today_rows) == 0:
-			print("{},{},{}当天无有效数据".format(area_name,sheet,self.date))
-			return None, None, None
-		#找到一共邻近7天的有效数据，一旦某一天的某一行有none值，略过该天
-		#如果不够7天的数据，直到找到不为日期那一天为止
-		row_list = today_rows
-		date_list.append(self.date)
-		value_list.append(list(map(float,today_values)))
 
+		today_values = px.get__range_values(sheet, area_name, today_col_index)
+		date_list.append(self.date)
+		value_list.append(array(today_values,dtype=float))
 		already_number = 1
 		col_index = today_col_index
-		ignore_number = 0
+		#如果不够7天的数据，直到找到不为日期那一天为止
 		while 1:
 			col_index -= 1
 			v = px.get_value(sheet, today_row_index, col_index)
-			#如果不是日期型，说明过了最早的开头了，退出循环
 			if not 'datetime' in str(type(v)):
 				break
-			old_rows, old_values = px.get_avail_rows_values(sheet, today_rows, col_index)
-			if old_rows == today_rows:
-				#找到一列有效值
-				date_list.append(px.get_value(sheet, today_row_index, col_index))
-				value_list.append(list(map(float,old_values)))
-				already_number += 1
-				if already_number == needed_num:
-					break
-			else:
-				#这一天的有none值，略过
-				#如果有none值的情况隔了5天，就不在找了
-				ignore_number += 1
-				if ignore_number >= 5:
-					break
-				continue
+			lastday_values = px.get__range_values(sheet, area_name, col_index)
+			date_list.append(px.get_value(sheet, today_row_index, col_index))
+			value_list.append(array(lastday_values,dtype=float))
+			already_number += 1
+			if already_number == needed_num:
+				break
 
 		return row_list, date_list, value_list
 	##############find_avail_rows_dates_values()#############################################
 
 
 	def draw_settlement_table(self, sheet, row_list, date_list, value_list,\
-		 init_values, old_acc_values, cell_row):
+		 init_values, old_acc_values, cell_row=8):
 		'''
 		画沉降监测表格
+
+		input:
+		cell_row：该表格数据最大行数,
 		'''
 		d = self.docx
 		px = self.my_xlsx
@@ -1036,6 +1027,7 @@ class MyDocx(object):
 		t.cell(2,8).text = '累计\n变量'
 
 		#填入数值
+		#上次变量, 本次变量，累计量
 		last_diffs = []
 		this_diffs = []
 		this_acc_diffs = []
@@ -1046,32 +1038,57 @@ class MyDocx(object):
 		#value_list should be ln_date*ln_row
 		#init_values should be ln_row*1
 
+		value_list = array(value_list, dtype=float)
+		init_list = array(init_list, dtype=float)
+		old_acc_values = array(old_acc_values, dtype=float)
+
+		this
+
 		if ln_date > 2:
-			for i in range(ln_row):
-				this_diffs.append(round((value_list[0][i] - value_list[1][i])*1000,2))
-				last_diffs.append(round((value_list[1][i] - value_list[2][i])*1000,2))
-				this_acc_diffs.append(round((value_list[0][i] - init_values[i])*1000+ \
-					old_acc_values[i],2))
+			#今天和昨天差值 = 本次变量
+			today_diff_array =(value_list[0] - value_list[1])*1000
+			today_diff = list(map(lambda x:round(x,2),today_diff_array))
+			this_diffs.append(today_diff)
+
+			#昨天和前天差值 = 上次变量
+			lastday_diff_array = (value_list[1] - value_list[2])*1000
+			lastday_diff = list(map(lambda x:round(x,2),lastday_diff_array))
+			last_diffs.append(lastday_diff)
+
+			#今天和初值差值加旧累计 = 累计变量
+			today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
+			today_acc_diff = list(map(lambda x:round(x,2),today_acc_diff_array))
+			this_acc_diffs.append(today_acc_diff)
 
 		elif ln_date ==2:
-			for i in range(ln_row):
-				this_diffs.append(round((value_list[0][i]-value_list[1][i])*1000,2))
-				this_acc_diffs.append(round((value_list[0][i] - init_values[i])*1000+ \
-					old_acc_values[i],2))
-			last_diffs = [0 for j in range(ln_row)]
+
+			#今天和昨天差值 = 本次变量
+			today_diff_array =(value_list[0] - value_list[1])*1000
+			today_diff = list(map(lambda x:round(x,2),today_diff_array))
+			this_diffs.append(today_diff)
+
+			#今天和初值差值加旧累计 = 累计变量
+			today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
+			today_acc_diff = list(map(lambda x:round(x,2),today_acc_diff_array))
+			this_acc_diffs.append(today_acc_diff)
+
+			#没有前天，上次变量设为'N/A'
+			last_diffs = ['N/A' for x in range(ln_row)]
 
 		elif ln_date == 1:
-			for i in range(ln_row):
-				this_acc_diffs.append(round((value_list[0][i] - init_values[i])*1000+ \
-					old_acc_values[i],2))
-			this_diffs = [0 for j in range(ln_row)]
-			last_diffs = [0 for j in range(ln_row)]
+			#今天和初值差值加旧累计 = 累计变量
+			today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
+			today_acc_diff = list(map(lambda x:round(x,2),today_acc_diff_array))
+			this_acc_diffs.append(today_acc_diff)
+
+			this_diffs = ['N/A' for x in range(ln_row)]
+			last_diffs = ['N/A' for x in range(ln_row)]
 
 		else:
 			print("Error, date_list None")
-			this_diffs = [0 for j in range(ln_row)]
-			last_diffs = this_diffs
-			this_acc_diffs = this_diffs
+			this_diffs = ['N/A' for x in range(ln_row)]
+			last_diffs = ['N/A' for x in range(ln_row)]
+			last_diffs = ['N/A' for x in range(ln_row)]
 
 		#表格变化值填写
 		base_index = 3
@@ -1095,16 +1112,9 @@ class MyDocx(object):
 				t.cell(base_index+i,7).text = str(this_diffs[j])
 				t.cell(base_index+i,8).text = str(this_acc_diffs[j])
 
-		#求七天的累计变化列表
-		#array type 矩阵
-		#print("DEBUG array(value_list)", array(value_list))
-		#print("shape array = ", array(value_list).shape)
-		#print("DEBUG init_values", init_values)
-		#print("DEBUG init_vlaues le2=",len(init_values))
 		all_acc_diffs = []
-		all_acc_diffs = (array(value_list) - init_values)*1000 + old_acc_values
-		#print("DEBUG all_acc_diffs=",all_acc_diffs)
-		#print("DEBUG all_acc_diffs.shape=",all_acc_diffs.shape)
+		all_acc_diffs = (array(value_list, dtype=float) - \
+			array(init_values,dtype=float)*1000 + old_acc_values
 
 		#画图
 		idx_list = []
@@ -1162,10 +1172,11 @@ class MyDocx(object):
 		一个区间的多个沉降观测表
 
 		步骤：
-		找到初始值列，和邻近7天的有效值列
-		直到找到不为日期格式的列位置，有多少列有效值就添加多少列
-		如果只有一列，即当天的，那么上次变化值为0
+		找到初始值列，和邻近7天的观测值(包括当天)
+		直到找到不为日期格式的列位置，有多少列观测有效值就添加多少列
+		如果只有一列，即当天的，那么上次变化值为nan
 		根据当天有效值的行数确定矩阵行数即为坐标的观测点行数范围，
+
 		如果该行数范围内前一天有None值，则略过改天。最终要求所有
 		有效值列都是有值的。如果当天的值都为None，那么跳过该sheet.
 		'''
@@ -1182,8 +1193,7 @@ class MyDocx(object):
 					#related_sheets.append = [sheet1,sheet2,...]
 					related_sheets.append(sheet)
 
-		print("DEBUG {}涵盖这些观测项目:{}".format(area_name,\
-			related_sheets))
+		print("区间'{}'涉及的观测项目有:{}".format(area_name,related_sheets))
 
 		#遍历这个站所有有关的测量数据,绘制表格	
 		for sheet in related_sheets:
@@ -1192,10 +1202,7 @@ class MyDocx(object):
 				 sheet == '支撑轴力':
 				print("由于excel表格格式疑惑，暂时略过 {}".format(sheet))
 				continue
-			print("DEBUG, '{}, {}' 沉降变化监测报表".format(area_name,\
-				sheet))
-			table_cap = area_name + sheet + '报表'
-
+			print("开始生成'{}{}监测报表'".format(area_name, sheet))
 			#找到该区间所有观测点的邻近7天的有效数据值,
 			#包括行坐标，日期纵坐标和测量数据值矩阵!
 			row_list = []
@@ -1204,13 +1211,21 @@ class MyDocx(object):
 			row_list,date_list,value_list = \
 			self.find_avail_rows_dates_values(sheet,area_name,7)
 			#print("DEBUGdate_list=",date_list)
-			if not row_list:
-				print("没有有效值")
+			if row_list == None:
+				print("Error, 该区间'{}'在观测页'{}'没有有效值!".format(\
+					area_name,sheet))
 				continue
 			#从第三列获取到相应行的初始值和旧累计
 			#表格格式注意，第三列和第四列为初值，旧累计
-			_,initial_values = px.get_avail_rows_values(sheet, row_list, 3)
-			_,old_acc_values = px.get_avail_rows_values(sheet, row_list, 4, True)
+			init_col,_ = px.get_item_point(sheet, '初值')
+			old_acc_col,_ = px.get_item_point(sheet, '旧累计')
+			initial_values = px.get__range_values(sheet, area_name, init_col)
+			old_acc_values = px.get__range_values(sheet, area_name, old_acc_col)
+			#处理旧累计, 旧累计None的设为0
+			ln_old_acc = len(old_acc_values)
+			for i in range(ln_old_acc):
+				if old_acc_values[i] == None:
+					old_acc_values = 0
 
 			#计算每个表能填多少个观测点
 			'''
@@ -1244,15 +1259,15 @@ class MyDocx(object):
 				sub_old_acc_values = old_acc_values[start:end]
 				start = end 
 
-				print("------DEBUG, '{}, {}' 沉降变化监测表{}/{}---".format(\
+				print("开始生成, '{}, {}' 监测报表{}/{}---".format(\
 					area_name, sheet,i,split_num))
 				###new page###########
 				if i >1:
 					d.add_page_break()
 				self.write_settlement_header(area_name)
 				p = d.add_paragraph()	
-				s = area_name+sheet+'监测报表'+'%d/%d'%(i,split_num)
-				r = p.add_run(s)
+				table_cap = area_name+sheet+'监测报表'+'%d/%d'%(i,split_num)
+				r = p.add_run(table_cap)
 				r.bold = True
 				r.font.size = Pt(15)
 				p.paragraph_format.space_before = Pt(6)
@@ -1261,7 +1276,7 @@ class MyDocx(object):
 
 				last_date = ''
 				if len(date_list)==1:
-					last_date = '初始值'
+					last_date = 'N/A'
 				else:
 					last_date = date_to_str(date_list[1])
 				p = d.add_paragraph()	
@@ -1607,6 +1622,12 @@ class MyDocx(object):
 					#旧累计, true 可以接受None
 					_, old_acc_values = px.get_avail_rows_values(sheet_name, row_list,\
 					old_acc_col, True)
+					#处理旧累计，如果为None就设为0
+					ln_old_acc = len(old_acc_values)
+					for i in range(ln_old_acc):
+						if old_acc_values[i] == None:
+							old_acc_values[i] = 0
+
 					#当天数据
 					_, today_values = px.get_avail_rows_values(sheet_name, row_list,\
 					today_col, True)
