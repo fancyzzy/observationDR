@@ -38,19 +38,21 @@ class MyPlot(object):
 		#self.ax.xaxis.set_major_formatter(mdate.DateFormatter('%Y-%m-%d %H:%M:%S'))
 		#self.plt.gca().xaxis.set_major_formatter(mdate.DateFormatter('%m-%d'))
 		#self.plt.gca().xaxis.set_major_locator(mdate.DayLocator())
+		fig = self.plt.figure()
+		ax = self.plt.subplot(111)
 
 		for i in range(ln):
-			self.plt.plot(date_list, value_arrays[i],linewidth='1.0', linestyle='-',\
+			ax.plot(date_list, value_arrays[i],linewidth='1.0', linestyle='-',\
 			 marker=MARKERS_ARRAY[-(i%len_marker)], markersize=12,label= sample_list[i])
 			#self.ax.plot(date_list, value_arrays[i],linewidth='0.8', linestyle='-',\
 			# marker=MARKERS_ARRAY[-(i%len_marker)], label= sample_list[i])
 
 		#self.plt.legend(loc='upper center',bbox_to_anchor=(0.5,1.08),ncol=4,\
 		#	fancybox=True,shadow=False)
-		self.plt.legend(loc='center right',bbox_to_anchor=(1.,0.5),ncol=1,\
+		ax.legend(loc='center right',bbox_to_anchor=(1.,0.5),ncol=1,\
 			fancybox=True,shadow=True,markerscale=1.1,borderpad = 0.5,\
 			labelspacing=0.02,handlelength=1.3,columnspacing=0.02, fontsize=20)
-		self.plt.grid(linewidth='0.8',linestyle='-.')
+		ax.grid(linewidth='0.8',linestyle='-.')
 
 		#旋转横轴刻度文字
 		#self.plt.gcf().autofmt_xdate()
@@ -65,7 +67,9 @@ class MyPlot(object):
 			aim_path = 'temped_fig.png'
 			self.plt.savefig(aim_path, format='png',dpi=200,bbox_inches='tight')
 			#设置成close，负责会影响测斜图的长宽比
-			self.plt.close()
+			#Issue 这里会造成main gui的错误退出
+			#self.plt.close(fig)
+			self.plt.close('all')
 			return aim_path
 		else:
 			self.plt.show()
@@ -91,10 +95,13 @@ class MyPlot(object):
 		self.plt.rcParams['xtick.major.size'] = 10
 		self.plt.rcParams['xtick.major.width'] = 4
 
-		self.plt.plot(diff_values, deep_values,linewidth='1.8', linestyle='-',\
+		fig = self.plt.figure()
+		aax = self.plt.subplot(111)	
+
+		aax.plot(diff_values, deep_values,linewidth='1.8', linestyle='-',\
 			 marker='o', color='#2B303B', markersize=13,label= '本次变化(mm)')
 
-		self.plt.plot(acc_values, deep_values,linewidth='1.8', linestyle='-',\
+		aax.plot(acc_values, deep_values,linewidth='1.8', linestyle='-',\
 			 marker='s', markersize=10,color='#000000',label= '累计变化(mm)')
 
 
@@ -133,9 +140,11 @@ class MyPlot(object):
 		#使y轴显示整数深度的刻度
 		self.plt.yticks(list(map(ceil,deep_values)))
 		#x轴刻度间隔倍数,
+		'''
 		max_value = ceil(max(list(map(abs,acc_values))))
 		xmajorLocator   = MultipleLocator(int(max_value/2))
 		ax.xaxis.set_major_locator(xmajorLocator)
+		'''
 		#刻度数值大小
 		self.plt.tick_params(axis='both', labelsize=32)
 
@@ -144,7 +153,8 @@ class MyPlot(object):
 			aim_path = 'inclinometer_fig.PNG'
 			self.plt.savefig(aim_path, format='png',dpi=300,bbox_inches='tight')
 			#self.plt.clf()
-			self.plt.close()
+			#self.plt.close(fig)
+			self.plt.close('all')
 			return aim_path
 		else:
 			self.plt.show()
@@ -187,7 +197,7 @@ if __name__ == '__main__':
 	'''
 	#测试沉降图
 	'''
-	#my_plot.draw_settlement_fig(x,value_arrays,sample_list,False)
+	my_plot.draw_settlement_fig(x,value_arrays,sample_list,False)
 	#my_plot.draw_settlement_fig(x,value_arrays,sample_list,True)
 
 	#测试测斜图

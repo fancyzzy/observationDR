@@ -140,7 +140,6 @@ class MyDocx(object):
 		new_section.header_distance = Cm(1)
 		new_section.footer_distance = Cm(1)
 
-
 		#现场安全巡视页
 		print("\n###3. 现场安全巡视表###")
 		if not self.make_security_pages():
@@ -166,6 +165,7 @@ class MyDocx(object):
 			print("DEBUG make_settlement_pages error")
 		else:
 			self.docx.save(self.path)
+
 
 		#测斜监测表页
 		print("\n###5. 测斜监测报表###")
@@ -1115,23 +1115,23 @@ class MyDocx(object):
 			array(init_values,dtype=float))*1000 + old_acc_values
 
 		#画图
+		t.cell(11,0).text = '累计变化量曲线图'
+		t.cell(11,1).merge(t.cell(11,9))
+
 		idx_list = []
 		for row_idx in row_list:
 			idx_list.append(px.get_value(sheet,row_idx,2))
 		fig_path = self.my_plot.draw_settlement_fig(list(map(d_s,date_list)), \
 			all_acc_diffs.transpose(), idx_list)
-		if not os.path.exists(fig_path):
+		if fig_path == None or not os.path.exists(fig_path):
 			print("ERROR, fig_path not exists!")
 			#fit_path = dummy.png
-
-		t.cell(11,0).text = '累计变化量曲线图'
-		t.cell(11,1).merge(t.cell(11,9))
-
-		#插入曲线图
-		p = t.cell(11,1).paragraphs[0]
-		run = p.add_run()
-		run.add_picture(fig_path, width=Cm(12), height=Cm(5))
-		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+		else:
+			#插入曲线图
+			p = t.cell(11,1).paragraphs[0]
+			run = p.add_run()
+			run.add_picture(fig_path, width=Cm(12), height=Cm(5))
+			p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 		t.cell(12,0).text = '备注'
 		t.cell(12,1).merge(t.cell(12,9))
@@ -1291,9 +1291,9 @@ class MyDocx(object):
 					last_date = date_to_str(date_list[1])
 				p = d.add_paragraph()	
 				p.add_run('上次监测时间：'+last_date)
-				p.add_run(' '*28 + '本次监测时间：'+ self.str_date)
+				p.add_run(' '*34 + '本次监测时间：'+ self.str_date)
 				for r in p.runs:
-					r.font.size = Pt(12)
+					r.font.size = Pt(11)
 				p.paragraph_format.space_before = 0
 				p.paragraph_format.space_after = 0
 				p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
@@ -1323,7 +1323,7 @@ class MyDocx(object):
 			p = d.add_paragraph()
 			r = p.add_run("%s主体"%area_name)
 			r.underline = True
-			r.font.size = Pt(16)
+			r.font.size = Pt(15)
 			p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 			p.paragraph_format.space_before = 0
 			p.paragraph_format.space_after = Pt(2)
@@ -1333,10 +1333,10 @@ class MyDocx(object):
 		p = d.add_paragraph()
 		p.add_run("施工单位：")
 		p.add_run(self.proj.builder).underline = True
-		p.add_run(" "*20 + "编号：")
+		p.add_run(" "*15 + "编号：")
 		p.add_run(self.proj.code).underline = True
 		for r in p.runs:
-			r.font.size = Pt(12)
+			r.font.size = Pt(11)
 		p.paragraph_format.space_before = 0
 		p.paragraph_format.space_after = 0
 		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
@@ -1345,7 +1345,7 @@ class MyDocx(object):
 		p.add_run("监理单位：")
 		p.add_run(self.proj.supervisor).underline = True
 		for r in p.runs:
-			r.font.size = Pt(12)
+			r.font.size = Pt(11)
 		p.paragraph_format.space_before = 0
 		p.paragraph_format.space_after = 0
 		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
@@ -1354,7 +1354,7 @@ class MyDocx(object):
 		p.add_run("施工监测单位：")
 		p.add_run(self.proj.builder_observer).underline = True
 		for r in p.runs:
-			r.font.size = Pt(12)
+			r.font.size = Pt(11)
 		p.paragraph_format.space_before = 0
 		p.paragraph_format.space_after = 0
 		p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
@@ -1370,12 +1370,12 @@ class MyDocx(object):
 		p = d.add_paragraph()
 		s = "现场监测人："
 		p.add_run(s)
-		s = " "*35 + "计算人："
+		s = " "*28 + "计算人："
 		p.add_run(s)
-		s = " "*30 + "校核人："
+		s = " "*24 + "校核人："
 		p.add_run(s)
 		for r in p.runs:
-			r.font.size = Pt(12)
+			r.font.size = Pt(11)
 		p.paragraph_format.space_before = 0
 		p.paragraph_format.space_after = 0
 
@@ -1383,11 +1383,11 @@ class MyDocx(object):
 		p = d.add_paragraph()
 		s = "检测项目负责人："
 		p.add_run(s)
-		s = " "*27 + "第三方监测单位："
+		s = " "*20 + "第三方监测单位："
 		p.add_run(s)
 		p.add_run(self.proj.third_observer)
 		for r in p.runs:
-			r.font.size = Pt(12)
+			r.font.size = Pt(11)
 		p.paragraph_format.space_before = 0
 		p.paragraph_format.space_after = 0
 	##################write_settlementn_foot()###########################
@@ -1586,7 +1586,7 @@ class MyDocx(object):
 			return False
 		today_col,today_row = px.get_item_point(inc_sheet, self.date, True)
 		if today_col == None:
-			print("Error,{}当天值列缺失!".format(inc_sheet))
+			print("Error,{},{}当天值列缺失!".format(inc_sheet. self.str_date))
 			return False
 		deep_col,_ = px.get_item_point(inc_sheet, '深度', False)
 		if deep_col == None:
@@ -1709,9 +1709,9 @@ class MyDocx(object):
 
 				p = d.add_paragraph()	
 				p.add_run('上次监测时间：'+last_date)
-				p.add_run(' '*28 + '本次监测时间：'+ self.str_date)
+				p.add_run(' '*34 + '本次监测时间：'+ self.str_date)
 				for r in p.runs:
-					r.font.size = Pt(12)
+					r.font.size = Pt(11)
 				p.paragraph_format.space_before = 0
 				p.paragraph_format.space_after = 0
 				p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
@@ -1758,7 +1758,7 @@ class MyDocx(object):
 		p = d.add_paragraph()
 		p.add_run("施工监测单位：")
 		p.add_run(self.proj.builder_observer)
-		p.add_run(" "*60 + "第三方监测单位：")
+		p.add_run(" "*50 + "第三方监测单位：")
 		p.add_run(self.proj.third_observer)
 		for r in p.runs:
 			r.font.size = Pt(12)
@@ -1767,8 +1767,8 @@ class MyDocx(object):
 		t = d.add_table(rows=8, cols=13, style='blasting_style')
 		t.cell(0,0).merge(t.cell(0,12))
 		s1 = "仪器型号："
-		s2 = " "*40 + "仪器出厂编号： "
-		s3 = " "*40 + "检定日期："
+		s2 = " "*50 + "仪器出厂编号： "
+		s3 = " "*50 + "检定日期："
 		t.cell(0,0).text = s1+s2+s3
 		t.cell(1,0).merge(t.cell(3,0))
 		t.cell(1,0).text = "测量时间"
@@ -1813,11 +1813,11 @@ class MyDocx(object):
 		p = d.add_paragraph()
 		s = "现场监测人："
 		p.add_run(s)
-		s = " "*50 + "计算人："
+		s = " "*40 + "计算人："
 		p.add_run(s)
-		s = " "*50 + "校核人："
+		s = " "*40 + "校核人："
 		p.add_run(s)
-		s = " "*50 + "监测项目负责人："
+		s = " "*40 + "监测项目负责人："
 		p.add_run(s)
 
 		#表格样式，字体 宋体

@@ -240,8 +240,8 @@ class MyTop(object):
 		#pass
 
 		#日报文件名
-		docx_name = project_info[D['name']] + '监测日报' +\
-		 	s.replace('/','.') + '.docx'
+		#docx_name = project_info[D['name']] + '监测日报' +\
+		docx_name = s.replace('/','.') + '监测日报' + '.docx'
 
 		#获取xlsx数据源
 		if not self.my_xlsx:
