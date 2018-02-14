@@ -5,7 +5,6 @@
 新建, 打开, 保存
 '''
 import tkinter as tk
-from tkinter import ttk
 from tkinter.filedialog import asksaveasfilename
 from tkinter.messagebox import showerror
 from tkinter.messagebox import showwarning
@@ -40,91 +39,91 @@ class MyPro(object):
 		self.project_path = file_path
 
 		#工程项目名称
-		ttk.Label(self.pro_top, text='').pack()
+		tk.Label(self.pro_top, text='').pack()
 		fm_name = tk.Frame(self.pro_top)
-		ttk.Label(fm_name, text='项目工程: ').pack(side=tk.LEFT)
+		tk.Label(fm_name, text='项目工程: ').pack(side=tk.LEFT)
 		self.v_name = tk.StringVar()
-		ttk.Entry(fm_name, width=45, textvariable=self.v_name).pack()
+		tk.Entry(fm_name, width=45, textvariable=self.v_name).pack()
 		fm_name.pack()
 
 		#工程区间
 		fm_area = tk.Frame(self.pro_top)
-		ttk.Label(fm_area, text='项目区间: ').pack(side=tk.LEFT)
+		tk.Label(fm_area, text='项目区间: ').pack(side=tk.LEFT)
 		self.v_area = tk.StringVar()
-		ttk.Entry(fm_area, width=35, textvariable=self.v_area).pack()
+		tk.Entry(fm_area, width=35, textvariable=self.v_area).pack()
 		fm_area.pack()
 
-		ttk.Label(self.pro_top, text='').pack()
+		tk.Label(self.pro_top, text='').pack()
 
 		#其他工程信息
 		fm_info = tk.Frame(self.pro_top)
 		#单位
 		fm_company = tk.Frame(fm_info)
-		ttk.Label(fm_company, text='施工单位: ').grid(row=0, column=0)
+		tk.Label(fm_company, text='施工单位: ').grid(row=0, column=0)
 		self.v_builder = tk.StringVar()
-		ttk.Entry(fm_company, width=35, textvariable=self.v_builder)\
+		tk.Entry(fm_company, width=35, textvariable=self.v_builder)\
 		.grid(row=0, column=1)
 
-		ttk.Label(fm_company, text='监理单位: ').grid(row=1, column=0)
+		tk.Label(fm_company, text='监理单位: ').grid(row=1, column=0)
 		self.v_supervisor = tk.StringVar()
-		ttk.Entry(fm_company, width=35, textvariable=self.v_supervisor)\
+		tk.Entry(fm_company, width=35, textvariable=self.v_supervisor)\
 		.grid(row=1, column=1)
 
-		ttk.Label(fm_company, text='第三方监测单位: ').grid(row=2, column=0)
+		tk.Label(fm_company, text='第三方监测单位: ').grid(row=2, column=0)
 		self.v_third_observer = tk.StringVar()
-		ttk.Entry(fm_company, width=35, textvariable=self.v_third_observer)\
+		tk.Entry(fm_company, width=35, textvariable=self.v_third_observer)\
 		.grid(row=2, column=1)
 
-		ttk.Label(fm_company, text='施工方监测单位: ').grid(row=3, column=0)
+		tk.Label(fm_company, text='施工方监测单位: ').grid(row=3, column=0)
 		self.v_builder_observer = tk.StringVar()
-		ttk.Entry(fm_company, width=35, textvariable=self.v_builder_observer)\
+		tk.Entry(fm_company, width=35, textvariable=self.v_builder_observer)\
 		.grid(row=3, column=1)
 
 		fm_company.pack(side=tk.LEFT)
 
-		ttk.Label(fm_info, width=2, text='').pack(side=tk.LEFT)
+		tk.Label(fm_info, width=2, text='').pack(side=tk.LEFT)
 
 		#合同，编号
 		fm_con = tk.Frame(fm_info)
-		ttk.Label(fm_con, text='合同号: ').grid(row=0, column=0)
+		tk.Label(fm_con, text='合同号: ').grid(row=0, column=0)
 		self.v_contract = tk.StringVar()
-		ttk.Entry(fm_con, width=35, textvariable=self.v_contract)\
+		tk.Entry(fm_con, width=35, textvariable=self.v_contract)\
 		.grid(row=0, column=1)
 
-		ttk.Label(fm_con, text='编号: ').grid(row=1, column=0)
+		tk.Label(fm_con, text='编号: ').grid(row=1, column=0)
 		self.v_code = tk.StringVar()
-		ttk.Entry(fm_con, width=35, textvariable=self.v_code)\
+		tk.Entry(fm_con, width=35, textvariable=self.v_code)\
 		.grid(row=1, column=1)
 
-		ttk.Label(fm_con, text='').grid(row=2, column=0)
-		ttk.Label(fm_con, text='').grid(row=2, column=1)
+		tk.Label(fm_con, text='').grid(row=2, column=0)
+		tk.Label(fm_con, text='').grid(row=2, column=1)
 		fm_con.pack()
 		fm_info.pack()
 
-		ttk.Label(self.pro_top, text='').pack()
+		tk.Label(self.pro_top, text='').pack()
 
 
 		#xlsx数据源
 		fm_xlsx = tk.Frame(self.pro_top)
-		ttk.Label(fm_xlsx, text='excel数据源: ').pack(side=tk.LEFT)
+		tk.Label(fm_xlsx, text='excel数据源: ').pack(side=tk.LEFT)
 		self.v_xlsx_path = tk.StringVar()
-		ttk.Entry(fm_xlsx, width=65, textvariable=self.v_xlsx_path)\
+		tk.Entry(fm_xlsx, width=65, textvariable=self.v_xlsx_path)\
 		.pack(side=tk.LEFT)
-		ttk.Button(fm_xlsx, text="...", width=5, command=self.select_xlsx)\
+		tk.Button(fm_xlsx, text="...", width=5, command=self.select_xlsx)\
 		.pack(side=tk.LEFT)
 		fm_xlsx.pack()
-		ttk.Label(self.pro_top, text='注:把平面布点图片文件放到excel数据源同目录下').\
+		tk.Label(self.pro_top, text='注:把平面布点图片文件放到excel数据源同目录下').\
 		pack()
 
-		ttk.Label(self.pro_top, text='').pack()
-		ttk.Label(self.pro_top, text='').pack()
+		tk.Label(self.pro_top, text='').pack()
+		tk.Label(self.pro_top, text='').pack()
 
 		#确认，退出按钮
 		fm_button = tk.Frame(self.pro_top)
-		ttk.Button(fm_button, text="确认", width=15, command=self.confirm_project)\
+		tk.Button(fm_button, text="确认", width=15, command=self.confirm_project)\
 		.grid(row=0, column=0)
-		ttk.Label(fm_button, width=2, text='').grid(row=0, column=1)
-		ttk.Button(fm_button, text="取消", width=15, command=self.discard_project)\
+		tk.Label(fm_button, width=2, text='').grid(row=0, column=1)
+		tk.Button(fm_button, text="取消", width=15, command=self.discard_project)\
 		.grid(row=0, column=2)
 		fm_button.pack()
 
@@ -271,7 +270,7 @@ if __name__ == '__main__':
 	print(PRO_INFO)
 
 	top = tk.Tk()
-	ttk.Button(top, text="Check", command=check_project_info).pack()
+	tk.Button(top, text="Check", command=check_project_info).pack()
 	my_pro = MyPro(top)
 	top.mainloop()	
 

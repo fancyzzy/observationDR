@@ -8,7 +8,6 @@ author: Felix
 email:fancyzzy@163.com
 '''
 import tkinter as tk
-from tkinter import ttk
 from tkinter.filedialog import askopenfilename
 from tkinter.messagebox import showinfo
 import os
@@ -17,12 +16,15 @@ import gen_docx
 import read_xlsx
 from datetime import datetime
 
+my_color_office_blue ='#%02x%02x%02x' % (43,87,154)
+my_color_orange ='#%02x%02x%02x' % (192,121,57)
+my_color_light_orange = '#%02x%02x%02x' % (243,183,95)
 
 class MyTop(object):
 	def __init__(self):
 		self.top = tk.Tk()
 		self.top.title("监测日报")
-		self.top.geometry('680x520+400+280')
+		self.top.geometry('750x520+400+280')
 
 		#每次窗口获得焦点，更新标题
 		self.top.bind("<FocusIn>", self.enter_top)
@@ -47,10 +49,12 @@ class MyTop(object):
 			self.display_update_project)
 		self.menu_bar.entryconfig("工程", state="disable")
 
+		for i in range(3):
+			tk.Label(self.top, text='').pack()
 		#初始标题
-		ttk.Label(self.top, text='').pack()
 		self.fm_init = tk.Frame(self.top)
-		label_init = ttk.Label(self.fm_init, text='监测日报助手1.0')
+		label_init = tk.Label(self.fm_init, text='监测日报助手1.0', \
+			font = ('楷体', 26, 'bold'), fg= my_color_office_blue)
 		label_init.pack()
 		self.fm_init.pack()
 
@@ -58,36 +62,59 @@ class MyTop(object):
 		self.fm_pro = tk.Frame(self.top)
 		#工程项目名称, 区间
 		fm_title = tk.Frame(self.fm_pro)
-		self.label_title = ttk.Label(fm_title, text='XX工程监测日报')
+		self.label_title = tk.Label(fm_title, text='XX工程监测日报',\
+			font = ('楷体', 28, 'bold'), fg= my_color_orange)
 		self.label_title.pack()
-		self.label_area = ttk.Label(fm_title, text='XX区间')
+		self.label_area = tk.Label(fm_title, text='XX区间',\
+			font = ('楷体', 28, 'bold'), fg= my_color_orange)
 		self.label_area.pack()
 		fm_title.pack()
 
+		for i in range(3):
+			tk.Label(self.fm_pro, text='').pack()
+
 		#No 编号
-		ttk.Label(self.fm_pro, text='').pack()
-		fm_no = tk.Frame(self.fm_pro)
-		ttk.Label(fm_no, text='期号: 第').grid(row=0, column=0)
+		fm_no = tk.Frame(self.fm_pro, width=400)
+		tk.Label(fm_no, text='期号：  第 ', font=('楷体', 18, 'bold')).\
+		pack(side=tk.LEFT)
 		self.v_no = tk.StringVar()
-		self.entry_no = ttk.Entry(fm_no, width=12, textvariable=self.v_no)
-		self.entry_no.grid(row=0, column=1)
-		ttk.Label(fm_no, text='期').grid(row=0,column=2)
+		large_font = ('楷体', 24, 'normal')
+		self.entry_no = tk.Entry(fm_no, width=5, font=large_font, \
+			relief='flat',textvariable=self.v_no)
+		self.entry_no.pack(side=tk.LEFT)
+		tk.Label(fm_no, text=' 期', font=('楷体', 18, 'bold')).\
+		pack(side=tk.LEFT)
+		tk.Label(fm_no, text=' '*10).pack(side=tk.LEFT)
 		fm_no.pack()
 
+		tk.Label(self.fm_pro, text='').pack()
+
 		#date 日期
-		fm_date = tk.Frame(self.fm_pro)
-		ttk.Label(fm_date, text='测量日期: ').grid(row=1,column=0)
+		fm_date = tk.Frame(self.fm_pro, width=400)
+		tk.Label(fm_date, text=' '*9+'测量日期： ',font = ('楷体', 18, 'bold')).\
+		pack(side=tk.LEFT)
 		self.v_date = tk.StringVar()
-		self.entry_date = ttk.Entry(fm_date, width=20, textvariable=self.v_date)
-		self.entry_date.grid(row=1,column=1)
-		ttk.Label(fm_date, text='年/月/日').grid(row=1,column=2)
+		self.entry_date = tk.Entry(fm_date, width=10, font=large_font,\
+			relief='flat', textvariable=self.v_date)
+		self.entry_date.pack(side=tk.LEFT)
+		tk.Label(fm_date, text='(年/月/日)',font=('楷体', 14)).\
+		pack(side=tk.LEFT)
+		tk.Label(fm_date, text=' ', font=('楷体', 12)).\
+		pack(side=tk.LEFT)
+		
+
 		fm_date.pack()
 
+		for i in range(2):
+			tk.Label(self.fm_pro, text='').pack()
+
 		#生成日报按钮
-		ttk.Label(self.fm_pro, text='').pack()
+		tk.Label(self.fm_pro, text='').pack()
 		fm_button = tk.Frame(self.fm_pro)
-		self.button_gen =ttk.Button(fm_button, text="生成日报", \
-			command=self.gen_report)
+		#self.button_gen =tk.Button(fm_button, text="生成日报", \
+		#	command=self.gen_report)
+		self.button_gen =tk.Button(fm_button, text="生成日报", font=('楷体', 24, 'bold'),\
+			width=10, height=1, bg=my_color_light_orange, command=self.gen_report)
 		self.button_gen.pack()
 		fm_button.pack()
 		#初始化不显示工程标题
