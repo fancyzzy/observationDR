@@ -161,6 +161,7 @@ class MyDocx(object):
 
 		#沉降监测表页
 		print("\n###4. 沉降监测报表###")
+		self.allow_page_break = False
 		if not self.make_settlement_pages():
 			print("DEBUG make_settlement_pages error")
 		else:
@@ -536,7 +537,7 @@ class MyDocx(object):
 			else:
 				print("warning, 没有最大值!")
 				max_obser_list.append("nan")
-				max_change_values.aapend("nan")
+				max_change_values.append("nan")
 
 			#新加一行，写入测量项目sheet，写入这个测量点id
 			row = t.add_row()
@@ -603,7 +604,7 @@ class MyDocx(object):
 			else:
 					print("warning, 没有最大累计值!")
 					max_obser_list.append("nan")
-					max_acc_values.aapend("nan")				
+					max_acc_values.append("nan")				
 
 			s = ''
 			for obser in max_obser_list:
@@ -1143,11 +1144,13 @@ class MyDocx(object):
 			tr = t.rows[i]._tr
 			trPr = tr.get_or_add_trPr()
 			trHeight = OxmlElement('w:trHeight')
-			v_height = "300"
+			v_height = "450"
 			if i == 11:
 				v_height = "3600"
+			if i == 2:
+				v_height = "600"
 			trHeight.set(qn('w:val'), v_height)
-			trHeight.set(qn('w:hRule'), "atLeast")
+			trHeight.set(qn('w:hRule'), "exact")
 			trPr.append(trHeight)
 
 			#中间观测点数据字体缩小
@@ -1272,8 +1275,10 @@ class MyDocx(object):
 				print("'{}{}监测报表{}/{}'".format(\
 					area_name, sheet,i,split_num))
 				###new page###########
-				if i >1:
+				if self.allow_page_break:
 					d.add_page_break()
+				else:
+					self.allow_page_break = True
 				self.write_settlement_header(area_name)
 				p = d.add_paragraph()	
 				table_cap = area_name+sheet+'监测报表'+'%d/%d'%(i,split_num)
@@ -1302,7 +1307,6 @@ class MyDocx(object):
 				self.draw_settlement_table(sheet, sub_row_list, date_list,\
 				 sub_value_list, sub_initial_values, sub_old_acc_values, total_row//2)
 				self.write_settlement_foot()
-
 	#############multi_settlement_table()################################
 
 
@@ -1433,6 +1437,7 @@ class MyDocx(object):
 		px = self.my_xlsx
 		d = self.docx
 
+
 		#画表
 		t = d.add_table(rows=51, cols=9, style = 'Table Grid')
 		t.cell(0,0).merge(t.cell(0,8))
@@ -1521,6 +1526,18 @@ class MyDocx(object):
 						for r in p.runs:
 							r.font.size = Pt(9)
 							#r.bold = True
+			#设置高度:
+			tr = t.rows[i]._tr
+			trPr = tr.get_or_add_trPr()
+			trHeight = OxmlElement('w:trHeight')
+			v_height = "185"
+			if i == 3:
+				v_height = '350'
+			if i < 3:
+				v_height = '240'
+			trHeight.set(qn('w:val'), v_height)
+			trHeight.set(qn('w:hRule'), "exact")
+			trPr.append(trHeight)
 	###########one_inclinometer_table()##############################
 
 
