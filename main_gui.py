@@ -22,15 +22,15 @@ my_color_office_blue ='#%02x%02x%02x' % (43,87,154)
 my_color_orange ='#%02x%02x%02x' % (192,121,57)
 my_color_light_orange = '#%02x%02x%02x' % (243,183,95)
 
-logo_name = 'pic\pen.png'
-logo_path = os.path.join(os.getcwd(),logo_name)
+logo_path = os.path.join(os.getcwd(),'pic\pen.png')
+icon_path = os.path.join(os.getcwd(),'pic\pen.ico')
 
 class MyTop(object):
 	def __init__(self):
 		self.top = tk.Tk()
 		self.top.title("监测日报")
 		self.top.geometry('750x520+400+280')
-
+		self.top.iconbitmap(icon_path)
 		#每次窗口获得焦点，更新标题
 		self.top.bind("<FocusIn>", self.enter_top)
 

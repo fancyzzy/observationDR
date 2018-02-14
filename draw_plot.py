@@ -139,12 +139,10 @@ class MyPlot(object):
 		self.plt.xlabel('变化量(mm)', fontsize=40)
 		#使y轴显示整数深度的刻度
 		self.plt.yticks(list(map(ceil,deep_values)))
-		#x轴刻度间隔倍数,
-		'''
+		#x轴刻度间隔倍数
 		max_value = ceil(max(list(map(abs,acc_values))))
 		xmajorLocator   = MultipleLocator(int(max_value/2))
 		ax.xaxis.set_major_locator(xmajorLocator)
-		'''
 		#刻度数值大小
 		self.plt.tick_params(axis='both', labelsize=32)
 
