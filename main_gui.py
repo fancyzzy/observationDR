@@ -8,8 +8,10 @@ author: Felix
 email:fancyzzy@163.com
 '''
 import tkinter as tk
+
 from tkinter.filedialog import askopenfilename
 from tkinter.messagebox import showinfo
+
 import os
 from project_info import *
 import gen_docx
@@ -19,6 +21,9 @@ from datetime import datetime
 my_color_office_blue ='#%02x%02x%02x' % (43,87,154)
 my_color_orange ='#%02x%02x%02x' % (192,121,57)
 my_color_light_orange = '#%02x%02x%02x' % (243,183,95)
+
+logo_name = 'pic\pen.png'
+logo_path = os.path.join(os.getcwd(),logo_name)
 
 class MyTop(object):
 	def __init__(self):
@@ -51,11 +56,26 @@ class MyTop(object):
 
 		for i in range(3):
 			tk.Label(self.top, text='').pack()
+
 		#初始标题
 		self.fm_init = tk.Frame(self.top)
+		#插图logo
+		tl = tk.Label(self.fm_init, compound='top')
+		print("DEBUG os.getcwd()",os.getcwd())
+		mg = tk.PhotoImage(file=logo_path)
+		tl.lenna_image_png = mg
+		tl['image'] = mg
+		tl.pack()
+
+		for i in range(1):
+			tk.Label(self.fm_init, text='').pack()
+
 		label_init = tk.Label(self.fm_init, text='监测日报助手1.0', \
-			font = ('楷体', 26, 'bold'), fg= my_color_office_blue)
+			font = ('楷体', 32, 'bold'), fg= my_color_office_blue)
 		label_init.pack()
+
+
+
 		self.fm_init.pack()
 
 		#新工程
