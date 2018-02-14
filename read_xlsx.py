@@ -11,12 +11,10 @@ from datetime import datetime
 
 class MyXlsx(object):
 	def __init__(self, xlsx_path):
-		print("__init__ MyXlsx")
-
 		self.path = xlsx_path
-		print("load workbook '%s'..."%(xlsx_path))
+		print("load workbook: '%s'..."%(xlsx_path))
 		self.wb = openpyxl.load_workbook(xlsx_path, data_only=True)
-		print("load finished.")
+		print("load finsihed.")
 
 		#获得所有的sheet页名单, 即观测项目
 		self.sheets =  self.wb.sheetnames[:]
@@ -32,7 +30,8 @@ class MyXlsx(object):
 		#注意表格格式，只适用于第一列是区间名，第二列是点号
 		#{'sheet1':{'area1':(1,10), 'area2':(11,15),...}, 'sheet2':{'area4':(1,23)}}
 		self.all_areas_row_range = self.get_all_sheets_areas_range()
-		print("get all sheets areas range done: ",self.all_areas_row_range)
+		print("观测点范围:")
+		print(self.all_areas_row_range)
 
 		#疑问，是否可以用地表沉降的区间作为全部区间?
 		#获得'地表沉降'页的A列元素, 作为总区间汇总
@@ -40,6 +39,7 @@ class MyXlsx(object):
 		sheet_name = '地表沉降'
 		d_areas = self.all_areas_row_range[sheet_name]
 		self.areas = list(d_areas.keys())
+		print("共有{}个区间:'{}'".format(len(self.areas),self.areas))
 	##################__init__()##############################	
 
 
@@ -50,7 +50,6 @@ class MyXlsx(object):
 		all_sheets_areas_range = {'sheet1':{'area1':(1,10), 'area2':(11,15),...}, \
 		'sheet2':{'area4':(1,23)}}
 		'''
-		print("start 'get_all_sheets_areas_range'")
 		all_sheets_areas_range = {}
 		sheet_areas_range = {}
 
@@ -65,7 +64,7 @@ class MyXlsx(object):
 	#############get_all_sheets_areas_range()#################		
 
 
-	def get_one_sheet_areas_range(self, sheet_name,target_col=1):
+	def get_one_sheet_areas_range(self, sheet_name,target_col=1,from_row=1):
 		'''
 		获取一个sheet的所有区间的行范围
 		input:
@@ -89,7 +88,7 @@ class MyXlsx(object):
 		#多找10行,避免只有一个区间的表最后一行就是区间的最后，无法满足
 		#三列都是空
 		len_max_rows = len(tuple(sheet.rows)) + 1+ 10
-		for i in range(1, len_max_rows):
+		for i in range(from_row, len_max_rows):
 			#表格格式注意, 区间必须是在A列, A列开始为空
 			v_1_col = sheet.cell(row=i, column=target_col).value
 			v_2_col = sheet.cell(row=i, column=target_col+1).value
@@ -163,8 +162,7 @@ class MyXlsx(object):
 		返回area这一列的所有值, 到一个列表[]
 		列入返回1月1日这一列的衡山路站的测量值
 		'''
-		print("start 'get_range_values'")
-		print("sheet = {}, area_name = {}, col = {}".format(sheet,area_name,col))
+		#print("sheet = {}, area_name = {}, col = {}".format(sheet,area_name,col))
 		sh = self.wb[sheet]
 		range_values = []
 

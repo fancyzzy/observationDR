@@ -35,11 +35,6 @@ class MyPlot(object):
 		共sample_list个观测点的曲线
 		'''
 		ln = len(sample_list)
-
-		print("DEBUG draw_settlement_fig")
-		#print("DEBUG date_list=",date_list)
-		#print("DEBUG sample_list=",sample_list)
-
 		#self.ax.xaxis.set_major_formatter(mdate.DateFormatter('%Y-%m-%d %H:%M:%S'))
 		#self.plt.gca().xaxis.set_major_formatter(mdate.DateFormatter('%m-%d'))
 		#self.plt.gca().xaxis.set_major_locator(mdate.DayLocator())
@@ -69,7 +64,6 @@ class MyPlot(object):
 		if save_flag:
 			aim_path = 'temped_fig.png'
 			self.plt.savefig(aim_path, format='png',dpi=200,bbox_inches='tight')
-			print("DEBUG png file: aim_path has been saved",os.path.join(os.getcwd(),aim_path))
 			#设置成close，负责会影响测斜图的长宽比
 			self.plt.close()
 			return aim_path
@@ -149,7 +143,6 @@ class MyPlot(object):
 		if save_flag:
 			aim_path = 'inclinometer_fig.PNG'
 			self.plt.savefig(aim_path, format='png',dpi=300,bbox_inches='tight')
-			print("DEBUG png file: aim_path has been saved",os.path.join(os.getcwd(),aim_path))
 			#self.plt.clf()
 			self.plt.close()
 			return aim_path

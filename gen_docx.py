@@ -81,8 +81,6 @@ def get_file_list(dir,file_list):
 
 class MyDocx(object):
 	def __init__(self, docx_path, proj_info, my_xlsx):
-		print("__init__ MyDocx")
-
 		self.proj = ProInfo(*proj_info)
 		self.docx = None
 		self.path = docx_path
@@ -99,19 +97,16 @@ class MyDocx(object):
 		'''
 		生成docx文件
 		'''
-		print("start 'gen_docx'")
+		print("\n{}日报:".format(self.str_date))
 
 		#if not self.path or not os.path.exists(self.path):
 		if not self.path:
 			print("error, no available docx path")
 			return
 		
+		#读取'default_template.docx'
+		print("###0. 读取模板'default_template.docx'###")
 		self.docx = Document()
-
-		#Check for all the styles
-		for style in self.docx.styles:
-			print("这里有: ", style.name)
-
 		self.set_document_style()
 
 		#页面布局为A4 宽210mm*高297mm
@@ -120,12 +115,14 @@ class MyDocx(object):
 		section.page_height = Mm(297)
 
 		#首页
+		print("\n###1. 报表首页###")
 		if not self.make_header_pages():
 			print("DEBUG make_head_page error")
 		else:
 			pass
 
 		#数据汇总分析页****
+		print("\n###2. 监测数据分析表###")
 		if not self.make_overview_pages():
 			print("DEBUG make_overview_pages error")
 		else:
@@ -144,8 +141,8 @@ class MyDocx(object):
 		new_section.footer_distance = Cm(1)
 
 
-
 		#现场安全巡视页
+		print("\n###3. 现场安全巡视表###")
 		if not self.make_security_pages():
 			print("DEBUG make_security_pages error")
 		else:
@@ -164,17 +161,18 @@ class MyDocx(object):
 		new_section.footer_distance = Cm(1)
 
 		#沉降监测表页
+		print("\n###4. 沉降监测报表###")
 		if not self.make_settlement_pages():
 			print("DEBUG make_settlement_pages error")
 		else:
 			self.docx.save(self.path)
 
 		#测斜监测表页
+		print("\n###5. 测斜监测报表###")
 		if not self.make_inclinometer_pages():
 			print("DEBUG make_inclinometer_pages error")
 		else:
 			self.docx.save(self.path)
-
 
 		#new section landscape
 		#页面布局为横向
@@ -190,6 +188,7 @@ class MyDocx(object):
 		new_section.footer_distance = Cm(1.75)
 
 		#爆破振动监测报表
+		print("\n###6. 爆破振动监测报表###")
 		if not self.make_blasting_pages():
 			print("DEBUG make_blasting_pages error")
 		else:
@@ -207,15 +206,17 @@ class MyDocx(object):
 		new_section.header_distance = Cm(1.5)
 		new_section.footer_distance = Cm(1.75)
 
-		#平面布点图
+		#平面布点图表
+		print("\n###7. 平面布点图###")
 		if not self.make_layout_pages():
 			print("DEBUG make_layout_pages error")
 		else:
 			pass
 
 		#保存
-		print("All pages done, saving docx file...")
 		self.docx.save(self.path)
+		print("日报生成结束!")
+		print("saved in:'{}'".format(self.path))
 		return True
 	#######gen_docx()####################################
 
@@ -282,8 +283,6 @@ class MyDocx(object):
 		'''
 		首页
 		'''
-		print("start 'make_hearder_pages'")
-
 		result = False
 		d = self.docx
 
@@ -349,7 +348,6 @@ class MyDocx(object):
 
 		p = d.add_paragraph()
 		p.style = styles['my_header']
-		print("DEBUG sytle = ",p.style.name)
 		r = p.add_run("编        号：")
 		r = p.add_run("%s"%self.proj.code)
 		r.underline = True
@@ -390,7 +388,6 @@ class MyDocx(object):
 		r = p.add_run(self.str_date)
 		r.font.size = Pt(15)
 		p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
 
 		###new page###########
 		#审核意见单
@@ -442,8 +439,6 @@ class MyDocx(object):
 		'''
 		一个区间的各种观测监信息汇总表
 		'''
-		print("Start 'one_overview_table' for area_name:",area_name,self.str_date)
-
 		d = self.docx
 		px = self.my_xlsx
 		#t = d.add_table(rows=1, cols=8, style='Table Grid')
@@ -463,16 +458,22 @@ class MyDocx(object):
 		for sheet in px.sheets:
 			if area_name in px.all_areas_row_range[sheet].keys():
 					related_sheets.append(sheet)
-		print("区间'{}'所在观测页有: {}".format(area_name,related_sheets))
+
+		total_sheets_num = len(related_sheets)
+		count_num = 0
+		print("{}个观测项目数据: {}".format(total_sheets_num, related_sheets))
 
 		#遍历这个区间站所存在的观测页表格	
 		for sheet in related_sheets:
+			count_num += 1
 			#略过这几个观测sheet，excel表格有疑问
 			if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
 			 sheet == '支撑轴力':
+				print("暂时略过观测项目",sheet)
 				continue
 
-			print("------DEBUG, 开始生成'{}, {}' 数据分析表-------".format(area_name, sheet))
+			print("{}/{}'{}{}数据'".format(\
+				count_num, total_sheets_num, area_name,sheet))
 			#获取数据
 			today_range_values = []
 			last_range_values = []
@@ -481,11 +482,14 @@ class MyDocx(object):
 			col_alpha = 'B'
 			obser_col,_ = px.get_item_point(sheet,'点号',from_last_search=False)
 			if obser_col == None:
-				obser_col = px.get_item_point(sheet,'测点',from_last_search=False)
+				obser_col,_ = px.get_item_point(sheet,'测点',from_last_search=False)
 			if obser_col == 3:
-			col_alpha = 'C'
+				col_alpha = 'C'
 			if obser_col == 4:
-			co_alpha = 'D'
+				co_alpha = 'D'
+			if obser_col == None:
+				print("Error, 无观测点数值列!")
+				continue
 
 			#获取当天的数据
 			today_col,today_row = px.get_item_point(sheet, self.date)
@@ -495,7 +499,7 @@ class MyDocx(object):
 			today_range_values = px.get_range_values(sheet, area_name, today_col)
 
 			#寻找前一天数据
-			last_date = get_value(sheet, today_row, today_col-1)
+			last_date = px.get_value(sheet, today_row, today_col-1)
 			if 'datetime' in str(type(last_date)):
 				last_range_values = px.get_range_values(sheet, area_name, today_col-1)
 			#前面一列不是日期值，表示昨天值不存在
@@ -510,7 +514,6 @@ class MyDocx(object):
 			#求出绝对值最大的值
 			diff_abs_values = [abs(value) for value in diff_original_values]
 			max_change = max(diff_abs_values)
-			#print("DEBUG '最大变化值'是:{}".format(max_change))
 
 			#列出所有max 点
 			max_obser_list = []
@@ -521,101 +524,102 @@ class MyDocx(object):
 					if max_change == v:
 						#找到区间的行范围, 加上最大值的相对index就是最大值的row_index
 						row_index = i + row_start
-					s_index = col_alpha + '%d'%row_index
-					obser_id = px.wb[sheet][s_index].value
-					max_obser_list.append(obser_id)
-					max_value = str(round(diff_original_values[i],2))
-					max_change_values.append(max_value)
-				print("DEBUG '本次变化最大点'是:{}".max_obser_list)
-				print("DEBUG '本次变化最大值'是:{}".max_change_values)
+						s_index = col_alpha + '%d'%row_index
+						obser_id = px.wb[sheet][s_index].value
+						max_obser_list.append(obser_id)
+						max_value = str(round(diff_original_values[i],2))
+						max_change_values.append(max_value)
+					else:
+						continue
+				print("本次变化最大点:{},值:{}".format(\
+					max_obser_list, max_change_values))
 			else:
 				print("warning, 没有最大值!")
-				max_obser_list.append("N/A")
-				max_change_values.aapend("N/A")
+				max_obser_list.append("nan")
+				max_change_values.aapend("nan")
 
-				#新加一行，写入测量项目sheet，写入这个测量点id
-				row = t.add_row()
-				#监测项目
-				row.cells[0].text = sheet
-				#本次变化最大点
-				s = ''
-				for obser in max_obser_list:
+			#新加一行，写入测量项目sheet，写入这个测量点id
+			row = t.add_row()
+			#监测项目
+			row.cells[0].text = sheet
+			#本次变化最大点
+			s = ''
+			for obser in max_obser_list:
 					s += obser + '\n' 
-				row.cells[1].text = s.strip('\n')
-				#日变化速率
-				s = ''
-				for max_v in max_change_values:
+			row.cells[1].text = s.strip('\n')
+			#日变化速率
+			s = ''
+			for max_v in max_change_values:
 					s += max_v + '\n'
-				row.cells[2].text = s.strip('\n')
+			row.cells[2].text = s.strip('\n')
 
-				#日变量报警值空着
-				row.cells[3].text = ' '
+			#日变量报警值空着
+			row.cells[3].text = ' '
 
-				#求本次累计值 = 当前值-初值+旧累计值
-				acc_values = []
-				acc_abs_values = []
-				#获取'初值'这一列，在第3列
-				#获取当天的数据
-				init_col,init_row = px.get_item_point(sheet, '初值')
-				initial_range_values = px.get_range_values(sheet, area_name, init_col)
-				#print("DEBUG '初始值列':{}".format(initial_range_values))
-				#获取'旧累计'这一列，在第4列
-				old_acc_col,_ = px.get_item_point(sheet, '旧累计')
-				old_acc_range_values = px.get_range_values(sheet, area_name, old_acc_col)
-				#处理旧累计，如果为None就设为0
-				ln = len(old_acc_range_values)
-				for i in range(ln):
+			#求本次累计值 = 当前值-初值+旧累计值
+			acc_values = []
+			acc_abs_values = []
+			#获取'初值'这一列，在第3列
+			#获取当天的数据
+			init_col,init_row = px.get_item_point(sheet, '初值')
+			initial_range_values = px.get_range_values(sheet, area_name, init_col)
+			#print("DEBUG '初始值列':{}".format(initial_range_values))
+			#获取'旧累计'这一列，在第4列
+			old_acc_col,_ = px.get_item_point(sheet, '旧累计')
+			old_acc_range_values = px.get_range_values(sheet, area_name, old_acc_col)
+			#处理旧累计，如果为None就设为0
+			ln = len(old_acc_range_values)
+			for i in range(ln):
 					if old_acc_range_values[i] == None:
 						old_acc_range_values[i] = 0
-				#print("DEBUG '旧累计值列':{}".format(old_acc_range_values))
-				#这里是否需要另外的函数，如果轴力表的求累计变化量公式不一样
-				acc_values = (array(today_range_values, dtype=float) - \
-				array(initial_range_values, dtype=float))*1000 + array(old_acc_range_values,\
-				dtype=float)
-				#print("DEBUG '本次累计值列':{}".format(acc_values))
-				acc_abs_values = [abs(v) for v in acc_values]
-				max_acc = max(acc_abs_values)
-				#print("DEBUG '最大累计值'是:{} ".format(max_acc))
+			#print("DEBUG '旧累计值列':{}".format(old_acc_range_values))
+			#这里是否需要另外的函数，如果轴力表的求累计变化量公式不一样
+			acc_values = (array(today_range_values, dtype=float) - \
+			array(initial_range_values, dtype=float))*1000 + array(old_acc_range_values,\
+			dtype=float)
+			#print("DEBUG '本次累计值列':{}".format(acc_values))
+			acc_abs_values = [abs(v) for v in acc_values]
+			max_acc = max(acc_abs_values)
 
-				#列出所有max 点
-				max_obser_list = []
-				max_acc_values = []
-				#print("DEBUG '最大累计变化值'是:{}".format(max_change))
-				row_start, row_end = px.all_areas_row_range[sheet][area_name]
-				if max_acc != 0 and not isnan(max_acc):
+			#列出所有max 点
+			max_obser_list = []
+			max_acc_values = []
+			#print("DEBUG '最大累计变化值'是:{}".format(max_change))
+			row_start, row_end = px.all_areas_row_range[sheet][area_name]
+			if max_acc != 0 and not isnan(max_acc):
 					for i, v in enumerate(acc_abs_values):
 						if max_acc == v:
 							#找到区间的行范围, 加上最大值的相对index就是最大值的row_index
 							row_index = i + row_start
-						s_index = col_alpha + '%d'%row_index
-						obser_id = px.wb[sheet][s_index].value
-						max_obser_list.append(obser_id)
-						max_acc_v = str(round(acc_values[i],2))
-						max_acc_values.append(max_acc_v)
-					print("DEBUG '本次累计最大点'是:{}".max_obser_list)
-					print("DEBUG '本次累计最大值'是:{}".max_acc_values)
-				else:
-					print("warning, 没有最大累计值!")
-					max_obser_list.append("N/A")
-					max_acc_values.aapend("N/A")				
-
-				s = ''
-				for obser in max_obser_list:
-					s += obser + '\n'
-				#累计变化最大点
-				row.cells[4].text = s.strip('\n')
-				s = ''
-				for max_acc_v in max_acc_values:
-					s += max_acc_v + '\n'
-				#累计变化率
-				row.cells[5].text = s.strip('\n')
-
-				#累计变量报警值 空着
-				row.cells[6].text = ' '
-				#累计变量控制值 空着
-				row.cells[7].text = ' '
+							s_index = col_alpha + '%d'%row_index
+							obser_id = px.wb[sheet][s_index].value
+							max_obser_list.append(obser_id)
+							max_acc_v = str(round(acc_values[i],2))
+							max_acc_values.append(max_acc_v)
+						else:
+							continue
+					print("本次累计最大点:{},值:{}".format(\
+						max_obser_list,max_acc_values))
 			else:
-				print("Debug warning, 无最大点！")
+					print("warning, 没有最大累计值!")
+					max_obser_list.append("nan")
+					max_acc_values.aapend("nan")				
+
+			s = ''
+			for obser in max_obser_list:
+					s += obser + '\n'
+			#累计变化最大点
+			row.cells[4].text = s.strip('\n')
+			s = ''
+			for max_acc_v in max_acc_values:
+					s += max_acc_v + '\n'
+			#累计变化率
+			row.cells[5].text = s.strip('\n')
+
+			#累计变量报警值 空着
+			row.cells[6].text = ' '
+			#累计变量控制值 空着
+			row.cells[7].text = ' '
 		#end for sheet in related_sheets
 
 		#爆破振动 行
@@ -628,13 +632,12 @@ class MyDocx(object):
 		row.cells[0].text = '巡检'
 		second_cell = row.cells[1]
 		second_cell.merge(row.cells[7])
-		row.cells[1].text = '现场无异常情况。'
+		row.cells[1].text = ''
 		#数据分析 行
 		row = t.add_row()
 		row.cells[0].text = '数据分析'
 		row.cells[1].merge(row.cells[7])
-		s = '今日各监测项目数据变化量较小，数据在可控范围内；监测频率为1次/1d。'
-		row.cells[1].text = s
+		row.cells[1].text = ''
 
 		#设置表格样式
 		t.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -660,7 +663,6 @@ class MyDocx(object):
 					p.style = d.styles["my_song_style"]
 					if i >= last_three:
 						p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
-				
 		return
 	##########one_overview_table()###############################
 
@@ -669,8 +671,6 @@ class MyDocx(object):
 		'''
 		监测数据分析表
 		'''
-		print("Start 'make_overview_pages'")
-
 		result = False
 		d = self.docx
 		areas = self.my_xlsx.areas
@@ -707,11 +707,14 @@ class MyDocx(object):
 		#表标题
 		table_cap = "监测数据分析表"
 		i = 0
-		print("DEBUG start all areas:",areas)
+		total_num = len(areas)
+		count_num = 0
 		for area_name in areas:
-			print("###开始生成 {} 数据分析表###".format(area_name))
+			count_num += 1
 			#test debug only one area
 			if '衡山路站' in area_name:
+				print("({}/{})'{}数据分析表'".format(\
+					count_num, total_num, area_name))
 				i += 1
 				ss = '表' + '%d'%i + area_name + table_cap
 				p = d.add_paragraph()
@@ -720,6 +723,9 @@ class MyDocx(object):
 				r = p.add_run(ss)
 				r.font.size = Pt(14)
 				self.one_overview_table(area_name)
+				print("({}/{})'{}数据分析表'完成\n".format(\
+					count_num, total_num, area_name))
+
 			#Test open to all	
 			else:
 				pass
@@ -776,8 +782,6 @@ class MyDocx(object):
 		'''
 		一个区间的现场巡查报表
 		'''
-		print("Start 'one_security_table' for area_name:",area_name,self.str_date)
-
 		d = self.docx
 		proj = self.proj
 		ds = self.str_date
@@ -894,8 +898,6 @@ class MyDocx(object):
 		'''
 		现场巡查报表
 		'''
-		print("Start 'make_security_pages'")
-
 		result = False
 		d = self.docx
 		areas = self.my_xlsx.areas
@@ -904,10 +906,9 @@ class MyDocx(object):
 		table_cap = '现场巡查报表'
 		i = 0
 		for area_name in areas:
-			print("###开始生成 {} 现场巡查报表###".format(area_name))
-
 			#test debug only one area
 			if '衡山路站' in area_name:
+				print("'{}现场巡查报表'".format(area_name))
 				i += 1
 				ss = '表' + '%d'%i + ' 现场安全巡视表'
 				p = d.add_paragraph()
@@ -963,10 +964,10 @@ class MyDocx(object):
 		#获取当天日期的列坐标
 		today_col_index, today_row_index = px.get_item_point(sheet, self.date)
 		if today_col_index == None:
-			print("error, 观测页{}的区间{}没有当天值!")
+			print("error, 观测页{}的区间{}没有当天值列!")
 			return None, None, None
 
-		today_values = px.get__range_values(sheet, area_name, today_col_index)
+		today_values = px.get_range_values(sheet, area_name, today_col_index)
 		date_list.append(self.date)
 		value_list.append(array(today_values,dtype=float))
 		already_number = 1
@@ -977,7 +978,7 @@ class MyDocx(object):
 			v = px.get_value(sheet, today_row_index, col_index)
 			if not 'datetime' in str(type(v)):
 				break
-			lastday_values = px.get__range_values(sheet, area_name, col_index)
+			lastday_values = px.get_range_values(sheet, area_name, col_index)
 			date_list.append(px.get_value(sheet, today_row_index, col_index))
 			value_list.append(array(lastday_values,dtype=float))
 			already_number += 1
@@ -1037,58 +1038,55 @@ class MyDocx(object):
 		#value_list = [[date7_v1, date7_v2,...], [date6_v1, date6_v2,...],...]
 		#value_list should be ln_date*ln_row
 		#init_values should be ln_row*1
-
 		value_list = array(value_list, dtype=float)
-		init_list = array(init_list, dtype=float)
+		init_values = array(init_values, dtype=float)
 		old_acc_values = array(old_acc_values, dtype=float)
-
-		this
 
 		if ln_date > 2:
 			#今天和昨天差值 = 本次变量
 			today_diff_array =(value_list[0] - value_list[1])*1000
 			today_diff = list(map(lambda x:round(x,2),today_diff_array))
-			this_diffs.append(today_diff)
+			this_diffs = array(today_diff)
 
 			#昨天和前天差值 = 上次变量
 			lastday_diff_array = (value_list[1] - value_list[2])*1000
 			lastday_diff = list(map(lambda x:round(x,2),lastday_diff_array))
-			last_diffs.append(lastday_diff)
+			last_diffs = array(lastday_diff)
 
 			#今天和初值差值加旧累计 = 累计变量
 			today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
 			today_acc_diff = list(map(lambda x:round(x,2),today_acc_diff_array))
-			this_acc_diffs.append(today_acc_diff)
+			this_acc_diffs = array(today_acc_diff)
 
 		elif ln_date ==2:
 
 			#今天和昨天差值 = 本次变量
 			today_diff_array =(value_list[0] - value_list[1])*1000
 			today_diff = list(map(lambda x:round(x,2),today_diff_array))
-			this_diffs.append(today_diff)
+			this_diffs = array(today_diff)
 
 			#今天和初值差值加旧累计 = 累计变量
 			today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
 			today_acc_diff = list(map(lambda x:round(x,2),today_acc_diff_array))
-			this_acc_diffs.append(today_acc_diff)
+			this_acc_diffs = array(today_acc_diff)
 
-			#没有前天，上次变量设为'N/A'
-			last_diffs = ['N/A' for x in range(ln_row)]
+			#没有前天，上次变量设为'nan'
+			last_diffs = array([None for x in range(ln_row)],dtype=float)
 
 		elif ln_date == 1:
 			#今天和初值差值加旧累计 = 累计变量
 			today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
 			today_acc_diff = list(map(lambda x:round(x,2),today_acc_diff_array))
-			this_acc_diffs.append(today_acc_diff)
+			this_acc_diffs = array(today_acc_diff)
 
-			this_diffs = ['N/A' for x in range(ln_row)]
-			last_diffs = ['N/A' for x in range(ln_row)]
+			this_diffs = array([None for x in range(ln_row)],dtype=float)
+			last_diffs = array([None for x in range(ln_row)],dtype=float)
 
 		else:
 			print("Error, date_list None")
-			this_diffs = ['N/A' for x in range(ln_row)]
-			last_diffs = ['N/A' for x in range(ln_row)]
-			last_diffs = ['N/A' for x in range(ln_row)]
+			this_diffs = array([None for x in range(ln_row)],dtype=float)
+			last_diffs = array([None for x in range(ln_row)],dtype=float)
+			last_diffs = array([None for x in range(ln_row)],dtype=float)
 
 		#表格变化值填写
 		base_index = 3
@@ -1114,7 +1112,7 @@ class MyDocx(object):
 
 		all_acc_diffs = []
 		all_acc_diffs = (array(value_list, dtype=float) - \
-			array(init_values,dtype=float)*1000 + old_acc_values
+			array(init_values,dtype=float))*1000 + old_acc_values
 
 		#画图
 		idx_list = []
@@ -1123,8 +1121,8 @@ class MyDocx(object):
 		fig_path = self.my_plot.draw_settlement_fig(list(map(d_s,date_list)), \
 			all_acc_diffs.transpose(), idx_list)
 		if not os.path.exists(fig_path):
-			print("Debug, ERROR, fig_path not exists!")
-			fig_path = r'C:\Users\tarzonz\Desktop\oreport\demo.jpg'
+			print("ERROR, fig_path not exists!")
+			#fit_path = dummy.png
 
 		t.cell(11,0).text = '累计变化量曲线图'
 		t.cell(11,1).merge(t.cell(11,9))
@@ -1180,9 +1178,6 @@ class MyDocx(object):
 		如果该行数范围内前一天有None值，则略过改天。最终要求所有
 		有效值列都是有值的。如果当天的值都为None，那么跳过该sheet.
 		'''
-		print("Start 'multi_settlement_table' for area_name:",area_name,\
-			self.str_date)
-
 		px = self.my_xlsx
 		d = self.docx
 
@@ -1192,17 +1187,21 @@ class MyDocx(object):
 			if area_name in px.all_areas_row_range[sheet].keys():
 					#related_sheets.append = [sheet1,sheet2,...]
 					related_sheets.append(sheet)
+		total_sheet_num = len(related_sheets)			
+		print("{}个观测项目:{}".format(total_sheet_num, related_sheets))
 
-		print("区间'{}'涉及的观测项目有:{}".format(area_name,related_sheets))
-
+		count_num = 0
 		#遍历这个站所有有关的测量数据,绘制表格	
 		for sheet in related_sheets:
+			count_num += 1
 			#略过这几个观测sheet，excel表格有疑问
 			if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
 				 sheet == '支撑轴力':
-				print("由于excel表格格式疑惑，暂时略过 {}".format(sheet))
+				print("略过{}".format(sheet))
 				continue
-			print("开始生成'{}{}监测报表'".format(area_name, sheet))
+			print("{}/{}'{}{}监测报表'".format(\
+				count_num, total_sheet_num, area_name, sheet))
+
 			#找到该区间所有观测点的邻近7天的有效数据值,
 			#包括行坐标，日期纵坐标和测量数据值矩阵!
 			row_list = []
@@ -1215,17 +1214,27 @@ class MyDocx(object):
 				print("Error, 该区间'{}'在观测页'{}'没有有效值!".format(\
 					area_name,sheet))
 				continue
+			else:
+				print("共{}/{}天有效观测数据".format(len(date_list),7))
+
 			#从第三列获取到相应行的初始值和旧累计
 			#表格格式注意，第三列和第四列为初值，旧累计
 			init_col,_ = px.get_item_point(sheet, '初值')
+			if init_col == None:
+				print("Error, {}没有初值列!".format(sheet))
+				continue
 			old_acc_col,_ = px.get_item_point(sheet, '旧累计')
-			initial_values = px.get__range_values(sheet, area_name, init_col)
-			old_acc_values = px.get__range_values(sheet, area_name, old_acc_col)
+			if old_acc_col == None:
+				print("Error, {}没有旧累计列!".format(sheet))
+				continue
+
+			initial_values = px.get_range_values(sheet, area_name, init_col)
+			old_acc_values = px.get_range_values(sheet, area_name, old_acc_col)
 			#处理旧累计, 旧累计None的设为0
 			ln_old_acc = len(old_acc_values)
 			for i in range(ln_old_acc):
 				if old_acc_values[i] == None:
-					old_acc_values = 0
+					old_acc_values[i] = 0
 
 			#计算每个表能填多少个观测点
 			'''
@@ -1246,6 +1255,7 @@ class MyDocx(object):
 
 			start = 0
 			end = 0
+			print("观测点数{}，共分{}组".format(ln,split_num))
 			for i in range(1, split_num+1):
 				#最后一个就是剩下的所有的
 				if i == split_num:
@@ -1259,7 +1269,7 @@ class MyDocx(object):
 				sub_old_acc_values = old_acc_values[start:end]
 				start = end 
 
-				print("开始生成, '{}, {}' 监测报表{}/{}---".format(\
+				print("'{}{}监测报表{}/{}'".format(\
 					area_name, sheet,i,split_num))
 				###new page###########
 				if i >1:
@@ -1276,7 +1286,7 @@ class MyDocx(object):
 
 				last_date = ''
 				if len(date_list)==1:
-					last_date = 'N/A'
+					last_date = 'nan'
 				else:
 					last_date = date_to_str(date_list[1])
 				p = d.add_paragraph()	
@@ -1292,7 +1302,6 @@ class MyDocx(object):
 				self.draw_settlement_table(sheet, sub_row_list, date_list,\
 				 sub_value_list, sub_initial_values, sub_old_acc_values, total_row//2)
 				self.write_settlement_foot()
-				print("----finished-----\n")
 
 	#############multi_settlement_table()################################
 
@@ -1388,18 +1397,22 @@ class MyDocx(object):
 		'''
 		沉降变化监测表
 		'''
-		print("Start 'make_settlement_pages'")
-
 		result = False
 		d = self.docx
 		areas = self.my_xlsx.areas
 		proj = self.proj
 
+		total_num = len(areas)
+		count_num = 0
 		for area_name in areas:
-			print("###开始生成 {} 沉降监测报表###".format(area_name))
+			count_num += 1
 			#test debug only one area
 			if '衡山路站' in area_name:
+				print("({}/{}) '{}沉降监测表'".format(\
+					count_num, total_num, area_name))		
 				self.multi_settlement_table(area_name)
+				print("({}/{}) '{}沉降监测表'完成\n".format(\
+					count_num, total_num, area_name))		
 			#Test open to all	
 			else:
 				pass
@@ -1417,9 +1430,6 @@ class MyDocx(object):
 		input:
 		#d_obser_data = {'obser1':(deep_values,today_values, this_diffs, acc_diffs),'obser2':..}
 		'''
-		print("Start 'one_inclinometer_table for{}, {}:".format(\
-			sub_obser_list,self.str_date))
-
 		px = self.my_xlsx
 		d = self.docx
 
@@ -1465,7 +1475,6 @@ class MyDocx(object):
 			ln_diff = len(diff_values)
 			ln_acc = len(acc_values)
 
-			print("DEBUG i:{},sub_obser_list:{}".format(i,sub_obser_list))
 			#观测点
 			t.cell(1,1+i*4).text = sub_obser_list[i]
 			#孔深
@@ -1491,7 +1500,6 @@ class MyDocx(object):
 				list(map(lambda x:round(x,2),list(diff_values))),\
 				list(map(lambda x:round(x,2),list(acc_values)))))
 			'''
-			print("DEBUG start draw: ",sub_obser_list[i])
 			fig_path = self.my_plot.draw_inclinometer_fig(deep_values,diff_values,acc_values)
 			p = t.cell(3,4+4*i).paragraphs[0]
 			run = p.add_run()
@@ -1536,15 +1544,22 @@ class MyDocx(object):
 			if '测斜' in sheet_name:
 				inc_sheet = sheet_name
 				#以第二列点号为锚点，找每个点号的深度范围
-				d_obser_deeps = px.get_one_sheet_areas_range(sheet_name,2)
+				obser_col,obser_row = px.get_item_point(sheet_name,'点号',from_last_search=False)
+				if obser_col == None:
+					obser_col,obser_row = px.get_item_point(sheet,'测点',from_last_search=False)
+				d_obser_deeps = px.get_one_sheet_areas_range(sheet_name,obser_col,obser_row+1)
 				break
-		print("DEBUG d_obser_deeps=",d_obser_deeps)
+
+		if inc_sheet != '':
+			print("所有观测点的深度行号:", d_obser_deeps)
+		else:
+			print("没有找到测斜观测sheet!")
+			return True
 
 		#获取区间和观测点的字典:
 		#d_area_obser = {'area1':('observer1','observ2','observer3'..),..}
 		d_area_obser = {}
 		tmp_l = []
-
 		for area_name in px.all_areas_row_range[inc_sheet].keys():
 			start, end = px.all_areas_row_range[inc_sheet][area_name]
 			for i in range(start, end+1):
@@ -1554,22 +1569,39 @@ class MyDocx(object):
 					tmp_l.append(ss)
 				else:
 					continue
-
 			if len(tmp_l)>0:
 				d_area_obser[area_name] = tmp_l[:]
 				tmp_l[:] = []
-		print("DEBUG d_area_obser=",d_area_obser)
+		total_area_num = len(d_area_obser.keys())
+		print("共有区间{}, 对应观测点:{}".format(total_area_num,d_area_obser))
 
 		#找到当天日期,初值，旧累计所在的列坐标
 		init_col, _ = px.get_item_point(inc_sheet, '初值', False)
+		if init_col == None:
+			print("Error,{}初值列缺失!".format(inc_sheet))
+			return False
 		old_acc_col,_ = px.get_item_point(inc_sheet, '旧累计', False)
+		if old_acc_col == None:
+			print("Error,{}旧累计列缺失!".format(inc_sheet))
+			return False
 		today_col,today_row = px.get_item_point(inc_sheet, self.date, True)
+		if today_col == None:
+			print("Error,{}当天值列缺失!".format(inc_sheet))
+			return False
 		deep_col,_ = px.get_item_point(inc_sheet, '深度', False)
+		if deep_col == None:
+			print("Error,{}深度值列缺失!".format(inc_sheet))
+			return False
 
 		#遍历每个区间制作多个测斜表
+		count = 0
+		count_num = 0
 		for area_name in d_area_obser.keys():
-
+			count_num += 1
+			count += 1
 			obser_list = d_area_obser[area_name]
+			print("({}/{}) '{}:{}测斜监测表'".format(count_num, total_area_num, \
+				area_name, obser_list))
 			ln = len(obser_list)
 			table_num = 0
 			if ln/2 > ln//2:
@@ -1605,6 +1637,7 @@ class MyDocx(object):
 					#找到这个观测点对应行数范围内深度的数据
 					_, deep_values = px.get_avail_rows_values(sheet_name, row_list,\
 					deep_col, False)
+					#找这两个观测点的最大深度
 					if len(deep_values) > len(max_deep_values):
 						max_deep_values = deep_values
 					#初值
@@ -1632,7 +1665,7 @@ class MyDocx(object):
 					_, today_values = px.get_avail_rows_values(sheet_name, row_list,\
 					today_col, True)
 					#寻找前一天数据
-					last_date = get_value(sheet_name, today_row, today_col-1)
+					last_date = px.get_value(sheet_name, today_row, today_col-1)
 					if 'datetime' in str(type(last_date)):
 						_, lastday_values = px.get_avail_rows_values(sheet_name, row_list,\
 					today_col-1, True)
@@ -1641,16 +1674,16 @@ class MyDocx(object):
 						lastday_values = None
 
 					#使用array(list,dtype=float)来处理None值为nan
-					this_diffs = array(today_values, dtype=float) - array(\
-						lastday_values, dtype=float)
+					this_diffs = array(today_values,dtype=float) - array(\
+						lastday_values,dtype=float)
 					acc_diffs = array(today_values,dtype=float) - array(\
 						init_values,dtype=float) + array(old_acc_values,dtype=float)
-					obser_data.append(deep_values)
-					obser_data.append(today_values)
+					obser_data.append(array(deep_values,dtype=float))
+					obser_data.append(array(today_values,dtype=float))
 					obser_data.append(this_diffs)
 					obser_data.append(acc_diffs)
 					d_obser_data[obser] = obser_data
-					obser_data[:] = []
+					obser_data = []
 				#end获取数据 
 
 				#页面头信息
@@ -1695,6 +1728,8 @@ class MyDocx(object):
 			#end 两个观测点一组，进行制表
 			#for i in range(0,ln,2):
 
+		print("({}/{}),'{}:{}测斜监测表'完成\n".format(count_num, total_area_num, \
+				area_name, obser_list))
 		#end 遍历每个区间制作多个测斜表
 		#for area_name in d_area_obser.keys():
 
@@ -1706,8 +1741,6 @@ class MyDocx(object):
 		'''
 		爆破振动监测报表
 		'''
-		print("Start 'make_blasting_pages'")
-
 		d = self.docx
 		px = self.my_xlsx
 
@@ -1732,7 +1765,6 @@ class MyDocx(object):
 		p.paragraph_format.space_after = 0
 
 		t = d.add_table(rows=8, cols=13, style='blasting_style')
-		print("DEBUG t.style.name=",t.style.name)
 		t.cell(0,0).merge(t.cell(0,12))
 		s1 = "仪器型号："
 		s2 = " "*40 + "仪器出厂编号： "
@@ -1811,24 +1843,20 @@ class MyDocx(object):
 		平面布点图
 		把self.xlsx_path下的图片文件追加的docx中
 		'''
-		print("DEBUG start make_layout_pages")
 		d = self.docx
-
 		#获取文件夹下的所有文件地址:
 		file_list = get_file_list(self.xlsx_path, [])
-
 		for item in file_list:
-			print(item)
 			sufx = os.path.basename(item)
 			if '.xlsx' in sufx or '.docx' in sufx or '.dr' in sufx or '.txt' in sufx:
 				continue
 			try:
 				d.add_picture(item, width=Cm(25), height=Cm(14))
-				print("DEBUG success inserted!")
-			except:
-				print("not a picture file ".format(item))
+				print(item)
+			except Exception as e:
+				pass
+				print("失败！",e)
 
-		print("Insert pictures done")
 		return True
 	#####################concatenate_new_docx()#######################
 
