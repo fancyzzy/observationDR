@@ -25,6 +25,11 @@ from collections import namedtuple
 from numpy import array
 from numpy import isnan
 import read_xlsx
+
+#防止matplotlib在多线程调用下
+#造成Tkinter主线程crash
+from matplotlib import use
+use('Agg')
 import draw_plot
 
 ProInfo = namedtuple("ProInfo", ['name', 'area', 'code', 'contract', 'builder',\
@@ -168,6 +173,7 @@ class MyDocx(object):
 			self.docx.save(self.path)
 
 
+		
 		#测斜监测表页
 		print("\n###5. 测斜监测报表###")
 		if not self.make_inclinometer_pages():
@@ -175,6 +181,7 @@ class MyDocx(object):
 		else:
 			self.docx.save(self.path)
 
+		'''
 		#new section landscape
 		#页面布局为横向
 		new_section = self.docx.add_section(WD_SECTION.NEW_PAGE)
@@ -214,6 +221,7 @@ class MyDocx(object):
 		else:
 			pass
 
+		'''
 		#保存
 		self.docx.save(self.path)
 		print("日报生成结束!")
@@ -1115,15 +1123,21 @@ class MyDocx(object):
 		all_acc_diffs = (array(value_list, dtype=float) - \
 			array(init_values,dtype=float))*1000 + old_acc_values
 
-		#画图
 		t.cell(11,0).text = '累计变化量曲线图'
 		t.cell(11,1).merge(t.cell(11,9))
 
 		idx_list = []
 		for row_idx in row_list:
 			idx_list.append(px.get_value(sheet,row_idx,2))
-		fig_path = self.my_plot.draw_settlement_fig(list(map(d_s,date_list)), \
-			all_acc_diffs.transpose(), idx_list)
+
+		#画图
+		print("DEBUG 开始画图")
+		try:
+			fig_path = self.my_plot.draw_settlement_fig(list(map(d_s,date_list)), \
+				all_acc_diffs.transpose(), idx_list)
+		except Exception as e:
+			print("画图有问题: ",e)
+		print("DEBUG 画图结束")
 		if fig_path == None or not os.path.exists(fig_path):
 			print("ERROR, fig_path not exists!")
 			#fit_path = dummy.png
@@ -1133,6 +1147,7 @@ class MyDocx(object):
 			run = p.add_run()
 			run.add_picture(fig_path, width=Cm(12), height=Cm(5))
 			p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+			print("DEBUG 图片插入成功",fig_path)
 
 		t.cell(12,0).text = '备注'
 		t.cell(12,1).merge(t.cell(12,9))
@@ -1279,7 +1294,10 @@ class MyDocx(object):
 					d.add_page_break()
 				else:
 					self.allow_page_break = True
+
+				#页头
 				self.write_settlement_header(area_name)
+
 				p = d.add_paragraph()	
 				table_cap = area_name+sheet+'监测报表'+'%d/%d'%(i,split_num)
 				r = p.add_run(table_cap)
@@ -1306,6 +1324,8 @@ class MyDocx(object):
 				#制表
 				self.draw_settlement_table(sheet, sub_row_list, date_list,\
 				 sub_value_list, sub_initial_values, sub_old_acc_values, total_row//2)
+
+				#页尾
 				self.write_settlement_foot()
 	#############multi_settlement_table()################################
 
@@ -1603,7 +1623,7 @@ class MyDocx(object):
 			return False
 		today_col,today_row = px.get_item_point(inc_sheet, self.date, True)
 		if today_col == None:
-			print("Error,{},{}当天值列缺失!".format(inc_sheet. self.str_date))
+			print("Error,{},{}当天值列缺失!".format(inc_sheet, self.str_date))
 			return False
 		deep_col,_ = px.get_item_point(inc_sheet, '深度', False)
 		if deep_col == None:
@@ -1878,9 +1898,22 @@ class MyDocx(object):
 	#####################concatenate_new_docx()#######################
 
 
-if __name__ == '__main__':
 
-	#测试
+def thread_test():
+	import threading
+	import multiprocessing
+
+	#main thread is not in mainloop Error
+	t = threading.Thread(target=run_test)
+	t.start()
+
+	#p = multiprocessing.Process(target=run_test)
+	#p.start()
+	#run_test()
+
+
+def run_test():
+
 	print("Start Test")
 	xlsx_path = r'C:\Users\tarzonz\Desktop\演示工程A\一二工区计算表2018.1.1.xlsx' 
 	docx_path = r'C:\Users\tarzonz\Desktop\演示工程A\demo1.docx'
@@ -1891,7 +1924,6 @@ if __name__ == '__main__':
 	 "北京铁城建设监理有限责任公司", "中国铁路设计集团有限公司",\
 	 '中铁隧道勘察设计研究院有限公司', xlsx_path, date_v]
 
-
 	my_xlsx = read_xlsx.MyXlsx(xlsx_path)
 	my_docx = MyDocx(docx_path, project_info, my_xlsx)
 
@@ -1899,3 +1931,11 @@ if __name__ == '__main__':
 	if res:
 		print("'{}' has been created".format(docx_path))
 		print("Done")
+
+
+if __name__ == '__main__':
+
+	#测试
+	#run_test()
+	thread_test()
+

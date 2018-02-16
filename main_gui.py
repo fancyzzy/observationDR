@@ -17,10 +17,17 @@ from project_info import *
 import gen_docx
 import read_xlsx
 from datetime import datetime
+import threading
+import queue
+
+sentinel = object()
+
+L_THREADS = []
 
 my_color_office_blue ='#%02x%02x%02x' % (43,87,154)
 my_color_orange ='#%02x%02x%02x' % (192,121,57)
 my_color_light_orange = '#%02x%02x%02x' % (243,183,95)
+sunken_grey = '#%02x%02x%02x' % (240,240,240)
 
 logo_path = os.path.join(os.getcwd(),'pic\pen.png')
 icon_path = os.path.join(os.getcwd(),'pic\pen.ico')
@@ -131,8 +138,6 @@ class MyTop(object):
 		#生成日报按钮
 		tk.Label(self.fm_pro, text='').pack()
 		fm_button = tk.Frame(self.fm_pro)
-		#self.button_gen =tk.Button(fm_button, text="生成日报", \
-		#	command=self.gen_report)
 		self.button_gen =tk.Button(fm_button, text="生成日报", font=('楷体', 24, 'bold'),\
 			width=10, height=1, bg=my_color_light_orange, command=self.gen_report)
 		self.button_gen.pack()
@@ -223,25 +228,55 @@ class MyTop(object):
 		'''
 		global D
 		global PRO_INFO
+		global L_THREADS
 		print("Generate report start")
-
 		#更新code = code+期号
 		project_info = PRO_INFO[:]
 		if self.v_no.get():
 			project_info[D['code']] += '-%s'%(self.v_no.get())
-		
 		#更新日期
 		s = self.v_date.get()
 		s.replace(r'\\', '/')
 		s.replace(r'.', '/')
-		datetime_value = datetime.strptime(s, '%Y/%m/%d')
-		project_info[D['date']] = datetime_value
-		#检查日期是否合法	
-		#pass
-
-		#日报文件名
-		#docx_name = project_info[D['name']] + '监测日报' +\
+		#创建日报docx文件, 默认存放日报文件地址和项目文件一个文件夹
 		docx_name = s.replace('/','.') + '监测日报' + '.docx'
+		docx_path = os.path.join(os.path.dirname(self.f_path), docx_name)
+
+		try:
+			#检查日期是否合法	
+			datetime_value = datetime.strptime(s, '%Y/%m/%d')
+			project_info[D['date']] = datetime_value
+		except Exception as e:
+			err_s = "请输入合法日期，比如:2018/1/1"
+			print(err_s)
+			self.popup_window(err_s)
+			return False
+
+		outqueue = queue.Queue()
+
+		#启动生成日报线程，防止主界面freeze
+		t = threading.Thread(target=self.run_gen_report,args=(docx_path,\
+			project_info, outqueue))
+		L_THREADS.append(t)
+		t.start()	
+
+		#更新主GUI
+		self.top.after(250, self.update, outqueue)
+
+		return True
+	########gen_report#########################################################
+
+
+	def run_gen_report(self, docx_path, project_info, outqueue):
+		'''
+		线程回调函数
+		使用线程防止主界面freeze
+		'''
+		print("生成日报ing...")
+		
+		self.button_gen.config(bg=sunken_grey,relief='sunken',state='disabled')
+		#进度条窗口
+		self.prog = ProgWin(self.top)
 
 		#获取xlsx数据源
 		if not self.my_xlsx:
@@ -251,14 +286,15 @@ class MyTop(object):
 		else:
 			pass
 
-		#创建日报docx文件, 默认存放日报文件地址和项目文件一个文件夹
-		docx_path = os.path.join(os.path.dirname(self.f_path), docx_name)
-		with open(docx_path, 'wb') as fobj:
-			pass
-
 		#生成日报
 		my_docx = gen_docx.MyDocx(docx_path, project_info, self.my_xlsx)
-		if my_docx.gen_docx():
+		result = my_docx.gen_docx()
+
+		self.prog.prog_popup.destroy()
+		#send the finish flag
+		outqueue.put(sentinel)
+
+		if result:
 			s = "成功生成日报文件!\n %s" %docx_path
 			print(s)
 			self.popup_window(s)
@@ -267,8 +303,24 @@ class MyTop(object):
 			print(s)
 			self.popup_window(s)
 
-		return True
-	########gen_report#########################################################
+
+		self.button_gen.config(bg=my_color_light_orange,relief='raised',\
+					state='normal')
+		print("日报线程结束")
+	##########fun_gen_report()################################################
+
+	def update(self, outqueue):
+		try:
+			msg = outqueue.get_nowait()
+			if msg is not sentinel:
+				self.top.after(250, self.update, outqueue)
+
+			else:
+				print("收到sentinel")
+
+		except queue.Empty:
+			self.top.after(250, self.update, outqueue)
+	#############update()####################################################
 
 
 	def popup_window(self, s):
@@ -277,8 +329,22 @@ class MyTop(object):
 		'''
 		showinfo(message = s)
 
-
 #class MyTop(object) end
+
+
+class ProgWin(object):
+	def __init__(self,top):
+		print("this is toplevel window for progress bar")
+		#进度条窗口
+		self.prog_popup = tk.Toplevel()
+
+		self.prog_popup.title("监测日报")
+		self.prog_popup.geometry('450x220+400+280')
+		self.prog_popup.iconbitmap(icon_path)
+
+		tk.Label(self.prog_popup, text="progress bar window").pack()
+
+##############class ProgWind##################################################
 
 
 if __name__ == '__main__':
