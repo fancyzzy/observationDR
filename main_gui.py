@@ -82,11 +82,10 @@ class MyTop(object):
 		label_init.pack()
 
 
-
 		self.fm_init.pack()
 
 		#新工程
-		self.fm_pro = tk.Frame(self.top)
+		self.fm_pro = tk.Frame(self.top, width=750, height=520)
 		#工程项目名称, 区间
 		fm_title = tk.Frame(self.fm_pro)
 		self.label_title = tk.Label(fm_title, text='XX工程监测日报',\
@@ -108,6 +107,7 @@ class MyTop(object):
 		large_font = ('楷体', 24, 'normal')
 		self.entry_no = tk.Entry(fm_no, width=5, font=large_font, \
 			relief='flat',textvariable=self.v_no)
+		self.entry_no.focus_set()
 		self.entry_no.pack(side=tk.LEFT)
 		tk.Label(fm_no, text=' 期', font=('楷体', 18, 'bold')).\
 		pack(side=tk.LEFT)
@@ -123,6 +123,7 @@ class MyTop(object):
 		self.v_date = tk.StringVar()
 		self.entry_date = tk.Entry(fm_date, width=10, font=large_font,\
 			relief='flat', textvariable=self.v_date)
+		self.entry_date.bind('<Return>',self.gen_report)
 		self.entry_date.pack(side=tk.LEFT)
 		tk.Label(fm_date, text='(年/月/日)',font=('楷体', 14)).\
 		pack(side=tk.LEFT)
@@ -140,10 +141,24 @@ class MyTop(object):
 		fm_button = tk.Frame(self.fm_pro)
 		self.button_gen =tk.Button(fm_button, text="生成日报", font=('楷体', 24, 'bold'),\
 			width=10, height=1, bg=my_color_light_orange, command=self.gen_report)
+		self.button_gen.bind('<Return>',self.gen_report)
 		self.button_gen.pack()
 		fm_button.pack()
+
+
+		#status bar
+		self.fm_status = tk.Frame(self.top)
+		for i in range(2):
+			tk.Label(self.fm_status, text='').grid(row=i,column=0)
+		self.label_status = tk.Label(self.fm_status,text="processing…", bd=1, relief='sunken',\
+			justify='left')
+		#self.label_status.pack(fill=tk.X)
+		self.label_status.grid(row=2,column=0)
+		#self.fm_status.pack(side=tk.LEFT)
+
 		#初始化不显示工程标题
 		#self.fm_pro.pack()
+
 	########__init__()#################################################
 
 
@@ -204,6 +219,7 @@ class MyTop(object):
 			self.label_area.config(text=PRO_INFO[D['area']])
 			self.fm_init.pack_forget()
 			self.fm_pro.pack()
+			self.fm_status.pack(side=tk.LEFT)
 			self.menu_bar.entryconfig("工程", state="normal")
 	############update_title()####################################		
 
@@ -222,7 +238,7 @@ class MyTop(object):
 	#######load_xlsx()##############################################
 
 
-	def gen_report(self):
+	def gen_report(self, event=None):
 		'''
 		生成日报
 		'''
@@ -253,6 +269,8 @@ class MyTop(object):
 			return False
 
 		outqueue = queue.Queue()
+		#进度条窗口
+		self.prog = ProgWin(self.top)
 
 		#启动生成日报线程，防止主界面freeze
 		t = threading.Thread(target=self.run_gen_report,args=(docx_path,\
@@ -273,16 +291,16 @@ class MyTop(object):
 		使用线程防止主界面freeze
 		'''
 		print("生成日报ing...")
-		
 		self.button_gen.config(bg=sunken_grey,relief='sunken',state='disabled')
-		#进度条窗口
-		self.prog = ProgWin(self.top)
 
 		#获取xlsx数据源
 		if not self.my_xlsx:
+			outqueue.put('load xlsx...')
 			if not self.load_xlsx():
 				print("load xlsx failed")
 				return False
+			else:
+				outqueue.put('load finidhed')
 		else:
 			pass
 
@@ -290,7 +308,7 @@ class MyTop(object):
 		my_docx = gen_docx.MyDocx(docx_path, project_info, self.my_xlsx)
 		result = my_docx.gen_docx()
 
-		self.prog.prog_popup.destroy()
+
 		#send the finish flag
 		outqueue.put(sentinel)
 
@@ -313,10 +331,14 @@ class MyTop(object):
 		try:
 			msg = outqueue.get_nowait()
 			if msg is not sentinel:
+				#处理progress log
+				s = msg
+				self.prog.update_log(s)
 				self.top.after(250, self.update, outqueue)
 
 			else:
 				print("收到sentinel")
+				self.prog.prog_popup.destroy()
 
 		except queue.Empty:
 			self.top.after(250, self.update, outqueue)
@@ -339,10 +361,25 @@ class ProgWin(object):
 		self.prog_popup = tk.Toplevel()
 
 		self.prog_popup.title("监测日报")
-		self.prog_popup.geometry('450x220+400+280')
+		self.prog_popup.geometry('450x220+550+440')
 		self.prog_popup.iconbitmap(icon_path)
 
-		tk.Label(self.prog_popup, text="progress bar window").pack()
+		self.prog_text = tk.StringVar()
+		for i in range(3):
+			tk.Label(self.prog_popup, text='').pack()
+
+		l_fm = tk.Frame(self.prog_popup)
+		self.label_prog = tk.Label(l_fm, textvariable=self.prog_text,\
+			font=('楷体', 12),justify='left')
+		self.label_prog.pack(side=tk.LEFT)
+		l_fm.pack(side=tk.LEFT)
+
+		n_fm = tk.Frame(self.prog_popup)
+		tk.Label(n_fm, text='a').pack()
+		n_fm.pack()
+
+	def update_log(self,s):
+		self.prog_text.set(s)
 
 ##############class ProgWind##################################################
 

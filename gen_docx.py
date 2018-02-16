@@ -172,8 +172,6 @@ class MyDocx(object):
 		else:
 			self.docx.save(self.path)
 
-
-		
 		#测斜监测表页
 		print("\n###5. 测斜监测报表###")
 		if not self.make_inclinometer_pages():
@@ -181,7 +179,6 @@ class MyDocx(object):
 		else:
 			self.docx.save(self.path)
 
-		'''
 		#new section landscape
 		#页面布局为横向
 		new_section = self.docx.add_section(WD_SECTION.NEW_PAGE)
@@ -221,7 +218,6 @@ class MyDocx(object):
 		else:
 			pass
 
-		'''
 		#保存
 		self.docx.save(self.path)
 		print("日报生成结束!")
