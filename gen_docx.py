@@ -26,6 +26,8 @@ from numpy import array
 from numpy import isnan
 import read_xlsx
 
+from my_log import printl
+
 #防止matplotlib在多线程调用下
 #造成Tkinter主线程crash
 from matplotlib import use
@@ -81,7 +83,7 @@ def get_file_list(dir,file_list):
 			pass
 	except Exception as e:
 		#logger.warning(e)
-		print("warning,e:",e)
+		printl("warning,e:",e)
 	return file_list
 
 class MyDocx(object):
@@ -95,6 +97,7 @@ class MyDocx(object):
 		#xlsx实例
 		self.my_xlsx = my_xlsx
 		self.my_plot = draw_plot.MyPlot()
+
 	#########__init__()#####################################
 
 
@@ -102,15 +105,15 @@ class MyDocx(object):
 		'''
 		生成docx文件
 		'''
-		print("\n{}日报:".format(self.str_date))
+		printl("\n{}日报:".format(self.str_date))
 
 		#if not self.path or not os.path.exists(self.path):
 		if not self.path:
-			print("error, no available docx path")
+			printl("error, no available docx path")
 			return
 		
 		#读取'default_template.docx'
-		print("###0. 读取模板'default_template.docx'###")
+		printl("###0. 读取模板'default_template.docx'###")
 		self.docx = Document()
 		self.set_document_style()
 
@@ -120,17 +123,19 @@ class MyDocx(object):
 		section.page_height = Mm(297)
 
 		#首页
-		print("\n###1. 报表首页###")
+		printl("\n###1. 报表首页###")
 		if not self.make_header_pages():
-			print("DEBUG make_head_page error")
+			printl("DEBUG make_head_page error")
 		else:
+			printl("1@ 生成首页")
 			pass
 
 		#数据汇总分析页****
-		print("\n###2. 监测数据分析表###")
+		printl("\n###2. 监测数据分析表###")
 		if not self.make_overview_pages():
-			print("DEBUG make_overview_pages error")
+			printl("DEBUG make_overview_pages error")
 		else:
+			printl("12@ 数据分析表结束")
 			self.docx.save(self.path)
 
 		#页面布局为横向
@@ -146,10 +151,11 @@ class MyDocx(object):
 		new_section.footer_distance = Cm(1)
 
 		#现场安全巡视页
-		print("\n###3. 现场安全巡视表###")
+		printl("\n###3. 现场安全巡视表###")
 		if not self.make_security_pages():
-			print("DEBUG make_security_pages error")
+			printl("DEBUG make_security_pages error")
 		else:
+			printl("2@ 生成安全巡视表")
 			pass
 
 		#页面布局为纵向横向
@@ -165,17 +171,19 @@ class MyDocx(object):
 		new_section.footer_distance = Cm(1)
 
 		#沉降监测表页
-		print("\n###4. 沉降监测报表###")
+		#45 percent in pages
+		printl("\n###4. 沉降监测报表###")
 		self.allow_page_break = False
 		if not self.make_settlement_pages():
-			print("DEBUG make_settlement_pages error")
+			printl("DEBUG make_settlement_pages error")
 		else:
 			self.docx.save(self.path)
 
 		#测斜监测表页
-		print("\n###5. 测斜监测报表###")
+		#25 percent in pages
+		printl("\n###5. 测斜监测报表###")
 		if not self.make_inclinometer_pages():
-			print("DEBUG make_inclinometer_pages error")
+			printl("DEBUG make_inclinometer_pages error")
 		else:
 			self.docx.save(self.path)
 
@@ -193,10 +201,11 @@ class MyDocx(object):
 		new_section.footer_distance = Cm(1.75)
 
 		#爆破振动监测报表
-		print("\n###6. 爆破振动监测报表###")
+		printl("\n###6. 爆破振动监测报表###")
 		if not self.make_blasting_pages():
-			print("DEBUG make_blasting_pages error")
+			printl("DEBUG make_blasting_pages error")
 		else:
+			printl("1@ 生成爆破监测表")
 			pass
 
 		#页面布局
@@ -212,16 +221,17 @@ class MyDocx(object):
 		new_section.footer_distance = Cm(1.75)
 
 		#平面布点图表
-		print("\n###7. 平面布点图###")
+		printl("\n###7. 平面布点图###")
 		if not self.make_layout_pages():
-			print("DEBUG make_layout_pages error")
+			printl("DEBUG make_layout_pages error")
 		else:
+			printl("2@ 生成平面布点图")
 			pass
 
 		#保存
 		self.docx.save(self.path)
-		print("日报生成结束!")
-		print("saved in:'{}'".format(self.path))
+		printl("日报生成结束!")
+		printl("saved in:'{}'".format(self.path))
 		return True
 	#######gen_docx()####################################
 
@@ -466,7 +476,7 @@ class MyDocx(object):
 
 		total_sheets_num = len(related_sheets)
 		count_num = 0
-		print("{}个观测项目数据: {}".format(total_sheets_num, related_sheets))
+		printl("{}个观测项目数据: {}".format(total_sheets_num, related_sheets))
 
 		#遍历这个区间站所存在的观测页表格	
 		for sheet in related_sheets:
@@ -474,10 +484,10 @@ class MyDocx(object):
 			#略过这几个观测sheet，excel表格有疑问
 			if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
 			 sheet == '支撑轴力':
-				print("暂时略过观测项目",sheet)
+				printl("暂时略过观测项目",sheet)
 				continue
 
-			print("{}/{}'{}{}数据'".format(\
+			printl("{}/{}'{}{}数据'".format(\
 				count_num, total_sheets_num, area_name,sheet))
 			#获取数据
 			today_range_values = []
@@ -493,13 +503,13 @@ class MyDocx(object):
 			if obser_col == 4:
 				co_alpha = 'D'
 			if obser_col == None:
-				print("Error, 无观测点数值列!")
+				printl("Error, 无观测点数值列!")
 				continue
 
 			#获取当天的数据
 			today_col,today_row = px.get_item_point(sheet, self.date)
 			if today_col == None:
-				print("DEBUG error, 观测页{}的区间{}没有当天值!".format(sheet,area_name))
+				printl("DEBUG error, 观测页{}的区间{}没有当天值!".format(sheet,area_name))
 				continue
 			today_range_values = px.get_range_values(sheet, area_name, today_col)
 
@@ -536,10 +546,10 @@ class MyDocx(object):
 						max_change_values.append(max_value)
 					else:
 						continue
-				print("本次变化最大点:{},值:{}".format(\
+				printl("本次变化最大点:{},值:{}".format(\
 					max_obser_list, max_change_values))
 			else:
-				print("warning, 没有最大值!")
+				printl("warning, 没有最大值!")
 				max_obser_list.append("nan")
 				max_change_values.append("nan")
 
@@ -568,7 +578,7 @@ class MyDocx(object):
 			#获取当天的数据
 			init_col,init_row = px.get_item_point(sheet, '初值')
 			initial_range_values = px.get_range_values(sheet, area_name, init_col)
-			#print("DEBUG '初始值列':{}".format(initial_range_values))
+			#printl("DEBUG '初始值列':{}".format(initial_range_values))
 			#获取'旧累计'这一列，在第4列
 			old_acc_col,_ = px.get_item_point(sheet, '旧累计')
 			old_acc_range_values = px.get_range_values(sheet, area_name, old_acc_col)
@@ -577,19 +587,19 @@ class MyDocx(object):
 			for i in range(ln):
 					if old_acc_range_values[i] == None:
 						old_acc_range_values[i] = 0
-			#print("DEBUG '旧累计值列':{}".format(old_acc_range_values))
+			#printl("DEBUG '旧累计值列':{}".format(old_acc_range_values))
 			#这里是否需要另外的函数，如果轴力表的求累计变化量公式不一样
 			acc_values = (array(today_range_values, dtype=float) - \
 			array(initial_range_values, dtype=float))*1000 + array(old_acc_range_values,\
 			dtype=float)
-			#print("DEBUG '本次累计值列':{}".format(acc_values))
+			#printl("DEBUG '本次累计值列':{}".format(acc_values))
 			acc_abs_values = [abs(v) for v in acc_values]
 			max_acc = max(acc_abs_values)
 
 			#列出所有max 点
 			max_obser_list = []
 			max_acc_values = []
-			#print("DEBUG '最大累计变化值'是:{}".format(max_change))
+			#printl("DEBUG '最大累计变化值'是:{}".format(max_change))
 			row_start, row_end = px.all_areas_row_range[sheet][area_name]
 			if max_acc != 0 and not isnan(max_acc):
 					for i, v in enumerate(acc_abs_values):
@@ -603,10 +613,10 @@ class MyDocx(object):
 							max_acc_values.append(max_acc_v)
 						else:
 							continue
-					print("本次累计最大点:{},值:{}".format(\
+					printl("本次累计最大点:{},值:{}".format(\
 						max_obser_list,max_acc_values))
 			else:
-					print("warning, 没有最大累计值!")
+					printl("warning, 没有最大累计值!")
 					max_obser_list.append("nan")
 					max_acc_values.append("nan")				
 
@@ -714,11 +724,12 @@ class MyDocx(object):
 		i = 0
 		total_num = len(areas)
 		count_num = 0
+		v_percent = 12/total_num
 		for area_name in areas:
 			count_num += 1
 			#test debug only one area
 			if '衡山路站' in area_name:
-				print("({}/{})'{}数据分析表'".format(\
+				printl("({}/{})'{}数据分析表'".format(\
 					count_num, total_num, area_name))
 				i += 1
 				ss = '表' + '%d'%i + area_name + table_cap
@@ -728,7 +739,7 @@ class MyDocx(object):
 				r = p.add_run(ss)
 				r.font.size = Pt(14)
 				self.one_overview_table(area_name)
-				print("({}/{})'{}数据分析表'完成\n".format(\
+				printl("({}/{})'{}数据分析表'完成\n".format(\
 					count_num, total_num, area_name))
 
 			#Test open to all	
@@ -741,6 +752,7 @@ class MyDocx(object):
 				WD_ALIGN_PARAGRAPH.CENTER
 				self.one_overview_table(area_name)
 				'''
+			printl("%f@"%(v_percent))
 
 		###new page###########
 		d.add_page_break()
@@ -910,10 +922,15 @@ class MyDocx(object):
 
 		table_cap = '现场巡查报表'
 		i = 0
+		total_num = len(areas)
+		count_num = 0
+
+		v_percent = 2/total_num
 		for area_name in areas:
+			count_num += 1
 			#test debug only one area
 			if '衡山路站' in area_name:
-				print("'{}现场巡查报表'".format(area_name))
+				printl("'{}/{},{}现场巡查报表'".format(count_num, total_num, area_name))
 				i += 1
 				ss = '表' + '%d'%i + ' 现场安全巡视表'
 				p = d.add_paragraph()
@@ -943,6 +960,8 @@ class MyDocx(object):
 			else:
 				pass
 
+			printl("%f@"%v_percent)
+
 		result = True
 		return result
 	#################make_security_pages()###############################
@@ -969,7 +988,7 @@ class MyDocx(object):
 		#获取当天日期的列坐标
 		today_col_index, today_row_index = px.get_item_point(sheet, self.date)
 		if today_col_index == None:
-			print("error, 观测页{}的区间{}没有当天值列!")
+			printl("error, 观测页{}的区间{}没有当天值列!")
 			return None, None, None
 
 		today_values = px.get_range_values(sheet, area_name, today_col_index)
@@ -1088,7 +1107,7 @@ class MyDocx(object):
 			last_diffs = array([None for x in range(ln_row)],dtype=float)
 
 		else:
-			print("Error, date_list None")
+			printl("Error, date_list None")
 			this_diffs = array([None for x in range(ln_row)],dtype=float)
 			last_diffs = array([None for x in range(ln_row)],dtype=float)
 			last_diffs = array([None for x in range(ln_row)],dtype=float)
@@ -1127,15 +1146,13 @@ class MyDocx(object):
 			idx_list.append(px.get_value(sheet,row_idx,2))
 
 		#画图
-		print("DEBUG 开始画图")
 		try:
 			fig_path = self.my_plot.draw_settlement_fig(list(map(d_s,date_list)), \
 				all_acc_diffs.transpose(), idx_list)
 		except Exception as e:
 			print("画图有问题: ",e)
-		print("DEBUG 画图结束")
 		if fig_path == None or not os.path.exists(fig_path):
-			print("ERROR, fig_path not exists!")
+			printl("ERROR, fig_path not exists!")
 			#fit_path = dummy.png
 		else:
 			#插入曲线图
@@ -1143,7 +1160,6 @@ class MyDocx(object):
 			run = p.add_run()
 			run.add_picture(fig_path, width=Cm(12), height=Cm(5))
 			p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-			print("DEBUG 图片插入成功",fig_path)
 
 		t.cell(12,0).text = '备注'
 		t.cell(12,1).merge(t.cell(12,9))
@@ -1179,7 +1195,7 @@ class MyDocx(object):
 	##################draw_settlement_table()###################################
 
 
-	def multi_settlement_table(self, area_name):
+	def multi_settlement_table(self, area_name,v_percent):
 		'''
 		一个区间的多个沉降观测表
 
@@ -1202,7 +1218,7 @@ class MyDocx(object):
 					#related_sheets.append = [sheet1,sheet2,...]
 					related_sheets.append(sheet)
 		total_sheet_num = len(related_sheets)			
-		print("{}个观测项目:{}".format(total_sheet_num, related_sheets))
+		printl("{}个观测项目:{}".format(total_sheet_num, related_sheets))
 
 		count_num = 0
 		#遍历这个站所有有关的测量数据,绘制表格	
@@ -1213,7 +1229,7 @@ class MyDocx(object):
 				 sheet == '支撑轴力':
 				print("略过{}".format(sheet))
 				continue
-			print("{}/{}'{}{}监测报表'".format(\
+			printl("{}/{}'{}{}监测报表'".format(\
 				count_num, total_sheet_num, area_name, sheet))
 
 			#找到该区间所有观测点的邻近7天的有效数据值,
@@ -1225,21 +1241,21 @@ class MyDocx(object):
 			self.find_avail_rows_dates_values(sheet,area_name,7)
 			#print("DEBUGdate_list=",date_list)
 			if row_list == None:
-				print("Error, 该区间'{}'在观测页'{}'没有有效值!".format(\
+				printl("Error, 该区间'{}'在观测页'{}'没有有效值!".format(\
 					area_name,sheet))
 				continue
 			else:
-				print("共{}/{}天有效观测数据".format(len(date_list),7))
+				printl("共{}/{}天有效观测数据".format(len(date_list),7))
 
 			#从第三列获取到相应行的初始值和旧累计
 			#表格格式注意，第三列和第四列为初值，旧累计
 			init_col,_ = px.get_item_point(sheet, '初值')
 			if init_col == None:
-				print("Error, {}没有初值列!".format(sheet))
+				printl("Error, {}没有初值列!".format(sheet))
 				continue
 			old_acc_col,_ = px.get_item_point(sheet, '旧累计')
 			if old_acc_col == None:
-				print("Error, {}没有旧累计列!".format(sheet))
+				printl("Error, {}没有旧累计列!".format(sheet))
 				continue
 
 			initial_values = px.get_range_values(sheet, area_name, init_col)
@@ -1269,7 +1285,8 @@ class MyDocx(object):
 
 			start = 0
 			end = 0
-			print("观测点数{}，共分{}组".format(ln,split_num))
+			printl("观测点数{}，共分{}组".format(ln,split_num))
+			sub_v_percent = v_percent/split_num
 			for i in range(1, split_num+1):
 				#最后一个就是剩下的所有的
 				if i == split_num:
@@ -1283,7 +1300,7 @@ class MyDocx(object):
 				sub_old_acc_values = old_acc_values[start:end]
 				start = end 
 
-				print("'{}{}监测报表{}/{}'".format(\
+				printl("'{}{}监测报表{}/{}'".format(\
 					area_name, sheet,i,split_num))
 				###new page###########
 				if self.allow_page_break:
@@ -1323,6 +1340,7 @@ class MyDocx(object):
 
 				#页尾
 				self.write_settlement_foot()
+				printl("%f@"%(sub_v_percent))
 	#############multi_settlement_table()################################
 
 
@@ -1424,14 +1442,16 @@ class MyDocx(object):
 
 		total_num = len(areas)
 		count_num = 0
+		#45 percent
+		v_percent = 45/total_num
 		for area_name in areas:
 			count_num += 1
 			#test debug only one area
 			if '衡山路站' in area_name:
-				print("({}/{}) '{}沉降监测表'".format(\
+				printl("({}/{}) '{}沉降监测表'".format(\
 					count_num, total_num, area_name))		
-				self.multi_settlement_table(area_name)
-				print("({}/{}) '{}沉降监测表'完成\n".format(\
+				self.multi_settlement_table(area_name,v_percent)
+				printl("({}/{}) '{}沉降监测表'完成\n".format(\
 					count_num, total_num, area_name))		
 			#Test open to all	
 			else:
@@ -1586,7 +1606,7 @@ class MyDocx(object):
 		if inc_sheet != '':
 			print("所有观测点的深度行号:", d_obser_deeps)
 		else:
-			print("没有找到测斜观测sheet!")
+			print("Error, 没有找到测斜观测sheet!")
 			return True
 
 		#获取区间和观测点的字典:
@@ -1606,34 +1626,35 @@ class MyDocx(object):
 				d_area_obser[area_name] = tmp_l[:]
 				tmp_l[:] = []
 		total_area_num = len(d_area_obser.keys())
-		print("共有区间{}, 对应观测点:{}".format(total_area_num,d_area_obser))
+		printl("共有区间{}, 对应观测点:{}".format(total_area_num,d_area_obser))
 
 		#找到当天日期,初值，旧累计所在的列坐标
 		init_col, _ = px.get_item_point(inc_sheet, '初值', False)
 		if init_col == None:
-			print("Error,{}初值列缺失!".format(inc_sheet))
+			printl("Error,{}初值列缺失!".format(inc_sheet))
 			return False
 		old_acc_col,_ = px.get_item_point(inc_sheet, '旧累计', False)
 		if old_acc_col == None:
-			print("Error,{}旧累计列缺失!".format(inc_sheet))
+			printl("Error,{}旧累计列缺失!".format(inc_sheet))
 			return False
 		today_col,today_row = px.get_item_point(inc_sheet, self.date, True)
 		if today_col == None:
-			print("Error,{},{}当天值列缺失!".format(inc_sheet, self.str_date))
+			printl("Error,{},{}当天值列缺失!".format(inc_sheet, self.str_date))
 			return False
 		deep_col,_ = px.get_item_point(inc_sheet, '深度', False)
 		if deep_col == None:
-			print("Error,{}深度值列缺失!".format(inc_sheet))
+			printl("Error,{}深度值列缺失!".format(inc_sheet))
 			return False
 
 		#遍历每个区间制作多个测斜表
 		count = 0
 		count_num = 0
+		v_percent = 25/len(d_area_obser.keys())
 		for area_name in d_area_obser.keys():
 			count_num += 1
 			count += 1
 			obser_list = d_area_obser[area_name]
-			print("({}/{}) '{}:{}测斜监测表'".format(count_num, total_area_num, \
+			printl("({}/{}) '{}:{}测斜监测表'".format(count_num, total_area_num, \
 				area_name, obser_list))
 			ln = len(obser_list)
 			table_num = 0
@@ -1643,6 +1664,8 @@ class MyDocx(object):
 				table_num = ln//2
 			n = 1
 			#两个观测点一组，进行制表
+
+			sub_v_percent = v_percent/table_num
 			for i in range(0,ln,2):
 				
 				#获取数据
@@ -1679,7 +1702,7 @@ class MyDocx(object):
 					if (len(init_values)!=len(row_list)) or (len(deep_values)!=\
 						len(row_list)):
 						#不可能发生，因为row_list的范围就是根据初值锚定的
-						print("Error! 测斜表初始值/深度值缺失！")
+						printl("Error! 测斜表初始值/深度值缺失！")
 						print("DEBUG obser:{},row_list:{},init_values:{}".format(\
 							obser,row_list,init_values))
 						#defence
@@ -1757,11 +1780,12 @@ class MyDocx(object):
 				self.write_settlement_foot()
 				#该区间第几个子表计数	
 				n+=1
+				printl("%f@"%(sub_v_percent))
 
 			#end 两个观测点一组，进行制表
 			#for i in range(0,ln,2):
 
-		print("({}/{}),'{}:{}测斜监测表'完成\n".format(count_num, total_area_num, \
+		printl("({}/{}),'{}:{}测斜监测表'完成\n".format(count_num, total_area_num, \
 				area_name, obser_list))
 		#end 遍历每个区间制作多个测斜表
 		#for area_name in d_area_obser.keys():
@@ -1870,7 +1894,6 @@ class MyDocx(object):
 	###############make_blasting_pages()########################
 
 
-
 	def make_layout_pages(self):
 		'''
 		平面布点图
@@ -1885,7 +1908,7 @@ class MyDocx(object):
 				continue
 			try:
 				d.add_picture(item, width=Cm(25), height=Cm(14))
-				print(item)
+				printl(item)
 			except Exception as e:
 				pass
 				print("失败！",e)

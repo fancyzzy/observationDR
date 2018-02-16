@@ -8,6 +8,7 @@ author: Felix
 email:fancyzzy@163.com
 '''
 import tkinter as tk
+from tkinter.ttk import Progressbar,Style
 
 from tkinter.filedialog import askopenfilename
 from tkinter.messagebox import showinfo
@@ -19,8 +20,9 @@ import read_xlsx
 from datetime import datetime
 import threading
 import queue
-
-sentinel = object()
+from my_log import printl
+from my_log import QUE
+from my_log import SENTINEL
 
 L_THREADS = []
 
@@ -146,15 +148,23 @@ class MyTop(object):
 		fm_button.pack()
 
 
+		#进度条窗口
+		self.prog = ProgBar(self.top)
+
+		'''
 		#status bar
 		self.fm_status = tk.Frame(self.top)
-		for i in range(2):
+		for i in range(1):
 			tk.Label(self.fm_status, text='').grid(row=i,column=0)
-		self.label_status = tk.Label(self.fm_status,text="processing…", bd=1, relief='sunken',\
-			justify='left')
+
+		self.v_status = tk.StringVar()
+		self.v_status.set(''.join(list(map(str,[i for i in range(60)]))))
+		self.label_status = tk.Label(self.fm_status,textvariable=self.v_status, bd=1,\
+		 relief='sunken',justify='left')
 		#self.label_status.pack(fill=tk.X)
 		self.label_status.grid(row=2,column=0)
 		#self.fm_status.pack(side=tk.LEFT)
+		'''
 
 		#初始化不显示工程标题
 		#self.fm_pro.pack()
@@ -219,7 +229,8 @@ class MyTop(object):
 			self.label_area.config(text=PRO_INFO[D['area']])
 			self.fm_init.pack_forget()
 			self.fm_pro.pack()
-			self.fm_status.pack(side=tk.LEFT)
+			#self.fm_status.pack(side=tk.LEFT)
+			#self.prog.show_status(False)
 			self.menu_bar.entryconfig("工程", state="normal")
 	############update_title()####################################		
 
@@ -245,6 +256,9 @@ class MyTop(object):
 		global D
 		global PRO_INFO
 		global L_THREADS
+		global QUE
+		outqueue = QUE
+
 		print("Generate report start")
 		#更新code = code+期号
 		project_info = PRO_INFO[:]
@@ -268,28 +282,34 @@ class MyTop(object):
 			self.popup_window(err_s)
 			return False
 
-		outqueue = queue.Queue()
-		#进度条窗口
-		self.prog = ProgWin(self.top)
+		#清空log 消息队列
+		outqueue.queue.clear()
+		self.prog.p_bar["value"] = 0
+		#显示进度条
+		self.prog.show_status(True)
 
 		#启动生成日报线程，防止主界面freeze
 		t = threading.Thread(target=self.run_gen_report,args=(docx_path,\
-			project_info, outqueue))
+			project_info))
 		L_THREADS.append(t)
 		t.start()	
 
 		#更新主GUI
-		self.top.after(250, self.update, outqueue)
+		self.top.after(250, self.update)
 
 		return True
 	########gen_report#########################################################
 
 
-	def run_gen_report(self, docx_path, project_info, outqueue):
+	def run_gen_report(self, docx_path, project_info):
 		'''
 		线程回调函数
 		使用线程防止主界面freeze
 		'''
+		global QUE
+		global SENTINEL
+		outqueue = QUE
+
 		print("生成日报ing...")
 		self.button_gen.config(bg=sunken_grey,relief='sunken',state='disabled')
 
@@ -297,11 +317,12 @@ class MyTop(object):
 		if not self.my_xlsx:
 			outqueue.put('load xlsx...')
 			if not self.load_xlsx():
-				print("load xlsx failed")
+				print("12@load xlsx failed")
 				return False
 			else:
-				outqueue.put('load finidhed')
+				outqueue.put('12@load finished')
 		else:
+			outqueue.put('12@load xlsx finished')
 			pass
 
 		#生成日报
@@ -309,11 +330,11 @@ class MyTop(object):
 		result = my_docx.gen_docx()
 
 
-		#send the finish flag
-		outqueue.put(sentinel)
+		#debug percentage not 100%
+		self.prog.p_bar["value"]=100.
 
 		if result:
-			s = "成功生成日报文件!\n %s" %docx_path
+			s = "生成日报文件成功!\n %s" %docx_path
 			print(s)
 			self.popup_window(s)
 		else:
@@ -325,23 +346,46 @@ class MyTop(object):
 		self.button_gen.config(bg=my_color_light_orange,relief='raised',\
 					state='normal')
 		print("日报线程结束")
+
+		if result:
+			printl("日报文件存储于: %s"%(docx_path))
+		else:
+			printl("日报生成遇到问题")
+		#send the finish flag
+		outqueue.put(SENTINEL)
 	##########fun_gen_report()################################################
 
-	def update(self, outqueue):
+	def update(self):
+		global QUE
+		global SENTINEL
+		outqueue = QUE
 		try:
 			msg = outqueue.get_nowait()
-			if msg is not sentinel:
+			if msg is not SENTINEL:
 				#处理progress log
-				s = msg
-				self.prog.update_log(s)
-				self.top.after(250, self.update, outqueue)
+				v = 0
+				s = ''
+				if '@' in msg:
+					v,_= msg.split('@')
+					#更新进度条
+					if self.prog.p_bar["value"] < 100:
+						self.prog.p_bar["value"] += float(v)
+
+				else:
+					s = msg
+					self.prog.update_log(s)
+				self.top.after(250, self.update)
 
 			else:
-				print("收到sentinel")
-				self.prog.prog_popup.destroy()
-
+				s = "收到sentinel"
+				print(s)
+				#self.prog.update_log(s)
+				
 		except queue.Empty:
-			self.top.after(250, self.update, outqueue)
+			self.top.after(250, self.update)
+
+		self.prog.style_bar.configure("LabeledProgressbar",\
+					 text="{}%      ".format(round(self.prog.p_bar["value"]),1))
 	#############update()####################################################
 
 
@@ -354,32 +398,47 @@ class MyTop(object):
 #class MyTop(object) end
 
 
-class ProgWin(object):
+class ProgBar(object):
 	def __init__(self,top):
-		print("this is toplevel window for progress bar")
+		print("this is Progress bar status")
 		#进度条窗口
-		self.prog_popup = tk.Toplevel()
+		#status bar
+		self.fm_status = tk.Frame(top)
+		for i in range(1):
+			tk.Label(self.fm_status, text='').grid(row=i,column=0)
 
-		self.prog_popup.title("监测日报")
-		self.prog_popup.geometry('450x220+550+440')
-		self.prog_popup.iconbitmap(icon_path)
+		self.v_status = tk.StringVar()
+		self.v_status.set(''.join(list(map(str,[i for i in range(20)]))))
+		self.label_status = tk.Label(self.fm_status,textvariable=self.v_status, bd=1,\
+		 justify='left')
+		self.label_status.grid(row=3,column=1,sticky=tk.S)
 
-		self.prog_text = tk.StringVar()
-		for i in range(3):
-			tk.Label(self.prog_popup, text='').pack()
+		#进度条
+		self.style_bar = Style(top)
+		self.style_bar.layout("LabeledProgressbar",
+         [('LabeledProgressbar.trough',
+           {'children': [('LabeledProgressbar.pbar',
+                          {'side': 'left', 'sticky': 'ns'}),
+                         ("LabeledProgressbar.label",
+                          {"sticky": ""})],
+           'sticky': 'nswe'})])
 
-		l_fm = tk.Frame(self.prog_popup)
-		self.label_prog = tk.Label(l_fm, textvariable=self.prog_text,\
-			font=('楷体', 12),justify='left')
-		self.label_prog.pack(side=tk.LEFT)
-		l_fm.pack(side=tk.LEFT)
-
-		n_fm = tk.Frame(self.prog_popup)
-		tk.Label(n_fm, text='a').pack()
-		n_fm.pack()
+		self.p_bar = Progressbar(self.fm_status, orient=tk.HORIZONTAL,\
+		 length=100, mode='determinate',style="LabeledProgressbar")
+		self.style_bar.configure("LabeledProgressbar", text="0 %      ")
+		self.p_bar.grid(row=3,column=0)
+		self.p_bar["maximum"]=100.
+		self.p_bar["value"] = 0
 
 	def update_log(self,s):
-		self.prog_text.set(s)
+		self.v_status.set(s)
+
+	def show_status(self, flag=True):
+		if flag:
+			self.fm_status.pack(side=tk.LEFT)
+		else:
+			self.fm_status.pack_forget()
+
 
 ##############class ProgWind##################################################
 
