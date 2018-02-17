@@ -15,7 +15,10 @@ def printl(s):
 	'''
 	global QUE
 
-	print(s)
+	if '@' in s:
+		pass
+	else:
+		print(s)
 	QUE.put(s.strip('\n'))
 ############printl()##############
 

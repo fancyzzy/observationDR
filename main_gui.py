@@ -380,6 +380,7 @@ class MyTop(object):
 				s = "收到sentinel"
 				print(s)
 				#self.prog.update_log(s)
+				print("self.prog.p_bar=",self.prog.p_bar["value"])
 				
 		except queue.Empty:
 			self.top.after(250, self.update)

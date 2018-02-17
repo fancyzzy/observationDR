@@ -24,6 +24,7 @@ from datetime import datetime
 from collections import namedtuple
 from numpy import array
 from numpy import isnan
+from numpy import nan
 import read_xlsx
 
 from my_log import printl
@@ -83,8 +84,22 @@ def get_file_list(dir,file_list):
 			pass
 	except Exception as e:
 		#logger.warning(e)
-		printl("warning,e:",e)
+		print("warning,e:",e)
 	return file_list
+
+
+def get_max(l):
+	'''
+	兼容有numpy.nan或者None的array和list
+	'''
+	max_v = 0
+	for item in l:
+
+		if item != None and item != nan:
+			if item > max_v:
+				max_v = item
+	return max_v
+
 
 class MyDocx(object):
 	def __init__(self, docx_path, proj_info, my_xlsx):
@@ -113,7 +128,7 @@ class MyDocx(object):
 			return
 		
 		#读取'default_template.docx'
-		printl("###0. 读取模板'default_template.docx'###")
+		printl("###0. 读取模板'default.docx'###")
 		self.docx = Document()
 		self.set_document_style()
 
@@ -130,12 +145,13 @@ class MyDocx(object):
 			printl("1@ 生成首页")
 			pass
 
+
 		#数据汇总分析页****
+		#12 percentage
 		printl("\n###2. 监测数据分析表###")
 		if not self.make_overview_pages():
 			printl("DEBUG make_overview_pages error")
 		else:
-			printl("12@ 数据分析表结束")
 			self.docx.save(self.path)
 
 		#页面布局为横向
@@ -151,11 +167,11 @@ class MyDocx(object):
 		new_section.footer_distance = Cm(1)
 
 		#现场安全巡视页
+		#2 percentage
 		printl("\n###3. 现场安全巡视表###")
 		if not self.make_security_pages():
 			printl("DEBUG make_security_pages error")
 		else:
-			printl("2@ 生成安全巡视表")
 			pass
 
 		#页面布局为纵向横向
@@ -180,7 +196,7 @@ class MyDocx(object):
 			self.docx.save(self.path)
 
 		#测斜监测表页
-		#25 percent in pages
+		#55 percent in pages
 		printl("\n###5. 测斜监测报表###")
 		if not self.make_inclinometer_pages():
 			printl("DEBUG make_inclinometer_pages error")
@@ -450,7 +466,7 @@ class MyDocx(object):
 	##################make_header_pages()################	
 
 
-	def one_overview_table(self, area_name):
+	def one_overview_table(self, area_name,v_percent):
 		'''
 		一个区间的各种观测监信息汇总表
 		'''
@@ -476,18 +492,23 @@ class MyDocx(object):
 
 		total_sheets_num = len(related_sheets)
 		count_num = 0
-		printl("{}个观测项目数据: {}".format(total_sheets_num, related_sheets))
+		print("{}个观测项目数据: {}".format(total_sheets_num, related_sheets))
 
 		#遍历这个区间站所存在的观测页表格	
+		sub_v_percent = v_percent/total_sheets_num
 		for sheet in related_sheets:
 			count_num += 1
 			#略过这几个观测sheet，excel表格有疑问
 			if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
 			 sheet == '支撑轴力':
-				printl("暂时略过观测项目",sheet)
+				print("暂时略过观测项目",sheet)
+				printl("%f@"%(sub_v_percent))
+				continue
+			if '测斜' in sheet:
+				printl("%f@"%(sub_v_percent))
 				continue
 
-			printl("{}/{}'{}{}数据'".format(\
+			print("{}/{}'{}{}数据'".format(\
 				count_num, total_sheets_num, area_name,sheet))
 			#获取数据
 			today_range_values = []
@@ -503,32 +524,41 @@ class MyDocx(object):
 			if obser_col == 4:
 				co_alpha = 'D'
 			if obser_col == None:
-				printl("Error, 无观测点数值列!")
+				printl("Error, {}无观测点列!".format(sheet))
+				printl("%f@"%(sub_v_percent))
 				continue
 
 			#获取当天的数据
 			today_col,today_row = px.get_item_point(sheet, self.date)
 			if today_col == None:
-				printl("DEBUG error, 观测页{}的区间{}没有当天值!".format(sheet,area_name))
+				printl("Warning, {}的区间{}没有当天值!".format(sheet,area_name))
+				printl("%f@"%(sub_v_percent))
 				continue
 			today_range_values = px.get_range_values(sheet, area_name, today_col)
+			#print("DEBUG today_range_values:",today_range_values)
 
 			#寻找前一天数据
 			last_date = px.get_value(sheet, today_row, today_col-1)
+			#print("DEBUG 前一天列坐标:'{}',值:'{}',值类型'{}'".format(today_col-1,last_date,str(type(last_date))))
 			if 'datetime' in str(type(last_date)):
 				last_range_values = px.get_range_values(sheet, area_name, today_col-1)
 			#前面一列不是日期值，表示昨天值不存在
 			else:
 				last_range_values = None
+			#print("DEBUG lastday_range_values:",last_range_values)
 
 			#找到其中绝对值最大为变化最大的
 			#在这里求变化量需要一个函数，如果轴力表是另外的算法的话
 			diff_original_values = (array(today_range_values, dtype=float) - \
 			array(last_range_values, dtype=float))*1000
+			#print("DEBUG diff:",diff_original_values)
 
 			#求出绝对值最大的值
-			diff_abs_values = [abs(value) for value in diff_original_values]
-			max_change = max(diff_abs_values)
+			#负值求abs会造成小数点后面数字很多，用round(x,2)只保留2位有效数
+			diff_abs_values = [round(abs(value),2) for value in diff_original_values]
+			#print("DEBUGf diff_abs_values:",diff_abs_values)
+			max_change = get_max(diff_abs_values)
+			#print("DEBUG max_change='{}'".format(max_change))
 
 			#列出所有max 点
 			max_obser_list = []
@@ -546,10 +576,10 @@ class MyDocx(object):
 						max_change_values.append(max_value)
 					else:
 						continue
-				printl("本次变化最大点:{},值:{}".format(\
+				print("本次变化最大点:{},值:{}".format(\
 					max_obser_list, max_change_values))
 			else:
-				printl("warning, 没有最大值!")
+				print("warning, 没有最大值!")
 				max_obser_list.append("nan")
 				max_change_values.append("nan")
 
@@ -560,12 +590,12 @@ class MyDocx(object):
 			#本次变化最大点
 			s = ''
 			for obser in max_obser_list:
-					s += obser + '\n' 
+				s += obser + '\n' 
 			row.cells[1].text = s.strip('\n')
 			#日变化速率
 			s = ''
 			for max_v in max_change_values:
-					s += max_v + '\n'
+				s += max_v + '\n'
 			row.cells[2].text = s.strip('\n')
 
 			#日变量报警值空着
@@ -593,8 +623,8 @@ class MyDocx(object):
 			array(initial_range_values, dtype=float))*1000 + array(old_acc_range_values,\
 			dtype=float)
 			#printl("DEBUG '本次累计值列':{}".format(acc_values))
-			acc_abs_values = [abs(v) for v in acc_values]
-			max_acc = max(acc_abs_values)
+			acc_abs_values = [round(abs(v),2) for v in acc_values]
+			max_acc = get_max(acc_abs_values)
 
 			#列出所有max 点
 			max_obser_list = []
@@ -613,10 +643,10 @@ class MyDocx(object):
 							max_acc_values.append(max_acc_v)
 						else:
 							continue
-					printl("本次累计最大点:{},值:{}".format(\
+					print("本次累计最大点:{},值:{}".format(\
 						max_obser_list,max_acc_values))
 			else:
-					printl("warning, 没有最大累计值!")
+					print("warning, 没有最大累计值!")
 					max_obser_list.append("nan")
 					max_acc_values.append("nan")				
 
@@ -635,6 +665,9 @@ class MyDocx(object):
 			row.cells[6].text = ' '
 			#累计变量控制值 空着
 			row.cells[7].text = ' '
+
+			#增加进度
+			printl("%f@"%(sub_v_percent))
 		#end for sheet in related_sheets
 
 		#爆破振动 行
@@ -728,19 +761,18 @@ class MyDocx(object):
 		for area_name in areas:
 			count_num += 1
 			#test debug only one area
-			if '衡山路站' in area_name:
-				printl("({}/{})'{}数据分析表'".format(\
+			if True or '衡山路站' in area_name:
+				printl("[{}/{}]数据分析表:'{}'".format(\
 					count_num, total_num, area_name))
 				i += 1
 				ss = '表' + '%d'%i + area_name + table_cap
 				p = d.add_paragraph()
 				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-				p.paragraph_format.space_before = Pt(12)
+				p.paragraph_format.space_before = Pt(6)
+				p.paragraph_format.space_after = Pt(2)
 				r = p.add_run(ss)
-				r.font.size = Pt(14)
-				self.one_overview_table(area_name)
-				printl("({}/{})'{}数据分析表'完成\n".format(\
-					count_num, total_num, area_name))
+				r.font.size = Pt(12)
+				self.one_overview_table(area_name,v_percent)
 
 			#Test open to all	
 			else:
@@ -752,7 +784,10 @@ class MyDocx(object):
 				WD_ALIGN_PARAGRAPH.CENTER
 				self.one_overview_table(area_name)
 				'''
-			printl("%f@"%(v_percent))
+				printl("%f@"%(v_percent))
+
+			if count_num %2 == 0 and count_num < total_num:
+				d.add_page_break()
 
 		###new page###########
 		d.add_page_break()
@@ -929,8 +964,8 @@ class MyDocx(object):
 		for area_name in areas:
 			count_num += 1
 			#test debug only one area
-			if '衡山路站' in area_name:
-				printl("'{}/{},{}现场巡查报表'".format(count_num, total_num, area_name))
+			if True or '衡山路站' in area_name:
+				printl("'[{}/{}]现场巡查报表:'{}'".format(count_num, total_num, area_name))
 				i += 1
 				ss = '表' + '%d'%i + ' 现场安全巡视表'
 				p = d.add_paragraph()
@@ -956,9 +991,9 @@ class MyDocx(object):
 				for r in p.runs:
 					r.font.size = Pt(12)
 				self.one_security_table(area_name)
-			#Test open to all	
-			else:
-				pass
+
+				if count_num < total_num:
+					d.add_page_break()
 
 			printl("%f@"%v_percent)
 
@@ -988,7 +1023,6 @@ class MyDocx(object):
 		#获取当天日期的列坐标
 		today_col_index, today_row_index = px.get_item_point(sheet, self.date)
 		if today_col_index == None:
-			printl("error, 观测页{}的区间{}没有当天值列!")
 			return None, None, None
 
 		today_values = px.get_range_values(sheet, area_name, today_col_index)
@@ -1218,8 +1252,9 @@ class MyDocx(object):
 					#related_sheets.append = [sheet1,sheet2,...]
 					related_sheets.append(sheet)
 		total_sheet_num = len(related_sheets)			
-		printl("{}个观测项目:{}".format(total_sheet_num, related_sheets))
+		print("{}个观测项目:{}".format(total_sheet_num, related_sheets))
 
+		v_percent = v_percent/total_sheet_num
 		count_num = 0
 		#遍历这个站所有有关的测量数据,绘制表格	
 		for sheet in related_sheets:
@@ -1228,8 +1263,13 @@ class MyDocx(object):
 			if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
 				 sheet == '支撑轴力':
 				print("略过{}".format(sheet))
+				printl("%f@"%(v_percent))
 				continue
-			printl("{}/{}'{}{}监测报表'".format(\
+			if '测斜' in sheet:
+				printl("%f@"%(v_percent))
+				continue
+
+			print("{}/{}'{}{}监测报表'".format(\
 				count_num, total_sheet_num, area_name, sheet))
 
 			#找到该区间所有观测点的邻近7天的有效数据值,
@@ -1241,21 +1281,24 @@ class MyDocx(object):
 			self.find_avail_rows_dates_values(sheet,area_name,7)
 			#print("DEBUGdate_list=",date_list)
 			if row_list == None:
-				printl("Error, 该区间'{}'在观测页'{}'没有有效值!".format(\
-					area_name,sheet))
+				printl("Warning, 该区间'{}'在观测页'{}'没有{}当天值列!".format(\
+					area_name,sheet,self.str_date))
+				printl("%f@"%(v_percent))
 				continue
 			else:
-				printl("共{}/{}天有效观测数据".format(len(date_list),7))
+				print("共{}/{}天有效观测数据".format(len(date_list),7))
 
 			#从第三列获取到相应行的初始值和旧累计
 			#表格格式注意，第三列和第四列为初值，旧累计
 			init_col,_ = px.get_item_point(sheet, '初值')
 			if init_col == None:
 				printl("Error, {}没有初值列!".format(sheet))
+				printl("%f@"%(v_percent))
 				continue
 			old_acc_col,_ = px.get_item_point(sheet, '旧累计')
 			if old_acc_col == None:
 				printl("Error, {}没有旧累计列!".format(sheet))
+				printl("%f@"%(v_percent))
 				continue
 
 			initial_values = px.get_range_values(sheet, area_name, init_col)
@@ -1285,7 +1328,7 @@ class MyDocx(object):
 
 			start = 0
 			end = 0
-			printl("观测点数{}，共分{}组".format(ln,split_num))
+			print("观测点数{}，共分{}组".format(ln,split_num))
 			sub_v_percent = v_percent/split_num
 			for i in range(1, split_num+1):
 				#最后一个就是剩下的所有的
@@ -1300,7 +1343,7 @@ class MyDocx(object):
 				sub_old_acc_values = old_acc_values[start:end]
 				start = end 
 
-				printl("'{}{}监测报表{}/{}'".format(\
+				printl("'{}'{}监测报表{}/{}".format(\
 					area_name, sheet,i,split_num))
 				###new page###########
 				if self.allow_page_break:
@@ -1447,16 +1490,15 @@ class MyDocx(object):
 		for area_name in areas:
 			count_num += 1
 			#test debug only one area
-			if '衡山路站' in area_name:
-				printl("({}/{}) '{}沉降监测表'".format(\
+			if True or '衡山路站' in area_name:
+				printl("[{}/{}]沉降监测表:'{}'".format(\
 					count_num, total_num, area_name))		
 				self.multi_settlement_table(area_name,v_percent)
-				printl("({}/{}) '{}沉降监测表'完成\n".format(\
-					count_num, total_num, area_name))		
 			#Test open to all	
 			else:
 				pass
 				#self.multi_settlement_table(area_name)
+				print("%f@"%(v_percent))
 
 		result = True
 		return result
@@ -1626,7 +1668,7 @@ class MyDocx(object):
 				d_area_obser[area_name] = tmp_l[:]
 				tmp_l[:] = []
 		total_area_num = len(d_area_obser.keys())
-		printl("共有区间{}, 对应观测点:{}".format(total_area_num,d_area_obser))
+		print("共有区间{}, 对应观测点:{}".format(total_area_num,d_area_obser))
 
 		#找到当天日期,初值，旧累计所在的列坐标
 		init_col, _ = px.get_item_point(inc_sheet, '初值', False)
@@ -1649,13 +1691,13 @@ class MyDocx(object):
 		#遍历每个区间制作多个测斜表
 		count = 0
 		count_num = 0
-		v_percent = 25/len(d_area_obser.keys())
+		v_percent = 55/len(d_area_obser.keys())
 		for area_name in d_area_obser.keys():
 			count_num += 1
 			count += 1
 			obser_list = d_area_obser[area_name]
-			printl("({}/{}) '{}:{}测斜监测表'".format(count_num, total_area_num, \
-				area_name, obser_list))
+			printl("[{}/{}]测斜监测表:'{}'".format(count_num, total_area_num, \
+				area_name))
 			ln = len(obser_list)
 			table_num = 0
 			if ln/2 > ln//2:
@@ -1667,7 +1709,7 @@ class MyDocx(object):
 
 			sub_v_percent = v_percent/table_num
 			for i in range(0,ln,2):
-				
+
 				#获取数据
 				#d_obser_data = {'obser1':(deep_values,today_values, this_diffs, acc_diffs),'obser2':..}
 				d_obser_data = {}
@@ -1683,6 +1725,9 @@ class MyDocx(object):
 				acc_diffs = []
 
 				sub_obser_list = obser_list[i:i+2]
+				printl("[{}/{}]测斜监测表:'{}'{}/{}:{}".format(count_num, total_area_num, \
+				area_name,n,table_num,sub_obser_list))
+
 				for obser in sub_obser_list:
 					start_row, end_row = d_obser_deeps[obser]
 					#注意！list(range(3,5)) = [3,4], so need to add 1
@@ -1781,12 +1826,11 @@ class MyDocx(object):
 				#该区间第几个子表计数	
 				n+=1
 				printl("%f@"%(sub_v_percent))
-
 			#end 两个观测点一组，进行制表
 			#for i in range(0,ln,2):
 
-		printl("({}/{}),'{}:{}测斜监测表'完成\n".format(count_num, total_area_num, \
-				area_name, obser_list))
+		printl("[{}/{}],测斜监测表'{}'完成\n".format(count_num, total_area_num, \
+				area_name))
 		#end 遍历每个区间制作多个测斜表
 		#for area_name in d_area_obser.keys():
 
