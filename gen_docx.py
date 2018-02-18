@@ -196,7 +196,7 @@ class MyDocx(object):
 			self.docx.save(self.path)
 
 		#测斜监测表页
-		#55 percent in pages
+		#35 percent in pages
 		printl("\n###5. 测斜监测报表###")
 		if not self.make_inclinometer_pages():
 			printl("DEBUG make_inclinometer_pages error")
@@ -768,7 +768,7 @@ class MyDocx(object):
 				ss = '表' + '%d'%i + area_name + table_cap
 				p = d.add_paragraph()
 				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-				p.paragraph_format.space_before = Pt(6)
+				p.paragraph_format.space_before = Pt(12)
 				p.paragraph_format.space_after = Pt(2)
 				r = p.add_run(ss)
 				r.font.size = Pt(12)
@@ -1691,7 +1691,7 @@ class MyDocx(object):
 		#遍历每个区间制作多个测斜表
 		count = 0
 		count_num = 0
-		v_percent = 55/len(d_area_obser.keys())
+		v_percent = 35/len(d_area_obser.keys())
 		for area_name in d_area_obser.keys():
 			count_num += 1
 			count += 1

@@ -7,6 +7,7 @@ python3.6.1
 author: Felix
 email:fancyzzy@163.com
 '''
+print("this is main")
 import tkinter as tk
 from tkinter.ttk import Progressbar,Style
 
@@ -15,8 +16,7 @@ from tkinter.messagebox import showinfo
 
 import os
 from project_info import *
-import gen_docx
-import read_xlsx
+
 from datetime import datetime
 import threading
 import queue
@@ -47,6 +47,7 @@ class MyTop(object):
 		self.f_path = None
 		#xlsx类实例
 		self.my_xlsx = None
+		self.is_generating = False
 
 		#菜单
 		self.menu_bar = tk.Menu(self.top)
@@ -231,7 +232,8 @@ class MyTop(object):
 			self.fm_pro.pack()
 			#self.fm_status.pack(side=tk.LEFT)
 			#self.prog.show_status(False)
-			self.menu_bar.entryconfig("工程", state="normal")
+			if not self.is_generating:
+				self.menu_bar.entryconfig("工程", state="normal")
 	############update_title()####################################		
 
 
@@ -239,6 +241,7 @@ class MyTop(object):
 		'''
 		读取解析xlsx数据库
 		'''
+		import read_xlsx
 		global PRO_INFO
 		global D
 		print("start to load xlsx database")
@@ -253,6 +256,7 @@ class MyTop(object):
 		'''
 		生成日报
 		'''
+
 		global D
 		global PRO_INFO
 		global L_THREADS
@@ -306,14 +310,20 @@ class MyTop(object):
 		线程回调函数
 		使用线程防止主界面freeze
 		'''
+		print("run_gen_report start")
+		import gen_docx
 		global QUE
 		global SENTINEL
 		outqueue = QUE
 
 		print("生成日报ing...")
 		self.button_gen.config(bg=sunken_grey,relief='sunken',state='disabled')
+		self.menu_bar.entryconfig("文件", state="disable")
+		self.menu_bar.entryconfig("工程", state="disable")
+		self.is_generating = True
 
 		#获取xlsx数据源
+		#12% percent
 		if not self.my_xlsx:
 			outqueue.put('load xlsx...')
 			if not self.load_xlsx():
@@ -345,6 +355,10 @@ class MyTop(object):
 
 		self.button_gen.config(bg=my_color_light_orange,relief='raised',\
 					state='normal')
+		self.menu_bar.entryconfig("文件", state="normal")
+		self.menu_bar.entryconfig("工程", state="normal")
+		self.is_generating = False
+
 		print("日报线程结束")
 
 		if result:
@@ -409,7 +423,7 @@ class ProgBar(object):
 			tk.Label(self.fm_status, text='').grid(row=i,column=0)
 
 		self.v_status = tk.StringVar()
-		self.v_status.set(''.join(list(map(str,[i for i in range(20)]))))
+		self.v_status.set('Start')
 		self.label_status = tk.Label(self.fm_status,textvariable=self.v_status, bd=1,\
 		 justify='left')
 		self.label_status.grid(row=3,column=1,sticky=tk.S)
@@ -446,8 +460,10 @@ class ProgBar(object):
 
 if __name__ == '__main__':
 
+	print("Main start")
 	my_top = MyTop()
 	my_top.top.mainloop()
+	print("Main end")
 
 
 
