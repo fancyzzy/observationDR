@@ -698,8 +698,10 @@ class MyDocx(object):
 			trPr.append(trHeight)
 
 		#设置宽度，不起作用？
+		t.autofit = False
+		t.rows[0].width = Cm(2)
 		for cell in t.rows[0].cells:
-			cell.width = Inches(8.6)
+			cell.width = Cm(2)
 
 		#设置字体，宋体
 		ln = len(t.rows)
@@ -1225,6 +1227,12 @@ class MyDocx(object):
 				for p in cell.paragraphs:
 					p.style = d.styles["my_song_style"]
 
+		#设置宽度
+		#不起作用
+		t.autofit = False
+		t.rows[0].width = Cm(4.5)
+		for cell in t.rows[0].cells:
+			cell.width = Cm(4.5)
 	##################draw_settlement_table()###################################
 
 
