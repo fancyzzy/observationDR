@@ -226,6 +226,8 @@ if __name__ == '__main__':
 
 	print("start")
 	xlsx_path = r"C:\Users\tarzonz\Desktop\演示工程A\一二工区计算表2018.1.1.xlsx"
+	#wrong path test
+	#xlsx_path = r"C:\Users\tarzonz\Desktop\演示工程A\abc一二工区计算表2018.1.1.xlsx"
 
 	my_xlsx = MyXlsx(xlsx_path)
 

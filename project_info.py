@@ -7,6 +7,7 @@
 import tkinter as tk
 from tkinter.filedialog import asksaveasfilename
 from tkinter.messagebox import showerror
+from tkinter.messagebox import showinfo
 from tkinter.messagebox import showwarning
 import os
 from tkinter.filedialog import askopenfilename
@@ -41,7 +42,7 @@ class MyPro(object):
 		#工程项目名称
 		tk.Label(self.pro_top, text='').pack()
 		fm_name = tk.Frame(self.pro_top)
-		tk.Label(fm_name, text='项目工程: ').pack(side=tk.LEFT)
+		tk.Label(fm_name, text='* 项目工程: ').pack(side=tk.LEFT)
 		self.v_name = tk.StringVar()
 		tk.Entry(fm_name, width=45, textvariable=self.v_name).pack()
 		fm_name.pack()
@@ -105,7 +106,7 @@ class MyPro(object):
 
 		#xlsx数据源
 		fm_xlsx = tk.Frame(self.pro_top)
-		tk.Label(fm_xlsx, text='excel数据源: ').pack(side=tk.LEFT)
+		tk.Label(fm_xlsx, text='* excel数据源: ').pack(side=tk.LEFT)
 		self.v_xlsx_path = tk.StringVar()
 		tk.Entry(fm_xlsx, width=65, textvariable=self.v_xlsx_path)\
 		.pack(side=tk.LEFT)
@@ -148,6 +149,8 @@ class MyPro(object):
 		else:
 			pass
 
+	#########select_xlsx()######################
+
 
 	def confirm_project(self):
 		'''
@@ -160,6 +163,12 @@ class MyPro(object):
 			pass
 		else:
 			if not self.v_name.get():
+				s = "项目名称不能为空!"
+				self.popup_window(s)
+				return
+			if not self.v_xlsx_path.get():
+				s = "excel数据源文件不能为空!"
+				self.popup_window(s)
 				return
 			#如果文件路径是None,说明是新建菜单进来的
 			#保存时，打开文件保存对话框，选择保存的文件
@@ -167,12 +176,10 @@ class MyPro(object):
 			#新建一个文件，用于监测项目工程文件
 			self.project_path = asksaveasfilename(initialfile= project_name,\
 				filetypes=[("监测日报项目文件","dr")])
+			print("DEBUG self.project_path:",self.project_path)
 
-			if self.project_path:
-				#创建空文件
-				with open(self.project_path, 'wb') as foj:
-					pass
-			else:
+			#asksavesasfilename Cancel:
+			if not self.project_path:
 				return
 
 		PRO_PATH.append(self.project_path)
@@ -180,6 +187,8 @@ class MyPro(object):
 		self.update_project_info()
 		self.save_project()
 		self.pro_top.destroy()
+
+	#########confirm_project()#####################
 
 
 	def discard_project(self):
@@ -189,6 +198,8 @@ class MyPro(object):
 		global IS_UPDATED
 		IS_UPDATED = False
 		self.pro_top.destroy()
+
+	##########discard_project()#####################
 
 
 	def update_project_info(self):
@@ -202,6 +213,8 @@ class MyPro(object):
 		 self.v_third_observer.get(), self.v_builder_observer.get(),\
 		  self.v_xlsx_path.get(), 'x年x月x日']
 		IS_UPDATED = True
+
+	###########update_project_info()#################
 
 
 	def retrieve_project_info(self):
@@ -217,6 +230,7 @@ class MyPro(object):
 		self.v_third_observer.set(PRO_INFO[D['third_observer']])
 		self.v_builder_observer.set(PRO_INFO[D['builder_observer']])
 		self.v_xlsx_path.set(PRO_INFO[D['xlsx_path']])
+	#############retrieve_project_info()#############
 
 
 	def save_project(self):
@@ -229,7 +243,8 @@ class MyPro(object):
 				item = item + os.linesep
 				item = item.encode('utf-8')
 				fobj.write(item)
-		print("save success")
+		print("DEBUG save success")
+	################save_project()##################
 
 
 	def load_project(self):
@@ -257,6 +272,19 @@ class MyPro(object):
 				#if '' in PRO_INFO:
 				#	showwarning(title="警告", message="项目信息有缺失")
 				return True
+	###############load_project()#####################
+
+	def popup_window(self, s, error= False):
+		'''
+		弹出信息通知窗口
+		'''
+		if not error:
+			showinfo(message = s)
+		else:
+			showerror(message = s)
+
+############class MyPro(object):
+
 
 
 def check_project_info():

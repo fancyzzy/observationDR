@@ -13,6 +13,7 @@ from tkinter.ttk import Progressbar,Style
 
 from tkinter.filedialog import askopenfilename
 from tkinter.messagebox import showinfo
+from tkinter.messagebox import showerror
 
 import os
 from project_info import *
@@ -245,7 +246,12 @@ class MyTop(object):
 		global PRO_INFO
 		global D
 		print("start to load xlsx database")
-		self.my_xlsx = read_xlsx.MyXlsx(PRO_INFO[D['xlsx_path']])
+		try:
+			self.my_xlsx = read_xlsx.MyXlsx(PRO_INFO[D['xlsx_path']])
+		except Exception as e:
+			print("Error! e:{}".format(e))
+			self.popup_window(e,error=True)
+			return False
 
 		print("load finished")
 		return True
@@ -311,7 +317,6 @@ class MyTop(object):
 		使用线程防止主界面freeze
 		'''
 		print("run_gen_report start")
-		import gen_docx
 		global QUE
 		global SENTINEL
 		outqueue = QUE
@@ -325,20 +330,27 @@ class MyTop(object):
 		#获取xlsx数据源
 		#12% percent
 		if not self.my_xlsx:
-			outqueue.put('load xlsx...')
+			outqueue.put('loading xlsx...')
 			if not self.load_xlsx():
 				print("12@load xlsx failed")
+				self.button_gen.config(bg=my_color_light_orange,relief='raised',\
+					state='normal')
+				self.menu_bar.entryconfig("文件", state="normal")
+				self.menu_bar.entryconfig("工程", state="normal")
+				self.is_generating = False
 				return False
 			else:
-				outqueue.put('12@load finished')
+				outqueue.put('loading finished')
+				outqueue.put('12@')
 		else:
 			outqueue.put('12@load xlsx finished')
 			pass
 
 		#生成日报
+		#延迟加载
+		import gen_docx
 		my_docx = gen_docx.MyDocx(docx_path, project_info, self.my_xlsx)
 		result = my_docx.gen_docx()
-
 
 		#debug percentage not 100%
 		self.prog.p_bar["value"]=100.
@@ -404,11 +416,14 @@ class MyTop(object):
 	#############update()####################################################
 
 
-	def popup_window(self, s):
+	def popup_window(self, s, error= False):
 		'''
 		弹出信息通知窗口
 		'''
-		showinfo(message = s)
+		if not error:
+			showinfo(message = s)
+		else:
+			showerror(message = s)
 
 #class MyTop(object) end
 

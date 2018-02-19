@@ -128,7 +128,6 @@ class MyDocx(object):
 			return
 		
 		#读取'default_template.docx'
-		printl("###0. 读取模板'default.docx'###")
 		self.docx = Document()
 		self.set_document_style()
 
