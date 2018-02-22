@@ -24,6 +24,7 @@ import queue
 from my_log import printl
 from my_log import QUE
 from my_log import SENTINEL
+from my_log import LOG_PATH
 
 L_THREADS = []
 
@@ -255,7 +256,7 @@ class MyTop(object):
 		try:
 			self.my_xlsx = read_xlsx.MyXlsx(PRO_INFO[D['xlsx_path']])
 		except Exception as e:
-			print("Error! e:{}".format(e))
+			print("Error! 加载excel数据源错误:{}".format(e))
 			self.popup_window(e,error=True)
 			return False
 
@@ -273,6 +274,7 @@ class MyTop(object):
 		global PRO_INFO
 		global L_THREADS
 		global QUE
+		global LOG_PATH
 		outqueue = QUE
 
 		print("Generate report start")
@@ -287,6 +289,8 @@ class MyTop(object):
 		#创建日报docx文件, 默认存放日报文件地址和项目文件一个文件夹
 		docx_name = s.replace('/','.') + '监测日报' + '.docx'
 		docx_path = os.path.join(os.path.dirname(self.f_path), docx_name)
+		LOG_PATH[0] = os.path.join(os.path.dirname(self.f_path), 'my_log.txt')
+		print("DEBUG LOG_PATH=",LOG_PATH)
 
 		try:
 			#检查日期是否合法	
@@ -294,7 +298,7 @@ class MyTop(object):
 			project_info[D['date']] = datetime_value
 		except Exception as e:
 			err_s = "请输入合法日期，比如:2018/1/1"
-			print(err_s)
+			printl(err_s,False)
 			self.popup_window(err_s)
 			return False
 
@@ -353,10 +357,16 @@ class MyTop(object):
 			pass
 
 		#生成日报
-		#延迟加载
-		import gen_docx
-		my_docx = gen_docx.MyDocx(docx_path, project_info, self.my_xlsx)
-		result = my_docx.gen_docx()
+		result = None
+		try:
+			#延迟加载
+			import gen_docx
+			my_docx = gen_docx.MyDocx(docx_path, project_info, self.my_xlsx)
+			result = my_docx.gen_docx()
+		except Exception as e:
+			s = "Error, 生成日报错误:{}".format(e)
+			printl(s,False)
+			self.popup_window(s, True)
 
 		#debug percentage not 100%
 		self.prog.p_bar["value"]=100.
@@ -370,21 +380,19 @@ class MyTop(object):
 			print(s)
 			self.popup_window(s)
 
-
 		self.button_gen.config(bg=my_color_light_orange,relief='raised',\
 					state='normal')
 		self.menu_bar.entryconfig("文件", state="normal")
 		self.menu_bar.entryconfig("工程", state="normal")
 		self.is_generating = False
 
-		print("日报线程结束")
-
 		if result:
-			printl("日报文件存储于: %s"%(docx_path))
+			printl("日报文件存储于: %s\n"%(docx_path))
 		else:
-			printl("日报生成遇到问题")
+			printl("日报生成遇到问题\n")
 		#send the finish flag
 		outqueue.put(SENTINEL)
+		print("日报线程结束")
 	##########fun_gen_report()################################################
 
 	def update(self):
