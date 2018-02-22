@@ -184,6 +184,7 @@ class MyTop(object):
 			self.update_title()
 			if len(PRO_PATH) > 0:
 				self.f_path = PRO_PATH[-1]
+
 	#########enter_top()###############################################
 
 
@@ -194,6 +195,8 @@ class MyTop(object):
 		print("new project")
 		#None 表示新建文件工程
 		my_pro = MyPro(self.top, None)
+		print("new project done")
+
 	#########new_project()###############################################
 
 
@@ -235,6 +238,9 @@ class MyTop(object):
 			#self.prog.show_status(False)
 			if not self.is_generating:
 				self.menu_bar.entryconfig("工程", state="normal")
+
+			#重置excel数据源
+			self.my_xlsx = None
 	############update_title()####################################		
 
 
