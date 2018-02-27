@@ -14,7 +14,6 @@ SENTINEL = object()
 LOG_PATH = ['my_log.txt']
 
 def write_log(s,file_path):
-	print("DEBUG file_path=",file_path)
 	with open(file_path, "ab+") as fobj:
 			s = s + os.linesep
 			s = s.encode('utf-8')

@@ -25,6 +25,7 @@ from my_log import printl
 from my_log import QUE
 from my_log import SENTINEL
 from my_log import LOG_PATH
+from time import clock
 
 L_THREADS = []
 
@@ -331,6 +332,8 @@ class MyTop(object):
 		global SENTINEL
 		outqueue = QUE
 
+		start = clock()
+
 		print("生成日报ing...")
 		self.button_gen.config(bg=sunken_grey,relief='sunken',state='disabled')
 		self.menu_bar.entryconfig("文件", state="disable")
@@ -371,12 +374,21 @@ class MyTop(object):
 		#debug percentage not 100%
 		self.prog.p_bar["value"]=100.
 
+
+		end = clock()
+		interval = end - start
+		s_interval = ''
+		s_min = interval/60
+		s_sec = interval%60.00
+		s_interval = "%d分%.2f秒"%(s_min,s_sec)
+		print("DEBUG s_interval =",s_interval)
+
 		if result:
-			s = "生成日报文件成功!\n %s" %docx_path
+			s = "生成日报文件成功!, 用时: %s\n %s"%(s_interval,docx_path)
 			print(s)
 			self.popup_window(s)
 		else:
-			s = "日报文件生成失败!"
+			s = "日报文件生成失败!, 用时: %s"%(s_interval)
 			print(s)
 			self.popup_window(s)
 
