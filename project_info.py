@@ -26,6 +26,10 @@ def is_project_updated():
 #工程文件目录
 PRO_PATH = []
 
+#工程项目备份
+PRO_BAK_PATH = os.path.join(os.getcwd(), 'project_backup')
+PRO_BAK_PATH = os.path.join(PRO_BAK_PATH, 'all_projects.txt')
+
 class MyPro(object):
 	def __init__(self, parent_top, file_path=None):
 		print("__init__ MyPro")
@@ -238,12 +242,41 @@ class MyPro(object):
 		保存项目信息到本地硬盘文件
 		'''
 		global PRO_INFO
+		global PRO_BAK_PATH
+
 		with open(self.project_path, "wb") as fobj:
 			for item in PRO_INFO:
 				item = item + os.linesep
 				item = item.encode('utf-8')
 				fobj.write(item)
 		print("DEBUG save success")
+
+		#保存项目列表文件
+		#读取项目文件
+		with open(PRO_BAK_PATH, "rb") as fobj:
+			all_projects_list = []
+			while True:
+				buff = fobj.readline().decode('utf-8').strip(os.linesep)
+				if buff == '':
+					break
+				else:
+					all_projects_list.append(buff)
+		print("DEBUG all_projects_list:",all_projects_list)
+
+		#将最新的项目文件移到最前面
+		f_path = os.path.normpath(self.project_path)
+		if f_path in all_projects_list:
+			all_projects_list.remove(f_path)
+		all_projects_list.insert(0,f_path)
+
+		with open(PRO_BAK_PATH, "wb") as fobj:
+			#再写回去
+			for item in all_projects_list:
+				item = item + os.linesep
+				item = item.encode('utf-8')
+				fobj.write(item)
+		print("更新项目列表文件成功")
+
 	################save_project()##################
 
 

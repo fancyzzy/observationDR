@@ -37,6 +37,7 @@ sunken_grey = '#%02x%02x%02x' % (240,240,240)
 logo_path = os.path.join(os.getcwd(),'pic\pen.png')
 icon_path = os.path.join(os.getcwd(),'pic\pen.ico')
 
+
 class MyTop(object):
 	def __init__(self):
 		self.top = tk.Tk()
@@ -55,17 +56,38 @@ class MyTop(object):
 		#菜单
 		self.menu_bar = tk.Menu(self.top)
 		self.top.config(menu=self.menu_bar)
-		file_menu = tk.Menu(self.menu_bar, tearoff=0)
-		proj_menu = tk.Menu(self.menu_bar, tearoff=0)
-		self.menu_bar.add_cascade(label="文件", menu=file_menu)
-		self.menu_bar.add_cascade(label="工程", menu=proj_menu)
+		self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
+		self.proj_menu = tk.Menu(self.menu_bar, tearoff=0)
+		self.menu_bar.add_cascade(label="文件", menu=self.file_menu)
+		self.menu_bar.add_cascade(label="工程列表", menu=self.proj_menu)
 
-		file_menu.add_command(label="新建工程", command=self.new_project)
-		file_menu.add_command(label="打开工程", command=self.open_project)
-		#file_menu.add_separator()
-		proj_menu.add_command(label="更改工程信息", command=\
-			self.display_update_project)
-		self.menu_bar.entryconfig("工程", state="disable")
+		self.file_menu.add_command(label="新建工程", command=self.new_project)
+		self.file_menu.add_command(label="打开工程", command=self.open_project)
+		#self.file_menu.add_separator()
+		self.file_menu.add_command(label="更改工程", command=self.update_project,\
+			state='disable')
+		#更新级联菜单项状态
+		#self.file_menu.entryconfig("更改工程",state="normal")
+
+		#打开工程列表文件
+		global PRO_BAK_PATH
+		p_list=[]
+		n = 0
+		with open(PRO_BAK_PATH, "rb") as fobj:
+			while True:
+				n += 1
+				buff = fobj.readline().decode('utf-8').strip(os.linesep)
+				if buff == '':
+					break
+				else:
+					p_list.append(buff)
+				if n >= 15:
+					break
+		#添加工程列表内容
+		self.p_name=tk.StringVar()
+		for item in p_list:
+			self.proj_menu.add_radiobutton(label=item, variable=self.p_name,\
+			 command=self.display_project)
 
 		for i in range(3):
 			tk.Label(self.top, text='').pack()
@@ -74,7 +96,6 @@ class MyTop(object):
 		self.fm_init = tk.Frame(self.top)
 		#插图logo
 		tl = tk.Label(self.fm_init, compound='top')
-		print("DEBUG os.getcwd()",os.getcwd())
 		mg = tk.PhotoImage(file=logo_path)
 		tl.lenna_image_png = mg
 		tl['image'] = mg
@@ -186,6 +207,7 @@ class MyTop(object):
 			self.update_title()
 			if len(PRO_PATH) > 0:
 				self.f_path = PRO_PATH[-1]
+				print("DEBUG self.f_path=",self.f_path)
 
 	#########enter_top()###############################################
 
@@ -208,7 +230,6 @@ class MyTop(object):
 		'''
 		print("Opened project")
 		self.f_path = askopenfilename(filetypes=[("监测日报项目文件","dr")])
-		print("DEBUG self.f_path = ",self.f_path)
 		if self.f_path and os.path.exists(self.f_path):
 			self.f_path = os.path.normpath(self.f_path)
 			my_pro = MyPro(self.top, self.f_path)
@@ -217,7 +238,7 @@ class MyTop(object):
 	##################open_project()#####################################
 
 
-	def display_update_project(self):
+	def update_project(self):
 		'''
 		更改工程信息
 		'''
@@ -225,7 +246,22 @@ class MyTop(object):
 			my_pro = MyPro(self.top, self.f_path)
 		else:
 			pass
-	#############display_update_project()#################################
+	#############update_project()#################################
+
+
+	def display_project(self):
+		'''
+		根据选择的工程文件，显示工程
+		'''
+		print("DEBUG display_project")
+		project_path = self.p_name.get()
+		if project_path and os.path.exists(project_path):
+			my_pro = MyPro(self.top, project_path)
+		else:
+			s = ("没有找到项目文件:{}\n".format(project_path))
+			showinfo(message = s)
+		pass
+	###############display_project()##############################
 
 
 	def update_title(self):
@@ -238,8 +274,10 @@ class MyTop(object):
 			self.fm_pro.pack()
 			#self.fm_status.pack(side=tk.LEFT)
 			#self.prog.show_status(False)
+
 			if not self.is_generating:
-				self.menu_bar.entryconfig("工程", state="normal")
+				#更新菜单项可用
+				self.file_menu.entryconfig("更改工程",state="normal")
 
 			#重置excel数据源
 			self.my_xlsx = None
@@ -340,7 +378,7 @@ class MyTop(object):
 		print("生成日报ing...")
 		self.button_gen.config(bg=sunken_grey,relief='sunken',state='disabled')
 		self.menu_bar.entryconfig("文件", state="disable")
-		self.menu_bar.entryconfig("工程", state="disable")
+		self.menu_bar.entryconfig("工程列表", state="disable")
 		self.is_generating = True
 
 		#获取xlsx数据源
@@ -352,7 +390,7 @@ class MyTop(object):
 				self.button_gen.config(bg=my_color_light_orange,relief='raised',\
 					state='normal')
 				self.menu_bar.entryconfig("文件", state="normal")
-				self.menu_bar.entryconfig("工程", state="normal")
+				self.menu_bar.entryconfig("工程列表", state="normal")
 				self.is_generating = False
 				return False
 			else:
@@ -387,11 +425,11 @@ class MyTop(object):
 		print("DEBUG s_interval =",s_interval)
 
 		if result:
-			s = "生成日报文件成功!, 用时: %s\n %s"%(s_interval,docx_path)
+			s = "生成日报文件成功! 用时: %s\n %s"%(s_interval,docx_path)
 			print(s)
 			self.popup_window(s)
 		else:
-			s = "日报文件生成失败!, 用时: %s"%(s_interval)
+			s = "日报文件生成失败!"
 			print(s)
 			self.popup_window(s)
 
