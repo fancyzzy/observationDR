@@ -288,7 +288,10 @@ class MyTop(object):
 		s.replace(r'\\', '/')
 		s.replace(r'.', '/')
 		#创建日报docx文件, 默认存放日报文件地址和项目文件一个文件夹
-		docx_name = s.replace('/','.') + '监测日报' + '.docx'
+		#feature, 增加时间后缀，避免命名重复
+		s_now = datetime.now().strftime("%Y%m%d%H%M%S")
+		docx_name = s.replace('/','.') + '监测日报' + ("_%s.docx"%s_now)
+
 		docx_path = os.path.join(os.path.dirname(self.f_path), docx_name)
 		LOG_PATH[0] = os.path.join(os.path.dirname(self.f_path), 'my_log.txt')
 		print("DEBUG LOG_PATH=",LOG_PATH)
