@@ -58,7 +58,10 @@ class MyXlsx(object):
 			#if sheet != '全站仪收敛(TBM)':
 			#	continue
 			sheet_areas_range = self.get_one_sheet_areas_range(sheet)
-			all_sheets_areas_range[sheet] = sheet_areas_range
+			if sheet_areas_range != None:
+				all_sheets_areas_range[sheet] = sheet_areas_range
+			else:
+				all_sheets_areas_range[sheet] = {None:None}
 
 		return all_sheets_areas_range
 	#############get_all_sheets_areas_range()#################		
@@ -79,6 +82,10 @@ class MyXlsx(object):
 		'''
 		#以初值列划定区间的行号范围
 		init_col,_ = self.get_item_point(sheet_name, '初值', False)
+
+		if not init_col:
+			print("Error, {}没有'初值'列".format(sheet_name))
+			return None
 
 		sheet_areas_range = {}
 		area_name = ''
