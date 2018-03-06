@@ -256,6 +256,7 @@ class MyTop(object):
 		'''
 		print("DEBUG display_project")
 		project_path = self.p_name.get()
+		print("DEBUG project_path=",project_path)
 		if project_path and os.path.exists(project_path):
 			self.my_proj = MyPro(self.top, project_path)
 		else:
@@ -339,7 +340,9 @@ class MyTop(object):
 		docx_name = s.replace('/','.') + '监测日报' + ("_%s.docx"%s_now)
 
 		docx_path = os.path.join(os.path.dirname(self.f_path), docx_name)
-		LOG_PATH[0] = os.path.join(os.path.dirname(self.f_path), 'my_log.txt')
+		#my_log.txt写在备份区
+		#LOG_PATH[0] = os.path.join(os.path.dirname(self.f_path), 'my_log.txt')
+		LOG_PATH[0] = os.path.join(self.my_proj.project_bak_dir, 'my_log.txt')
 		print("DEBUG LOG_PATH=",LOG_PATH)
 
 		try:
