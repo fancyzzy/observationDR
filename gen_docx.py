@@ -1962,7 +1962,7 @@ class MyDocx(object):
 				printl(item)
 			except Exception as e:
 				pass
-				print("失败！",e)
+				#print("失败！",e)
 
 		return True
 	#####################concatenate_new_docx()#######################

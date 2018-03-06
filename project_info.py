@@ -12,6 +12,9 @@ from tkinter.messagebox import showwarning
 import os
 from tkinter.filedialog import askopenfilename
 
+#拷贝文件
+import shutil
+
 
 #工程项目名, 编号， 施工单位， 监理单位， 监测单位, 区间
 D = {"name":0,"area":1,"code":2,"contract":3,"builder":4,"supervisor":5,\
@@ -28,7 +31,7 @@ PRO_PATH = []
 
 #工程项目备份
 PRO_BAK_PATH = os.path.join(os.getcwd(), 'project_backup')
-PRO_BAK_PATH = os.path.join(PRO_BAK_PATH, 'all_projects.txt')
+PRO_BAK_TXT = os.path.join(PRO_BAK_PATH, 'all_projects.txt')
 
 class MyPro(object):
 	def __init__(self, parent_top, file_path=None):
@@ -42,6 +45,7 @@ class MyPro(object):
 		self.pro_top.grab_set()
 
 		self.project_path = file_path
+		self.project_bak_dir = None
 
 		#工程项目名称
 		tk.Label(self.pro_top, text='').pack()
@@ -161,6 +165,7 @@ class MyPro(object):
 		保存确认按钮函数
 		'''
 		global PRO_PATH
+		global PRO_BAK_PATH
 		#如果有文件路径，说明是经过打开菜单进来的
 		#认直接保存原来的这个文件
 		if self.project_path:
@@ -190,6 +195,15 @@ class MyPro(object):
 
 		self.update_project_info()
 		self.save_project()
+
+		#创建备份文件夹，以项目名称命名
+		p_name = self.v_name.get()
+		self.project_bak_dir = os.path.join(PRO_BAK_PATH, p_name)
+		if not os.path.isdir(self.project_bak_dir):
+			os.mkdir(self.project_bak_dir)
+
+		self.bak_file(self.project_path)
+
 		self.pro_top.destroy()
 
 	#########confirm_project()#####################
@@ -242,7 +256,7 @@ class MyPro(object):
 		保存项目信息到本地硬盘文件
 		'''
 		global PRO_INFO
-		global PRO_BAK_PATH
+		global PRO_BAK_TXT
 
 		with open(self.project_path, "wb") as fobj:
 			for item in PRO_INFO:
@@ -253,7 +267,7 @@ class MyPro(object):
 
 		#保存项目列表文件
 		#读取项目文件
-		with open(PRO_BAK_PATH, "rb") as fobj:
+		with open(PRO_BAK_TXT, "rb") as fobj:
 			all_projects_list = []
 			while True:
 				buff = fobj.readline().decode('utf-8').strip(os.linesep)
@@ -269,7 +283,7 @@ class MyPro(object):
 			all_projects_list.remove(f_path)
 		all_projects_list.insert(0,f_path)
 
-		with open(PRO_BAK_PATH, "wb") as fobj:
+		with open(PRO_BAK_TXT, "wb") as fobj:
 			#再写回去
 			for item in all_projects_list:
 				item = item + os.linesep
@@ -306,6 +320,31 @@ class MyPro(object):
 				#	showwarning(title="警告", message="项目信息有缺失")
 				return True
 	###############load_project()#####################
+
+
+	def bak_file(self,file_path):
+		'''
+		备份份文件到
+		self.project_bak_dir里
+		'''
+		if os.path.isfile(file_path):
+			if self.project_bak_dir == None:
+				print("Error, self.project_bak_dir:NONE!")
+				return False
+			else:
+				try:
+					shutil.copy(file_path, self.project_bak_dir)
+				except Exception as e:
+					print("备份Error:",e)
+					return False
+
+		else:
+			print("Error, file_path:{}不存在!".format(file_path))
+			return Fasle
+
+		return True
+	################bak_file()########################	
+
 
 	def popup_window(self, s, error= False):
 		'''

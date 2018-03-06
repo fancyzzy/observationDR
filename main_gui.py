@@ -52,6 +52,8 @@ class MyTop(object):
 		#xlsx类实例
 		self.my_xlsx = None
 		self.is_generating = False
+		#工程信息实例
+		self.my_proj = None
 
 		#菜单
 		self.menu_bar = tk.Menu(self.top)
@@ -70,10 +72,10 @@ class MyTop(object):
 		#self.file_menu.entryconfig("更改工程",state="normal")
 
 		#打开工程列表文件
-		global PRO_BAK_PATH
+		global PRO_BAK_TXT
 		p_list=[]
 		n = 0
-		with open(PRO_BAK_PATH, "rb") as fobj:
+		with open(PRO_BAK_TXT, "rb") as fobj:
 			while True:
 				n += 1
 				buff = fobj.readline().decode('utf-8').strip(os.linesep)
@@ -207,7 +209,6 @@ class MyTop(object):
 			self.update_title()
 			if len(PRO_PATH) > 0:
 				self.f_path = PRO_PATH[-1]
-				print("DEBUG self.f_path=",self.f_path)
 
 	#########enter_top()###############################################
 
@@ -218,7 +219,7 @@ class MyTop(object):
 		'''
 		print("new project")
 		#None 表示新建文件工程
-		my_pro = MyPro(self.top, None)
+		self.my_proj = MyPro(self.top, None)
 		print("new project done")
 
 	#########new_project()###############################################
@@ -232,7 +233,7 @@ class MyTop(object):
 		self.f_path = askopenfilename(filetypes=[("监测日报项目文件","dr")])
 		if self.f_path and os.path.exists(self.f_path):
 			self.f_path = os.path.normpath(self.f_path)
-			my_pro = MyPro(self.top, self.f_path)
+			self.my_proj = MyPro(self.top, self.f_path)
 		else:
 			pass
 	##################open_project()#####################################
@@ -243,7 +244,7 @@ class MyTop(object):
 		更改工程信息
 		'''
 		if self.f_path and os.path.exists(self.f_path):
-			my_pro = MyPro(self.top, self.f_path)
+			self.my_proj = MyPro(self.top, self.f_path)
 		else:
 			pass
 	#############update_project()#################################
@@ -256,7 +257,7 @@ class MyTop(object):
 		print("DEBUG display_project")
 		project_path = self.p_name.get()
 		if project_path and os.path.exists(project_path):
-			my_pro = MyPro(self.top, project_path)
+			self.my_proj = MyPro(self.top, project_path)
 		else:
 			s = ("没有找到项目文件:{}\n".format(project_path))
 			showinfo(message = s)
@@ -292,12 +293,17 @@ class MyTop(object):
 		global PRO_INFO
 		global D
 		print("start to load xlsx database")
+		xlsx_data_path = PRO_INFO[D['xlsx_path']]
 		try:
-			self.my_xlsx = read_xlsx.MyXlsx(PRO_INFO[D['xlsx_path']])
+			self.my_xlsx = read_xlsx.MyXlsx(xlsx_data_path)
 		except Exception as e:
 			print("Error! 加载excel数据源错误:{}".format(e))
 			self.popup_window(e,error=True)
 			return False
+
+		#备份
+		if self.my_proj.bak_file(xlsx_data_path):
+			printl("备份数据源成功")
 
 		print("load finished")
 		return True
@@ -384,9 +390,9 @@ class MyTop(object):
 		#获取xlsx数据源
 		#12% percent
 		if not self.my_xlsx:
-			outqueue.put('loading xlsx...')
+			outqueue.put('加载数据源...')
 			if not self.load_xlsx():
-				print("12@load xlsx failed")
+				print("12@加载数据源失败!")
 				self.button_gen.config(bg=my_color_light_orange,relief='raised',\
 					state='normal')
 				self.menu_bar.entryconfig("文件", state="normal")
@@ -394,10 +400,10 @@ class MyTop(object):
 				self.is_generating = False
 				return False
 			else:
-				outqueue.put('loading finished')
+				outqueue.put('加载成功')
 				outqueue.put('12@')
 		else:
-			outqueue.put('12@load xlsx finished')
+			outqueue.put('12@数据源已加载')
 			pass
 
 		#生成日报
@@ -436,10 +442,13 @@ class MyTop(object):
 		self.button_gen.config(bg=my_color_light_orange,relief='raised',\
 					state='normal')
 		self.menu_bar.entryconfig("文件", state="normal")
-		self.menu_bar.entryconfig("工程", state="normal")
+		self.menu_bar.entryconfig("工程列表", state="normal")
 		self.is_generating = False
 
 		if result:
+			#备份
+			if self.my_proj.bak_file(docx_path):
+				printl("备份日志文件成功")
 			printl("日报文件存储于: %s\n"%(docx_path))
 		else:
 			printl("日报生成遇到问题\n")
