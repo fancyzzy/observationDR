@@ -122,7 +122,7 @@ class MyPro(object):
 		tk.Button(fm_xlsx, text="...", width=5, command=self.select_xlsx)\
 		.pack(side=tk.LEFT)
 		fm_xlsx.pack()
-		tk.Label(self.pro_top, text='注:把平面布点图片文件放到excel数据源同目录下').\
+		tk.Label(self.pro_top, text="注: 请把 '平面布点图' 文件夹放到excel数据源所在目录下").\
 		pack()
 
 		tk.Label(self.pro_top, text='').pack()

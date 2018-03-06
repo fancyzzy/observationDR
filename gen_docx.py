@@ -1952,7 +1952,7 @@ class MyDocx(object):
 		'''
 		d = self.docx
 		#获取文件夹下的所有文件地址:
-		file_list = get_file_list(self.xlsx_path, [])
+		file_list = get_file_list(os.path.join(self.xlsx_path,'平面布点图'), [])
 		for item in file_list:
 			sufx = os.path.basename(item)
 			if '.xlsx' in sufx or '.docx' in sufx or '.dr' in sufx or '.txt' in sufx:
@@ -1962,7 +1962,7 @@ class MyDocx(object):
 				printl(item)
 			except Exception as e:
 				pass
-				#print("失败！",e)
+				print("Error: {}, item: {}".format(e,item))
 
 		return True
 	#####################concatenate_new_docx()#######################
