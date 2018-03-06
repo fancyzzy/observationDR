@@ -304,6 +304,8 @@ class MyTop(object):
 		#备份
 		if self.my_proj.bak_file(xlsx_data_path):
 			printl("备份数据源成功")
+		else:
+			printl("备份数据源失败")
 
 		print("load finished")
 		return True
@@ -449,6 +451,8 @@ class MyTop(object):
 			#备份
 			if self.my_proj.bak_file(docx_path):
 				printl("备份日志文件成功")
+			else:
+				printl("备份日志文件失败")
 			printl("日报文件存储于: %s\n"%(docx_path))
 		else:
 			printl("日报生成遇到问题\n")

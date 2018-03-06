@@ -11,6 +11,7 @@ from tkinter.messagebox import showinfo
 from tkinter.messagebox import showwarning
 import os
 from tkinter.filedialog import askopenfilename
+#from tkinter.filedialog import askdirectory
 
 #拷贝文件
 import shutil
@@ -150,7 +151,9 @@ class MyPro(object):
 		选择数据源文件
 		'''
 		print("select xlsx file")
-		xlsx_path = askopenfilename(filetypes=[("excel数据源文件","xlsx")])
+		xlsx_path = askopenfilename(filetypes=[("excel数据源文件","xlsx")],title="选择数据源")
+		#xlsx_path = askdirectory(title="选择数据源文件夹")
+		print("DEBUG xlsx_path=",xlsx_path)
 		if xlsx_path and os.path.exists(xlsx_path):
 			xlsx_path = os.path.normpath(xlsx_path)
 			self.v_xlsx_path.set(xlsx_path)
@@ -182,14 +185,16 @@ class MyPro(object):
 			#如果文件路径是None,说明是新建菜单进来的
 			#保存时，打开文件保存对话框，选择保存的文件
 			project_name = self.v_name.get() + ".dr"
-			#新建一个文件，用于监测项目工程文件
+			desktop_dir = os.path.join(os.path.expanduser('~'), 'Desktop')
 			self.project_path = asksaveasfilename(initialfile= project_name,\
-				filetypes=[("监测日报项目文件","dr")])
-			print("DEBUG self.project_path:",self.project_path)
+				filetypes=[("监测日报项目文件","dr")], title="保存工程文件",\
+				 initialdir=desktop_dir)
 
 			#asksavesasfilename Cancel:
 			if not self.project_path:
+				print("DEBUG, 没有保存项目文件")
 				return
+			print("DEBUG 项目文件保存为self.project_path:",self.project_path)
 
 		PRO_PATH.append(self.project_path)
 
