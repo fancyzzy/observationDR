@@ -278,15 +278,21 @@ class MyPro(object):
 				buff = fobj.readline().decode('utf-8').strip(os.linesep)
 				if buff == '':
 					break
+				#这个怎么产生的?
+				if buff == '\ufeff':
+					continue
 				else:
+					#print("DEBUG buff=",buff)
 					all_projects_list.append(buff)
-		print("DEBUG all_projects_list:",all_projects_list)
+		#print("DEBUG after read, all_projects_list:",all_projects_list)
 
 		#将最新的项目文件移到最前面
 		f_path = os.path.normpath(self.project_path)
 		if f_path in all_projects_list:
 			all_projects_list.remove(f_path)
 		all_projects_list.insert(0,f_path)
+
+		#print("DEBUG after insert, all_projects_list:",all_projects_list)
 
 		with open(PRO_BAK_TXT, "wb") as fobj:
 			#再写回去
