@@ -101,6 +101,16 @@ def get_max(l):
 	return max_v
 
 
+def delete_item(item):
+	'''
+	删除docx中的元素，table，paragraph
+	'''
+	ie = item._element
+	ie.getparent().remove(ie)
+	ie._p = ie._element = None
+
+
+
 class MyDocx(object):
 	def __init__(self, docx_path, proj_info, my_xlsx):
 		self.proj = ProInfo(*proj_info)
@@ -152,6 +162,8 @@ class MyDocx(object):
 			printl("DEBUG make_overview_pages error")
 		else:
 			self.docx.save(self.path)
+
+		'''
 
 		#页面布局为横向
 		new_section = self.docx.add_section(WD_SECTION.NEW_PAGE)
@@ -242,6 +254,7 @@ class MyDocx(object):
 		else:
 			printl("2@ 生成平面布点图")
 			pass
+		'''
 
 		#保存
 		self.docx.save(self.path)
@@ -490,13 +503,13 @@ class MyDocx(object):
 					related_sheets.append(sheet)
 
 		total_sheets_num = len(related_sheets)
+		#记录写入有效行数
 		count_num = 0
 		print("{}个观测项目数据: {}".format(total_sheets_num, related_sheets))
 
 		#遍历这个区间站所存在的观测页表格	
 		sub_v_percent = v_percent/total_sheets_num
 		for sheet in related_sheets:
-			count_num += 1
 			#略过这几个观测sheet，excel表格有疑问
 			if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
 			 sheet == '支撑轴力':
@@ -510,10 +523,11 @@ class MyDocx(object):
 			print("{}/{}'{}{}数据'".format(\
 				count_num, total_sheets_num, area_name,sheet))
 			#获取数据
-			today_range_values = []
-			last_range_values = []
-			diff_original_values = []
-			diff_abs_values = []
+			today_range_values = [] #当天数据列表
+			last_range_values = []  #前一天数据列表
+			diff_original_values = [] #变化量数据列表
+			diff_abs_values = []      #变化量绝对值数据列表
+
 			col_alpha = 'B'
 			obser_col,_ = px.get_item_point(sheet,'点号',from_last_search=False)
 			if obser_col == None:
@@ -521,36 +535,49 @@ class MyDocx(object):
 			if obser_col == 3:
 				col_alpha = 'C'
 			if obser_col == 4:
-				co_alpha = 'D'
+				col_alpha = 'D'
 			if obser_col == None:
 				printl("Error, {}无观测点列!".format(sheet))
 				printl("%f@"%(sub_v_percent))
 				continue
 
 			#获取当天的数据
+			#获取当天值这一列的坐标
 			today_col,today_row = px.get_item_point(sheet, self.date)
 			if today_col == None:
-				printl("Warning, {}的区间{}没有当天值!".format(sheet,area_name))
+				printl("Warning, {}的区间{}没有当天值列!".format(sheet,area_name))
 				printl("%f@"%(sub_v_percent))
 				continue
+			#获取当天数据列
 			today_range_values = px.get_range_values(sheet, area_name, today_col)
-			#print("DEBUG today_range_values:",today_range_values)
+			#print("DEBUG sheet:{}, today_range_values:{}".format(sheet,today_range_values))
+
+			#如果所有值都为空就略过这一行的填写
+			if len(set(today_range_values)) == 1 and  None in today_range_values:
+				continue
 
 			#寻找前一天数据
 			last_date = px.get_value(sheet, today_row, today_col-1)
 			#print("DEBUG 前一天列坐标:'{}',值:'{}',值类型'{}'".format(today_col-1,last_date,str(type(last_date))))
 			if 'datetime' in str(type(last_date)):
 				last_range_values = px.get_range_values(sheet, area_name, today_col-1)
-			#前面一列不是日期值，表示昨天值不存在
+				if len(set(last_range_values)) == 1 and None in last_range_values:
+					continue
 			else:
+			#前面一列不是日期值，表示昨天值不存在
 				last_range_values = None
+				#不存在就略过这一行的数据
+				continue
 			#print("DEBUG lastday_range_values:",last_range_values)
 
 			#找到其中绝对值最大为变化最大的
 			#在这里求变化量需要一个函数，如果轴力表是另外的算法的话
 			diff_original_values = (array(today_range_values, dtype=float) - \
 			array(last_range_values, dtype=float))*1000
-			#print("DEBUG diff:",diff_original_values)
+			#print("DEBUG 差值diff:",diff_original_values)
+			#如果都是nan就略过这一行的数据填写 
+			if isnan(diff_original_values).sum() == len(diff_original_values):
+				continue
 
 			#求出绝对值最大的值
 			#负值求abs会造成小数点后面数字很多，用round(x,2)只保留2位有效数
@@ -579,9 +606,12 @@ class MyDocx(object):
 					max_obser_list, max_change_values))
 			else:
 				print("warning, 没有最大值!")
+				#略过这一行的填写
+				continue
 				max_obser_list.append("nan")
 				max_change_values.append("nan")
 
+			count_num += 1
 			#新加一行，写入测量项目sheet，写入这个测量点id
 			row = t.add_row()
 			#监测项目
@@ -601,11 +631,14 @@ class MyDocx(object):
 			row.cells[3].text = ' '
 
 			#求本次累计值 = 当前值-初值+旧累计值
-			acc_values = []
-			acc_abs_values = []
+			acc_values = [] #累计变化量列表
+			acc_abs_values = [] #累计变化量绝对值列表
 			#获取'初值'这一列，在第3列
 			#获取当天的数据
 			init_col,init_row = px.get_item_point(sheet, '初值')
+			if init_col == None:
+				printl("Error, sheet:{}没有初值域名!".format(sheet))
+				continue
 			initial_range_values = px.get_range_values(sheet, area_name, init_col)
 			#printl("DEBUG '初始值列':{}".format(initial_range_values))
 			#获取'旧累计'这一列，在第4列
@@ -646,6 +679,7 @@ class MyDocx(object):
 						max_obser_list,max_acc_values))
 			else:
 					print("warning, 没有最大累计值!")
+					continue
 					max_obser_list.append("nan")
 					max_acc_values.append("nan")				
 
@@ -668,6 +702,7 @@ class MyDocx(object):
 			#增加进度
 			printl("%f@"%(sub_v_percent))
 		#end for sheet in related_sheets
+
 
 		#爆破振动 行
 		row = t.add_row()
@@ -693,7 +728,7 @@ class MyDocx(object):
 			tr = row._tr
 			trPr = tr.get_or_add_trPr()
 			trHeight = OxmlElement('w:trHeight')
-			trHeight.set(qn('w:val'), "500")
+			trHeight.set(qn('w:val'), "480")
 			trHeight.set(qn('w:hRule'), "atLeast")
 			trPr.append(trHeight)
 
@@ -712,7 +747,13 @@ class MyDocx(object):
 					p.style = d.styles["my_song_style"]
 					if i >= last_three:
 						p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
-		return
+
+
+		#如果>0表示写了有效行的信息，否则返回False删除这个表，和表头
+		if count_num > 0:
+			return True,t
+		else:
+			return False,t
 	##########one_overview_table()###############################
 
 
@@ -755,38 +796,33 @@ class MyDocx(object):
 
 		#表标题
 		table_cap = "监测数据分析表"
-		i = 0
 		total_num = len(areas)
 		count_num = 0
 		v_percent = 12/total_num
+		is_written = False
 		for area_name in areas:
 			count_num += 1
 			#test debug only one area
-			if True or '衡山路站' in area_name:
+			#if '衡山路站' in area_name:
+			if True:
 				printl("[{}/{}]数据分析表:'{}'".format(\
 					count_num, total_num, area_name))
-				i += 1
-				ss = '表' + '%d'%i + area_name + table_cap
+				ss = '表' + '%d'%count_num + area_name + table_cap
 				p = d.add_paragraph()
 				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 				p.paragraph_format.space_before = Pt(12)
 				p.paragraph_format.space_after = Pt(2)
 				r = p.add_run(ss)
 				r.font.size = Pt(12)
-				self.one_overview_table(area_name,v_percent)
 
-			#Test open to all	
-			else:
-				pass
-				'''
-				i += 1
-				ss = '表' + '%d'%i + area_name + table_cap
-				d.add_paragraph(ss).paragraph_format.alignment = \
-				WD_ALIGN_PARAGRAPH.CENTER
-				self.one_overview_table(area_name)
-				'''
-				printl("%f@"%(v_percent))
+				is_written,t = self.one_overview_table(area_name,v_percent)
+				if not is_written:
+					#删除表和表头
+					delete_item(t)
+					delete_item(p)
+					count_num -= 1
 
+			#每两个表一个页面
 			if count_num %2 == 0 and count_num < total_num:
 				d.add_page_break()
 
@@ -1985,7 +2021,7 @@ def thread_test():
 def run_test():
 
 	print("Start Test")
-	xlsx_path = r'C:\Users\tarzonz\Desktop\演示工程A\一二工区计算表2018.1.1.xlsx' 
+	xlsx_path = r'C:\Users\tarzonz\Desktop\演示工程A\一二工区计算表2018.1.1_da.xlsx' 
 	docx_path = r'C:\Users\tarzonz\Desktop\演示工程A\demo1.docx'
 	date_v = '2018/1/1'
 	date_v = datetime.strptime(date_v, '%Y/%m/%d')

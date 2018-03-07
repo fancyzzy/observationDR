@@ -138,6 +138,7 @@ class MyXlsx(object):
 		from_last_search true:从右边最大列往第一列找，false: 反向
 		output:
 		列坐标,行坐标
+		目前仅从1到5行搜索相关的域名
 		'''
 		start = 0
 		end = 0
