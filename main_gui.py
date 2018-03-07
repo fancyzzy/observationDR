@@ -425,7 +425,7 @@ class MyTop(object):
 
 		#debug percentage not 100%
 		self.prog.p_bar["value"]=100.
-
+		table_num = my_docx.get_table_num()
 
 		end = clock()
 		interval = end - start
@@ -436,7 +436,7 @@ class MyTop(object):
 		print("DEBUG s_interval =",s_interval)
 
 		if result:
-			s = "生成日报文件成功! 用时: %s\n %s"%(s_interval,docx_path)
+			s = "生成日报文件成功!\n表格: %d个\n用时: %s\n %s"%(table_num,s_interval,docx_path)
 			print(s)
 			self.popup_window(s)
 		else:

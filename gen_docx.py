@@ -126,6 +126,8 @@ class MyDocx(object):
 
 	#########__init__()#####################################
 
+	def get_table_num(self):
+		return len(self.docx.tables)
 
 	def gen_docx(self):
 		'''
@@ -824,6 +826,9 @@ class MyDocx(object):
 			#每两个表一个页面
 			if count_num %2 == 0 and count_num < total_num and is_written:
 				d.add_page_break()
+
+		if count_num %2 !=0:
+			d.add_page_break()
 
 		###new page###########
 		#d.add_page_break()
