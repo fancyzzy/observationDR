@@ -22,6 +22,7 @@ from docx.oxml.ns import qn
 import os
 from datetime import datetime
 from collections import namedtuple
+from copy import deepcopy
 from numpy import array
 from numpy import isnan
 from numpy import nan
@@ -154,6 +155,7 @@ class MyDocx(object):
 			printl("1@ 生成首页")
 			pass
 
+		'''	
 
 		#数据汇总分析页****
 		#12 percentage
@@ -163,7 +165,6 @@ class MyDocx(object):
 		else:
 			self.docx.save(self.path)
 
-		'''
 
 		#页面布局为横向
 		new_section = self.docx.add_section(WD_SECTION.NEW_PAGE)
@@ -197,6 +198,7 @@ class MyDocx(object):
 		new_section.header_distance = Cm(1)
 		new_section.footer_distance = Cm(1)
 
+		'''
 		#沉降监测表页
 		#45 percent in pages
 		printl("\n###4. 沉降监测报表###")
@@ -206,6 +208,7 @@ class MyDocx(object):
 		else:
 			self.docx.save(self.path)
 
+		'''	
 		#测斜监测表页
 		#35 percent in pages
 		printl("\n###5. 测斜监测报表###")
@@ -1064,7 +1067,7 @@ class MyDocx(object):
 
 		today_values = px.get_range_values(sheet, area_name, today_col_index)
 		date_list.append(self.date)
-		value_list.append(array(today_values,dtype=float))
+		value_list.append(today_values)
 		already_number = 1
 		col_index = today_col_index
 		#如果不够7天的数据，直到找到不为日期那一天为止
@@ -1075,7 +1078,7 @@ class MyDocx(object):
 				break
 			lastday_values = px.get_range_values(sheet, area_name, col_index)
 			date_list.append(px.get_value(sheet, today_row_index, col_index))
-			value_list.append(array(lastday_values,dtype=float))
+			value_list.append(lastday_values)
 			already_number += 1
 			if already_number == needed_num:
 				break
@@ -1352,6 +1355,48 @@ class MyDocx(object):
 				if old_acc_values[i] == None:
 					old_acc_values[i] = 0
 
+
+			######################################
+			#筛选出当天值非None的观测点，填写
+			today_values = []
+			today_col, _ = px.get_item_point(sheet, self.date)
+			if today_col == None:
+				printl("Error, 没有{}当天值列,略过该表!".format(self.date))
+				continue
+
+			today_values = px.get_range_values(sheet, area_name, today_col)
+			if len(set(today_values)) == 1 and None in today_values:
+				printl("Warning, 当天没有有效值，略过该表!")
+				continue
+
+			c_row_list = deepcopy(row_list)
+			c_value_list = deepcopy(value_list)
+			c_initial_values = deepcopy(initial_values)
+			c_old_acc_values = deepcopy(old_acc_values)
+
+			avail_index = []
+			ln_today_values = len(today_values)
+			for i in range(ln_today_values):
+				if today_values[i] != None:
+					avail_index.append(i)
+
+			#只保留非None的数据
+			row_list = [c_row_list[i] for _,i in enumerate(avail_index)]
+			initial_values = [c_initial_values[i] for _,i in enumerate(avail_index)]
+			old_acc_values = [c_old_acc_values[i] for _,i in enumerate(avail_index)]
+			value_list = []
+			for item in c_value_list:
+				new_item = [item[i] for _,i in enumerate(avail_index)]
+				value_list.append(new_item)
+
+			#如果全部为nan，则略过这个表
+			if len(row_list) == 0:
+				print("所有点都没有有效值，略过该表")
+				continue
+			#######################################
+
+
+
 			#计算每个表能填多少个观测点
 			'''
 			监测点号一边8个，共两边，按照总监测点是16的x倍数，
@@ -1533,15 +1578,12 @@ class MyDocx(object):
 		for area_name in areas:
 			count_num += 1
 			#test debug only one area
-			if True or '衡山路站' in area_name:
+			#if '衡山路站' in area_name:
+			if True:
 				printl("[{}/{}]沉降监测表:'{}'".format(\
 					count_num, total_num, area_name))		
 				self.multi_settlement_table(area_name,v_percent)
-			#Test open to all	
-			else:
-				pass
-				#self.multi_settlement_table(area_name)
-				print("%f@"%(v_percent))
+
 
 		result = True
 		return result
