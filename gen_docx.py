@@ -155,7 +155,6 @@ class MyDocx(object):
 			printl("1@ 生成首页")
 			pass
 
-		'''	
 
 		#数据汇总分析页****
 		#12 percentage
@@ -198,7 +197,6 @@ class MyDocx(object):
 		new_section.header_distance = Cm(1)
 		new_section.footer_distance = Cm(1)
 
-		'''
 		#沉降监测表页
 		#45 percent in pages
 		printl("\n###4. 沉降监测报表###")
@@ -208,7 +206,6 @@ class MyDocx(object):
 		else:
 			self.docx.save(self.path)
 
-		'''	
 		#测斜监测表页
 		#35 percent in pages
 		printl("\n###5. 测斜监测报表###")
@@ -257,7 +254,6 @@ class MyDocx(object):
 		else:
 			printl("2@ 生成平面布点图")
 			pass
-		'''
 
 		#保存
 		self.docx.save(self.path)
@@ -826,11 +822,11 @@ class MyDocx(object):
 					count_num -= 1
 
 			#每两个表一个页面
-			if count_num %2 == 0 and count_num < total_num:
+			if count_num %2 == 0 and count_num < total_num and is_written:
 				d.add_page_break()
 
 		###new page###########
-		d.add_page_break()
+		#d.add_page_break()
 		p = d.add_paragraph()
 		r = p.add_run("三、结论")
 		r.bold = True
@@ -1721,12 +1717,13 @@ class MyDocx(object):
 		inc_sheet = ''
 
 		for sheet_name in px.sheets:
-			if '测斜' in sheet_name:
+			if '孔深测斜' in sheet_name:
 				inc_sheet = sheet_name
 				#以第二列点号为锚点，找每个点号的深度范围
 				obser_col,obser_row = px.get_item_point(sheet_name,'点号',from_last_search=False)
 				if obser_col == None:
 					obser_col,obser_row = px.get_item_point(sheet,'测点',from_last_search=False)
+				#所有点号深度的行范围字典
 				d_obser_deeps = px.get_one_sheet_areas_range(sheet_name,obser_col,obser_row+1)
 				break
 
@@ -1739,21 +1736,21 @@ class MyDocx(object):
 		#获取区间和观测点的字典:
 		#d_area_obser = {'area1':('observer1','observ2','observer3'..),..}
 		d_area_obser = {}
-		tmp_l = []
+		obser_list = []
 		for area_name in px.all_areas_row_range[inc_sheet].keys():
 			start, end = px.all_areas_row_range[inc_sheet][area_name]
 			for i in range(start, end+1):
 				#获取第二列点号的值
-				ss = px.get_value(inc_sheet, i, 2)
-				if ss != None:
-					tmp_l.append(ss)
+				obser_name = px.get_value(inc_sheet, i, 2)
+				if obser_name != None:
+					obser_list.append(obser_name)
 				else:
 					continue
-			if len(tmp_l)>0:
-				d_area_obser[area_name] = tmp_l[:]
-				tmp_l[:] = []
+			if len(obser_list)>0:
+				d_area_obser[area_name] = obser_list[:]
+				obser_list[:] = []
 		total_area_num = len(d_area_obser.keys())
-		print("共有区间{}, 对应观测点:{}".format(total_area_num,d_area_obser))
+		print("孔深测斜表共有区间{}, 对应观测点:{}".format(total_area_num,d_area_obser))
 
 		#找到当天日期,初值，旧累计所在的列坐标
 		init_col, _ = px.get_item_point(inc_sheet, '初值', False)
@@ -1783,6 +1780,21 @@ class MyDocx(object):
 			obser_list = d_area_obser[area_name]
 			printl("[{}/{}]测斜监测表:'{}'".format(count_num, total_area_num, \
 				area_name))
+
+			##############################
+			#筛选，去掉当天值全是nan的点号
+			c_obser_list = deepcopy(obser_list)
+
+			for obser in c_obser_list:
+				start_row, end_row = d_obser_deeps[obser]
+				row_list = list(range(start_row, end_row+1))
+				_, today_values = px.get_avail_rows_values(inc_sheet, row_list,\
+						today_col, accept_none=False)
+				if len(today_values) == 0:
+					print("略过观测点:{}".format(obser))
+					obser_list.remove(obser)
+			##############################
+
 			ln = len(obser_list)
 			table_num = 0
 			if ln/2 > ln//2:
@@ -1821,13 +1833,13 @@ class MyDocx(object):
 					row_list = list(range(start_row, end_row+1))
 		
 					#找到这个观测点对应行数范围内深度的数据
-					_, deep_values = px.get_avail_rows_values(sheet_name, row_list,\
+					_, deep_values = px.get_avail_rows_values(inc_sheet, row_list,\
 					deep_col, False)
 					#找这两个观测点的最大深度
 					if len(deep_values) > len(max_deep_values):
 						max_deep_values = deep_values
 					#初值
-					_, init_values = px.get_avail_rows_values(sheet_name, row_list,\
+					_, init_values = px.get_avail_rows_values(inc_sheet, row_list,\
 					init_col, False)
 					if (len(init_values)!=len(row_list)) or (len(deep_values)!=\
 						len(row_list)):
@@ -1839,7 +1851,7 @@ class MyDocx(object):
 						pass
 
 					#旧累计, true 可以接受None
-					_, old_acc_values = px.get_avail_rows_values(sheet_name, row_list,\
+					_, old_acc_values = px.get_avail_rows_values(inc_sheet, row_list,\
 					old_acc_col, True)
 					#处理旧累计，如果为None就设为0
 					ln_old_acc = len(old_acc_values)
@@ -1848,12 +1860,12 @@ class MyDocx(object):
 							old_acc_values[i] = 0
 
 					#当天数据
-					_, today_values = px.get_avail_rows_values(sheet_name, row_list,\
+					_, today_values = px.get_avail_rows_values(inc_sheet, row_list,\
 					today_col, True)
 					#寻找前一天数据
-					last_date = px.get_value(sheet_name, today_row, today_col-1)
+					last_date = px.get_value(inc_sheet, today_row, today_col-1)
 					if 'datetime' in str(type(last_date)):
-						_, lastday_values = px.get_avail_rows_values(sheet_name, row_list,\
+						_, lastday_values = px.get_avail_rows_values(inc_sheet, row_list,\
 					today_col-1, True)
 					#前面一列不是日期值，表示昨天值不存在
 					else:
@@ -1871,6 +1883,7 @@ class MyDocx(object):
 					d_obser_data[obser] = obser_data
 					obser_data = []
 				#end获取数据 
+
 
 				#页面头信息
 				d.add_page_break()

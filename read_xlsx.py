@@ -34,11 +34,23 @@ class MyXlsx(object):
 		print(self.all_areas_row_range)
 
 		#疑问，是否可以用地表沉降的区间作为全部区间?
+		#不一定，通过对比set找到所有不同区间集合
 		#获得'地表沉降'页的A列元素, 作为总区间汇总
 		#['area1','area2','area3',...'area8']
+		all_areas = []
+		for sheet in self.all_areas_row_range.keys():
+			all_areas.extend(self.all_areas_row_range[sheet].keys())
+		all_areas = list(set(all_areas))
+		print("DEBUG all_areas=",all_areas)
+		print("DEBUG set(all_areas):{}".format(set(all_areas)))
+
 		sheet_name = '地表沉降'
 		d_areas = self.all_areas_row_range[sheet_name]
 		self.areas = list(d_areas.keys())
+		if len(self.areas) < len(all_areas):
+			print("DEBUG 有不在地表沉降范围内的区间:{}".\
+				format(set(all_areas)-set(self.areas)))
+			self.areas = all_areas
 		print("共有{}个区间:'{}'".format(len(self.areas),self.areas))
 	##################__init__()##############################	
 
@@ -69,7 +81,7 @@ class MyXlsx(object):
 
 	def get_one_sheet_areas_range(self, sheet_name,target_col=1,from_row=1):
 		'''
-		获取一个sheet的所有区间的行范围
+		获取一个sheet的所有区间(target_col=1)的行范围
 		input:
 		sheet_name 页名
 		target_col 以哪一列为进准，根据初值列是否有值，判定找这个列的行范围
@@ -97,6 +109,7 @@ class MyXlsx(object):
 		len_max_rows = len(tuple(sheet.rows)) + 1+ 10
 		for i in range(from_row, len_max_rows):
 			#表格格式注意, 区间必须是在A列, A列开始为空
+			#以target_col+1是否有值来
 			v_1_col = sheet.cell(row=i, column=target_col).value
 			v_2_col = sheet.cell(row=i, column=target_col+1).value
 			v_init = sheet.cell(row=i, column=init_col).value
@@ -117,6 +130,7 @@ class MyXlsx(object):
 			elif v_1_col == None and v_2_col == None and start_count\
 			and v_init == None:
 				sheet_areas_range[area_name] = (start,i-1)
+				#不支持空行
 				break
 
 			else:
@@ -233,7 +247,7 @@ class MyXlsx(object):
 if __name__ == '__main__':
 
 	print("start")
-	xlsx_path = r"C:\Users\tarzonz\Desktop\演示工程A\一二工区计算表2018.1.1.xlsx"
+	xlsx_path = r"C:\Users\tarzonz\Desktop\演示工程A\一二工区计算表2018.1.1_da.xlsx"
 	#wrong path test
 	#xlsx_path = r"C:\Users\tarzonz\Desktop\演示工程A\abc一二工区计算表2018.1.1.xlsx"
 
