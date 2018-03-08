@@ -158,6 +158,7 @@ class MyDocx(object):
 			pass
 
 
+		'''
 		#数据汇总分析页****
 		#12 percentage
 		printl("\n###2. 监测数据分析表###")
@@ -166,7 +167,6 @@ class MyDocx(object):
 		else:
 			self.docx.save(self.path)
 
-		'''
 
 		#页面布局为横向
 		new_section = self.docx.add_section(WD_SECTION.NEW_PAGE)
@@ -200,6 +200,7 @@ class MyDocx(object):
 		new_section.header_distance = Cm(1)
 		new_section.footer_distance = Cm(1)
 
+		'''
 		#沉降监测表页
 		#45 percent in pages
 		printl("\n###4. 沉降监测报表###")
@@ -209,6 +210,7 @@ class MyDocx(object):
 		else:
 			self.docx.save(self.path)
 
+		'''
 		#测斜监测表页
 		#35 percent in pages
 		printl("\n###5. 测斜监测报表###")
@@ -1157,6 +1159,10 @@ class MyDocx(object):
 
 		t = d.add_table(rows=13, cols=10, style='settlement_table')
 
+		t_string = '沉降变化量(mm)'
+		if '建筑物倾斜' in sheet:
+			t_string = '位移变化量(‰)'
+
 		t.cell(0,0).merge(t.cell(0,9))
 		s1 = "仪器型号："
 		s2 = " "*25 + "仪器出厂编号："
@@ -1165,13 +1171,13 @@ class MyDocx(object):
 		t.cell(1,0).merge(t.cell(2,0))
 		t.cell(1,1).merge(t.cell(1,3))
 		t.cell(1,0).text = '监测\n点号'
-		t.cell(1,1).text = '沉降变化量(mm)'
+		t.cell(1,1).text = t_string
 		t.cell(1,4).merge(t.cell(2,4))
 		t.cell(1,4).text = '备注'
 		t.cell(1,5).merge(t.cell(2,5))
 		t.cell(1,5).text = '监测\n点号'
 		t.cell(1,6).merge(t.cell(1,8))
-		t.cell(1,6).text = '沉降变化量(mm)'
+		t.cell(1,6).text = t_string
 		t.cell(1,9).merge(t.cell(2,9))
 		t.cell(1,9).text = '备注'
 
@@ -1199,29 +1205,34 @@ class MyDocx(object):
 
 		if ln_date > 2:
 			#今天和昨天差值 = 本次变量
-			today_diff_array =(value_list[0] - value_list[1])*1000
+			#today_diff_array =(value_list[0] - value_list[1])*1000
+			today_diff_array = self.get_diff_values(sheet, value_list[0], value_list[1])
 			today_diff = list(map(lambda x:round(x,2),today_diff_array))
 			this_diffs = array(today_diff)
 
 			#昨天和前天差值 = 上次变量
-			lastday_diff_array = (value_list[1] - value_list[2])*1000
+			#lastday_diff_array = (value_list[1] - value_list[2])*1000
+			lastday_diff_array = self.get_diff_values(sheet, value_list[1], value_list[2])
 			lastday_diff = list(map(lambda x:round(x,2),lastday_diff_array))
 			last_diffs = array(lastday_diff)
 
 			#今天和初值差值加旧累计 = 累计变量
-			today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
+			#today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
+			today_acc_diff_array = self.get_acc_values(sheet, value_list[0], init_values, old_acc_values)
 			today_acc_diff = list(map(lambda x:round(x,2),today_acc_diff_array))
 			this_acc_diffs = array(today_acc_diff)
 
 		elif ln_date ==2:
 
 			#今天和昨天差值 = 本次变量
-			today_diff_array =(value_list[0] - value_list[1])*1000
+			#today_diff_array =(value_list[0] - value_list[1])*1000
+			today_diff_array = self.get_diff_values(sheet, value_list[0], value_list[1])
 			today_diff = list(map(lambda x:round(x,2),today_diff_array))
 			this_diffs = array(today_diff)
 
 			#今天和初值差值加旧累计 = 累计变量
-			today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
+			#today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
+			today_acc_diff_array = self.get_acc_values(sheet, value_list[0], init_values, old_acc_values)
 			today_acc_diff = list(map(lambda x:round(x,2),today_acc_diff_array))
 			this_acc_diffs = array(today_acc_diff)
 
@@ -1230,7 +1241,8 @@ class MyDocx(object):
 
 		elif ln_date == 1:
 			#今天和初值差值加旧累计 = 累计变量
-			today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
+			#today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
+			today_acc_diff_array = self.get_acc_values(sheet, value_list[0], init_values, old_acc_values)
 			today_acc_diff = list(map(lambda x:round(x,2),today_acc_diff_array))
 			this_acc_diffs = array(today_acc_diff)
 
@@ -1244,6 +1256,13 @@ class MyDocx(object):
 			last_diffs = array([None for x in range(ln_row)],dtype=float)
 		#print("DEBUG this_acc_diffs=",this_acc_diffs)
 
+		#以第二列点号为锚点，找每个点号的深度范围
+		obser_col,_ = px.get_item_point(sheet,'点号',from_last_search=False)
+		if obser_col == None:
+			obser_col,_ = px.get_item_point(sheet,'测点',from_last_search=False)
+			if obser_col == None:
+				print("Error, 没有点号列!")
+
 		#表格变化值填写
 		base_index = 3
 		for i in range(cell_row):
@@ -1251,7 +1270,11 @@ class MyDocx(object):
 			if ln_row < cell_row and i == ln_row:
 				break
 			#监测点号, 注意表格格式，直接从第二列获取
-			t.cell(base_index+i,0).text = px.get_value(sheet,row_list[i],2)
+			if obser_col != None:
+				obser_name = px.get_value(sheet,row_list[i],obser_col)
+			else:
+				obser_name = 'Error'
+			t.cell(base_index+i,0).text = obser_name
 			#上次变量
 			t.cell(base_index+i,1).text = str(last_diffs[i])
 			#本次变量
@@ -1261,21 +1284,30 @@ class MyDocx(object):
 			#另外一侧的表格
 			j = i+cell_row
 			if ln_row > j:
-				t.cell(base_index+i,5).text = px.get_value(sheet, row_list[j],2)
+				if obser_col != None:
+					obser_name = px.get_value(sheet,row_list[j],obser_col)
+				else:
+					obser_name = 'Error'
+				t.cell(base_index+i,5).text = obser_name
 				t.cell(base_index+i,6).text = str(last_diffs[j])
 				t.cell(base_index+i,7).text = str(this_diffs[j])
 				t.cell(base_index+i,8).text = str(this_acc_diffs[j])
 
 		all_acc_diffs = []
-		all_acc_diffs = (array(value_list, dtype=float) - \
-			array(init_values,dtype=float))*1000 + old_acc_values
+		#all_acc_diffs = (array(value_list, dtype=float) - \
+		#	array(init_values,dtype=float))*1000 + old_acc_values
+		all_acc_diffs = self.get_acc_values(sheet, value_list, init_values, old_acc_values)
 
 		t.cell(11,0).text = '累计变化量曲线图'
 		t.cell(11,1).merge(t.cell(11,9))
 
 		idx_list = []
 		for row_idx in row_list:
-			idx_list.append(px.get_value(sheet,row_idx,2))
+			if obser_col != None:
+				obser_name = px.get_value(sheet,row_idx,obser_col)
+			else:
+				obser_name = 'Error'
+			idx_list.append(obser_name)
 
 		#画图
 		try:
@@ -1364,7 +1396,8 @@ class MyDocx(object):
 		for sheet in related_sheets:
 			count_num += 1
 			#略过这几个观测sheet，excel表格有疑问
-			if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
+			#if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
+			if sheet == '安薛区间混撑' or\
 				 sheet == '支撑轴力':
 				print("略过{}".format(sheet))
 				printl("%f@"%(v_percent))
@@ -1781,7 +1814,9 @@ class MyDocx(object):
 		#d_obser_deeps={'observer1:(3,33),'observer2:(34:74),...}
 		d_obser_deeps = {}
 		inc_sheet = ''
+		obser_col = None
 
+		#找到孔深测斜表
 		for sheet_name in px.sheets:
 			if '孔深测斜' in sheet_name:
 				inc_sheet = sheet_name
@@ -1807,7 +1842,7 @@ class MyDocx(object):
 			start, end = px.all_areas_row_range[inc_sheet][area_name]
 			for i in range(start, end+1):
 				#获取第二列点号的值
-				obser_name = px.get_value(inc_sheet, i, 2)
+				obser_name = px.get_value(inc_sheet, i, obser_col)
 				if obser_name != None:
 					obser_list.append(obser_name)
 				else:
