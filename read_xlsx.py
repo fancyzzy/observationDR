@@ -31,7 +31,10 @@ class MyXlsx(object):
 		#{'sheet1':{'area1':(1,10), 'area2':(11,15),...}, 'sheet2':{'area4':(1,23)}}
 		self.all_areas_row_range = self.get_all_sheets_areas_range()
 		print("观测点范围:")
-		print(self.all_areas_row_range)
+		for sheet in self.all_areas_row_range:
+			print("{}: ".format(sheet))
+			print(self.all_areas_row_range[sheet])
+		#print(self.all_areas_row_range)
 
 		#疑问，是否可以用地表沉降的区间作为全部区间?
 		#不一定，通过对比set找到所有不同区间集合
@@ -41,15 +44,18 @@ class MyXlsx(object):
 		for sheet in self.all_areas_row_range.keys():
 			all_areas.extend(self.all_areas_row_range[sheet].keys())
 		all_areas = list(set(all_areas))
-		print("DEBUG all_areas=",all_areas)
-		print("DEBUG set(all_areas):{}".format(set(all_areas)))
 
-		sheet_name = '地表沉降'
-		d_areas = self.all_areas_row_range[sheet_name]
-		self.areas = list(d_areas.keys())
-		if len(self.areas) < len(all_areas):
-			print("DEBUG 有不在地表沉降范围内的区间:{}".\
-				format(set(all_areas)-set(self.areas)))
+		self.areas = []
+		try:
+			sheet_name = '地表沉降'
+			d_areas = self.all_areas_row_range[sheet_name]
+			self.areas = list(d_areas.keys())
+			if len(self.areas) < len(all_areas):
+				print("DEBUG 有不在地表沉降范围内的区间:{}".\
+					format(set(all_areas)-set(self.areas)))
+				self.areas = all_areas
+		except:
+			print("没有地表沉降")
 			self.areas = all_areas
 		print("共有{}个区间:'{}'".format(len(self.areas),self.areas))
 	##################__init__()##############################	

@@ -1186,6 +1186,7 @@ class MyDocx(object):
 			this_diffs = array([None for x in range(ln_row)],dtype=float)
 			last_diffs = array([None for x in range(ln_row)],dtype=float)
 			last_diffs = array([None for x in range(ln_row)],dtype=float)
+		#print("DEBUG this_acc_diffs=",this_acc_diffs)
 
 		#表格变化值填写
 		base_index = 3
@@ -1374,6 +1375,10 @@ class MyDocx(object):
 			c_value_list = deepcopy(value_list)
 			c_initial_values = deepcopy(initial_values)
 			c_old_acc_values = deepcopy(old_acc_values)
+
+			#print("DEBUG today_values=",today_values)
+			#print("DEBUG initial_values=",initial_values)
+			#print("DEBUG old_acc_values=",old_acc_values)
 
 			avail_index = []
 			ln_today_values = len(today_values)

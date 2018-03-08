@@ -254,9 +254,8 @@ class MyTop(object):
 		'''
 		根据选择的工程文件，显示工程
 		'''
-		print("DEBUG display_project")
 		project_path = self.p_name.get()
-		print("DEBUG project_path=",project_path)
+		print("DEBUG display_project:",project_path)
 		if project_path and os.path.exists(project_path):
 			self.my_proj = MyPro(self.top, project_path)
 		else:
@@ -433,7 +432,6 @@ class MyTop(object):
 		s_min = interval/60
 		s_sec = interval%60.00
 		s_interval = "%d分%.2f秒"%(s_min,s_sec)
-		print("DEBUG s_interval =",s_interval)
 
 		if result:
 			s = "生成日报文件成功!\n表格: %d个\n用时: %s\n %s"%(table_num,s_interval,docx_path)
