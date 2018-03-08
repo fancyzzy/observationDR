@@ -166,6 +166,7 @@ class MyDocx(object):
 		else:
 			self.docx.save(self.path)
 
+		'''
 
 		#页面布局为横向
 		new_section = self.docx.add_section(WD_SECTION.NEW_PAGE)
@@ -256,6 +257,7 @@ class MyDocx(object):
 		else:
 			printl("2@ 生成平面布点图")
 			pass
+		'''
 
 		#保存
 		self.docx.save(self.path)
@@ -479,6 +481,48 @@ class MyDocx(object):
 	##################make_header_pages()################	
 
 
+	def get_diff_values(self, sheet, l_values, r_values):
+		'''
+		diff_values = (l-values - r_values)*1000
+		根据不同的sheet，有不同的求差值的算法
+		'''
+		output_values = []
+
+		if '建筑物倾斜' in sheet:
+			output_values = (array(l_values, dtype=float) - \
+			array(r_values, dtype=float))/15*1000
+			#print("DEBUG diff_values: {} = ({} - {})/15*1000".\
+			#	format(output_values,l_values,r_values))
+		else:
+			output_values = (array(l_values, dtype=float) - \
+			array(r_values, dtype=float))*1000
+
+		return output_values
+	##########get_diff_values()###########################
+
+
+	def get_acc_values(self, sheet, l_values, r_values, o_acc_values):
+		'''
+		acc_values = (l_values - r_values)*1000 + o_acc_values
+		根据不同的sheet，有不同的求差值的算法
+		'''
+		output_values = []
+
+		if '建筑物倾斜' in sheet:
+			output_values = (array(l_values, dtype=float) - \
+			array(r_values, dtype=float))/15*1000 + array(o_acc_values,\
+			dtype=float)
+			#print("DEBUG acc_values: {} = ({} - {})/15*1000 + {}".\
+			#	format(output_values,l_values,r_values, o_acc_values))
+		else:
+			output_values = (array(l_values, dtype=float) - \
+			array(r_values, dtype=float))*1000 + array(o_acc_values,\
+			dtype=float)
+
+		return output_values
+	##########get_acc_values()###########################
+
+
 	def one_overview_table(self, area_name,v_percent):
 		'''
 		一个区间的各种观测监信息汇总表
@@ -512,12 +556,13 @@ class MyDocx(object):
 		sub_v_percent = v_percent/total_sheets_num
 		for sheet in related_sheets:
 			#略过这几个观测sheet，excel表格有疑问
-			if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
+			#if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
+			if sheet == '安薛区间混撑' or\
 			 sheet == '支撑轴力':
 				print("暂时略过观测项目",sheet)
 				printl("%f@"%(sub_v_percent))
 				continue
-			if '测斜' in sheet:
+			if '孔深测斜' in sheet:
 				printl("%f@"%(sub_v_percent))
 				continue
 
@@ -572,9 +617,8 @@ class MyDocx(object):
 			#print("DEBUG lastday_range_values:",last_range_values)
 
 			#找到其中绝对值最大为变化最大的
-			#在这里求变化量需要一个函数，如果轴力表是另外的算法的话
-			diff_original_values = (array(today_range_values, dtype=float) - \
-			array(last_range_values, dtype=float))*1000
+			diff_original_values = self.get_diff_values(sheet, today_range_values,\
+				last_range_values)
 			#print("DEBUG 差值diff:",diff_original_values)
 			#如果都是nan就略过这一行的数据填写 
 			if isnan(diff_original_values).sum() == len(diff_original_values):
@@ -652,9 +696,11 @@ class MyDocx(object):
 						old_acc_range_values[i] = 0
 			#printl("DEBUG '旧累计值列':{}".format(old_acc_range_values))
 			#这里是否需要另外的函数，如果轴力表的求累计变化量公式不一样
-			acc_values = (array(today_range_values, dtype=float) - \
-			array(initial_range_values, dtype=float))*1000 + array(old_acc_range_values,\
-			dtype=float)
+			acc_values = self.get_acc_values(sheet,today_range_values,\
+				initial_range_values, old_acc_range_values)
+			#acc_values = (array(today_range_values, dtype=float) - \
+			#array(initial_range_values, dtype=float))*1000 + array(old_acc_range_values,\
+			#dtype=float)
 			#printl("DEBUG '本次累计值列':{}".format(acc_values))
 			acc_abs_values = [round(abs(v),2) for v in acc_values]
 			max_acc = get_max(acc_abs_values)
@@ -798,13 +844,14 @@ class MyDocx(object):
 		#表标题
 		table_cap = "监测数据分析表"
 		total_num = len(areas)
-		count_num = 0
+		count_num = 1
 		v_percent = 12/total_num
 		is_written = False
 		for area_name in areas:
-			count_num += 1
+			print("area:'%s'",area_name)
 			#test debug only one area
 			#if '衡山路站' in area_name:
+			#if '天目山路站' in area_name or '安薛区间' in area_name:
 			if True:
 				printl("[{}/{}]数据分析表:'{}'".format(\
 					count_num, total_num, area_name))
@@ -821,13 +868,22 @@ class MyDocx(object):
 					#删除表和表头
 					delete_item(t)
 					delete_item(p)
-					count_num -= 1
+				else:
+					count_num += 1
+					print("DEBUG count_num++ :",count_num)
 
-			#每两个表一个页面
-			if count_num %2 == 0 and count_num < total_num and is_written:
+
+			#每写完两个表的时候，换页
+			#最后一次不换页
+			if count_num != 1 and (count_num-1) %2 == 0  and is_written:
+				print("DEBUG new_page break(),count_num={}, area_name={}".\
+					format(count_num,area_name))
 				d.add_page_break()
 
-		if count_num %2 !=0:
+		#最后一次如果不满偶数，也要换页
+		if (count_num -1) %2 != 0:
+			print("DEBUG new_page break(),count_num={}".\
+					format(count_num))
 			d.add_page_break()
 
 		###new page###########
