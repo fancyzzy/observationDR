@@ -157,7 +157,6 @@ class MyDocx(object):
 			printl("1@ 生成首页")
 			pass
 
-		'''
 
 		#数据汇总分析页****
 		#12 percentage
@@ -200,7 +199,6 @@ class MyDocx(object):
 		new_section.header_distance = Cm(1)
 		new_section.footer_distance = Cm(1)
 
-		'''
 		#沉降监测表页
 		#45 percent in pages
 		printl("\n###4. 沉降监测报表###")
@@ -210,7 +208,6 @@ class MyDocx(object):
 		else:
 			self.docx.save(self.path)
 
-		'''
 		#测斜监测表页
 		#35 percent in pages
 		printl("\n###5. 测斜监测报表###")
@@ -259,7 +256,6 @@ class MyDocx(object):
 		else:
 			printl("2@ 生成平面布点图")
 			pass
-		'''
 
 		#保存
 		self.docx.save(self.path)
@@ -522,7 +518,6 @@ class MyDocx(object):
 			else:
 				for i in range(start_row, end_row+1):
 					before_values.append(sh.cell(i, before_col).value)
-			print("DEBUG 支撑轴力, 埋设前:{}".format(before_values))
 
 			factor_values = []
 			factor_col,_ = px.get_item_point(sheet, '率定系数', from_last_search=False)
@@ -532,7 +527,6 @@ class MyDocx(object):
 			else:
 				for i in range(start_row, end_row+1):
 					factor_values.append(sh.cell(i, factor_col).value)
-			print("DEBUG 支撑轴力, 率定系数:{}".format(factor_values))
 
 			tmp_values = []
 			#当天值和埋设前的平法差再乘以率定系数
@@ -584,13 +578,16 @@ class MyDocx(object):
 			output_values = (array(l_values, dtype=float) - \
 			array(r_values, dtype=float))/15*1000 + array(o_acc_values,\
 			dtype=float)
-			#print("DEBUG acc_values: {} = ({} - {})/15*1000 + {}".\
-			#	format(output_values,l_values,r_values, o_acc_values))
+			print("DEBUG 建筑物倾斜 累计变化量 acc_values: {} = ({} - {})/15*1000 + {}".\
+				format(output_values,l_values,r_values, o_acc_values))
 
 		elif '支撑轴力' in sheet:
 			output_values = (array(l_values, dtype=float) - \
 			array(r_values, dtype=float)) + array(o_acc_values,\
 			dtype=float)
+			print("DEBUG 支撑轴力 本次轴力:",l_values)
+			print("DEBUG 支撑轴力 初始轴力:",r_values)
+			print("DEBUG 支撑轴力 旧累计:",o_acc_values)
 			print("DEBUG 支撑轴力 累计变化量:",output_values)
 
 
@@ -765,11 +762,11 @@ class MyDocx(object):
 			#获取'旧累计'这一列，在第4列
 			old_acc_col,_ = px.get_item_point(sheet, '旧累计')
 			if old_acc_col != None:
-				old_acc_range_values = px.get_range_values(sheet, area_name, old_acc_col)
+				old_acc_range_values = self.get_col_values(sheet, area_name, old_acc_col)
 				#处理旧累计，如果为None就设为0
 				ln = len(old_acc_range_values)
 				for i in range(ln):
-						if old_acc_range_values[i] == None:
+						if isnan(old_acc_range_values[i]):
 							old_acc_range_values[i] = 0
 			else:
 				#支撑轴力表不存在旧累计列
@@ -1196,7 +1193,7 @@ class MyDocx(object):
 		if today_col_index == None:
 			return None, None, None
 
-		today_values = px.get_range_values(sheet, area_name, today_col_index)
+		today_values = self.get_col_values(sheet, area_name, today_col_index)
 		date_list.append(self.date)
 		value_list.append(today_values)
 		already_number = 1
@@ -1204,11 +1201,11 @@ class MyDocx(object):
 		#如果不够7天的数据，直到找到不为日期那一天为止
 		while 1:
 			col_index -= 1
-			v = px.get_value(sheet, today_row_index, col_index)
-			if not 'datetime' in str(type(v)):
+			v_date = px.get_value(sheet, today_row_index, col_index)
+			if not 'datetime' in str(type(v_date)):
 				break
-			lastday_values = px.get_range_values(sheet, area_name, col_index)
-			date_list.append(px.get_value(sheet, today_row_index, col_index))
+			date_list.append(v_date)
+			lastday_values = self.get_col_values(sheet, area_name, col_index)
 			value_list.append(lastday_values)
 			already_number += 1
 			if already_number == needed_num:
@@ -1229,42 +1226,80 @@ class MyDocx(object):
 		d = self.docx
 		px = self.my_xlsx
 
-		t = d.add_table(rows=13, cols=10, style='settlement_table')
+		col_num = 10
+		if '支撑轴力' in sheet:
+			col_num = 12
+
+		t = d.add_table(rows=13, cols=col_num, style='settlement_table')
 
 		t_string = '沉降变化量(mm)'
 		if '建筑物倾斜' in sheet:
 			t_string = '位移变化量(‰)'
+		elif '支撑轴力' in sheet:
+			t_string = '变化量(kN)'
 
-		t.cell(0,0).merge(t.cell(0,9))
-		s1 = "仪器型号："
-		s2 = " "*25 + "仪器出厂编号："
-		s3 = " "*25 + "检定日期："
-		t.cell(0,0).text = s1+s2+s3
-		t.cell(1,0).merge(t.cell(2,0))
-		t.cell(1,1).merge(t.cell(1,3))
-		t.cell(1,0).text = '监测\n点号'
-		t.cell(1,1).text = t_string
-		t.cell(1,4).merge(t.cell(2,4))
-		t.cell(1,4).text = '备注'
-		t.cell(1,5).merge(t.cell(2,5))
-		t.cell(1,5).text = '监测\n点号'
-		t.cell(1,6).merge(t.cell(1,8))
-		t.cell(1,6).text = t_string
-		t.cell(1,9).merge(t.cell(2,9))
-		t.cell(1,9).text = '备注'
-
-		t.cell(2,1).text = '上次\n变量'
-		t.cell(2,2).text = '本次\n变量'
-		t.cell(2,3).text = '累计\n变量'
-		t.cell(2,6).text = '上次\n变量'
-		t.cell(2,7).text = '本次\n变量'
-		t.cell(2,8).text = '累计\n变量'
+		if '支撑轴力' in sheet:
+			t.cell(0,0).merge(t.cell(0,11))
+			s1 = "仪器型号："
+			s2 = " "*25 + "仪器出厂编号："
+			s3 = " "*25 + "检定日期："
+			t.cell(0,0).text = s1+s2+s3
+			t.cell(1,0).merge(t.cell(2,0))
+			t.cell(1,1).merge(t.cell(1,4))
+			t.cell(1,0).text = '监测\n点号'
+			t.cell(1,1).text = t_string
+			t.cell(1,5).merge(t.cell(2,5))
+			t.cell(1,5).text = '备注'
+			t.cell(1,6).merge(t.cell(2,6))
+			t.cell(1,6).text = '监测\n点号'
+			t.cell(1,7).merge(t.cell(1,10))
+			t.cell(1,7).text = t_string
+			t.cell(1,11).merge(t.cell(2,11))
+			t.cell(1,11).text = '备注'
+	
+			t.cell(2,1).text = '本次\n轴力'
+			t.cell(2,2).text = '上次\n变量'
+			t.cell(2,3).text = '本次\n变量'
+			t.cell(2,4).text = '累计\n变量'
+			t.cell(2,7).text = '本次\n轴力'
+			t.cell(2,8).text = '上次\n变量'
+			t.cell(2,9).text = '本次\n变量'
+			t.cell(2,10).text = '累计\n变量'
+		else:
+			t.cell(0,0).merge(t.cell(0,9))
+			s1 = "仪器型号："
+			s2 = " "*25 + "仪器出厂编号："
+			s3 = " "*25 + "检定日期："
+			t.cell(0,0).text = s1+s2+s3
+			t.cell(1,0).merge(t.cell(2,0))
+			t.cell(1,1).merge(t.cell(1,3))
+			t.cell(1,0).text = '监测\n点号'
+			t.cell(1,1).text = t_string
+			t.cell(1,4).merge(t.cell(2,4))
+			t.cell(1,4).text = '备注'
+			t.cell(1,5).merge(t.cell(2,5))
+			t.cell(1,5).text = '监测\n点号'
+			t.cell(1,6).merge(t.cell(1,8))
+			t.cell(1,6).text = t_string
+			t.cell(1,9).merge(t.cell(2,9))
+			t.cell(1,9).text = '备注'
+	
+			t.cell(2,1).text = '上次\n变量'
+			t.cell(2,2).text = '本次\n变量'
+			t.cell(2,3).text = '累计\n变量'
+			t.cell(2,6).text = '上次\n变量'
+			t.cell(2,7).text = '本次\n变量'
+			t.cell(2,8).text = '累计\n变量'
 
 		#填入数值
 		#上次变量, 本次变量，累计量
 		last_diffs = []
 		this_diffs = []
 		this_acc_diffs = []
+		#本次轴力 
+		this_values = list(map(lambda x:round(x,1),value_list[0]))
+		this_values = array(this_values)
+		print("DEBUG 本次轴力:",this_values)
 
 		ln_row = len(row_list)
 		ln_date = len(date_list)
@@ -1275,23 +1310,27 @@ class MyDocx(object):
 		init_values = array(init_values, dtype=float)
 		old_acc_values = array(old_acc_values, dtype=float)
 
+		round_num = 2
+		if '支撑轴力' in sheet:
+			round_num = 1
+
 		if ln_date > 2:
 			#今天和昨天差值 = 本次变量
 			#today_diff_array =(value_list[0] - value_list[1])*1000
 			today_diff_array = self.get_diff_values(sheet, value_list[0], value_list[1])
-			today_diff = list(map(lambda x:round(x,2),today_diff_array))
+			today_diff = list(map(lambda x:round(x,round_num),today_diff_array))
 			this_diffs = array(today_diff)
 
 			#昨天和前天差值 = 上次变量
 			#lastday_diff_array = (value_list[1] - value_list[2])*1000
 			lastday_diff_array = self.get_diff_values(sheet, value_list[1], value_list[2])
-			lastday_diff = list(map(lambda x:round(x,2),lastday_diff_array))
+			lastday_diff = list(map(lambda x:round(x,round_num),lastday_diff_array))
 			last_diffs = array(lastday_diff)
 
 			#今天和初值差值加旧累计 = 累计变量
 			#today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
 			today_acc_diff_array = self.get_acc_values(sheet, value_list[0], init_values, old_acc_values)
-			today_acc_diff = list(map(lambda x:round(x,2),today_acc_diff_array))
+			today_acc_diff = list(map(lambda x:round(x,round_num),today_acc_diff_array))
 			this_acc_diffs = array(today_acc_diff)
 
 		elif ln_date ==2:
@@ -1299,13 +1338,13 @@ class MyDocx(object):
 			#今天和昨天差值 = 本次变量
 			#today_diff_array =(value_list[0] - value_list[1])*1000
 			today_diff_array = self.get_diff_values(sheet, value_list[0], value_list[1])
-			today_diff = list(map(lambda x:round(x,2),today_diff_array))
+			today_diff = list(map(lambda x:round(x,round_num),today_diff_array))
 			this_diffs = array(today_diff)
 
 			#今天和初值差值加旧累计 = 累计变量
 			#today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
 			today_acc_diff_array = self.get_acc_values(sheet, value_list[0], init_values, old_acc_values)
-			today_acc_diff = list(map(lambda x:round(x,2),today_acc_diff_array))
+			today_acc_diff = list(map(lambda x:round(x,round_num),today_acc_diff_array))
 			this_acc_diffs = array(today_acc_diff)
 
 			#没有前天，上次变量设为'nan'
@@ -1315,7 +1354,7 @@ class MyDocx(object):
 			#今天和初值差值加旧累计 = 累计变量
 			#today_acc_diff_array = (value_list[0] - init_values)*1000 + old_acc_values
 			today_acc_diff_array = self.get_acc_values(sheet, value_list[0], init_values, old_acc_values)
-			today_acc_diff = list(map(lambda x:round(x,2),today_acc_diff_array))
+			today_acc_diff = list(map(lambda x:round(x,round_num),today_acc_diff_array))
 			this_acc_diffs = array(today_acc_diff)
 
 			this_diffs = array([None for x in range(ln_row)],dtype=float)
@@ -1326,7 +1365,7 @@ class MyDocx(object):
 			this_diffs = array([None for x in range(ln_row)],dtype=float)
 			last_diffs = array([None for x in range(ln_row)],dtype=float)
 			last_diffs = array([None for x in range(ln_row)],dtype=float)
-		#print("DEBUG this_acc_diffs=",this_acc_diffs)
+		print("DEBUG 沉降监测报表，本次累计: this_acc_diffs=",this_acc_diffs)
 
 		#以第二列点号为锚点，找每个点号的深度范围
 		obser_col,_ = px.get_item_point(sheet,'点号',from_last_search=False)
@@ -1346,13 +1385,25 @@ class MyDocx(object):
 				obser_name = px.get_value(sheet,row_list[i],obser_col)
 			else:
 				obser_name = 'Error'
-			t.cell(base_index+i,0).text = obser_name
-			#上次变量
-			t.cell(base_index+i,1).text = str(last_diffs[i])
-			#本次变量
-			t.cell(base_index+i,2).text = str(this_diffs[i])
-			#累计变量
-			t.cell(base_index+i,3).text = str(this_acc_diffs[i])
+			if '支撑轴力' in sheet:
+				t.cell(base_index+i,0).text = obser_name
+				#本次轴力:
+				t.cell(base_index+i,1).text = str(this_values[i])
+				#上次变量
+				t.cell(base_index+i,2).text = str(last_diffs[i])
+				#本次变量
+				t.cell(base_index+i,3).text = str(this_diffs[i])
+				#累计变量
+				t.cell(base_index+i,4).text = str(this_acc_diffs[i])
+
+			else:
+				t.cell(base_index+i,0).text = obser_name
+				#上次变量
+				t.cell(base_index+i,1).text = str(last_diffs[i])
+				#本次变量
+				t.cell(base_index+i,2).text = str(this_diffs[i])
+				#累计变量
+				t.cell(base_index+i,3).text = str(this_acc_diffs[i])
 			#另外一侧的表格
 			j = i+cell_row
 			if ln_row > j:
@@ -1360,18 +1411,31 @@ class MyDocx(object):
 					obser_name = px.get_value(sheet,row_list[j],obser_col)
 				else:
 					obser_name = 'Error'
-				t.cell(base_index+i,5).text = obser_name
-				t.cell(base_index+i,6).text = str(last_diffs[j])
-				t.cell(base_index+i,7).text = str(this_diffs[j])
-				t.cell(base_index+i,8).text = str(this_acc_diffs[j])
+
+				if '支撑轴力' in sheet:
+					t.cell(base_index+i,6).text = obser_name
+					t.cell(base_index+i,7).text = str(this_values[j])
+					t.cell(base_index+i,8).text = str(last_diffs[j])
+					t.cell(base_index+i,9).text = str(this_diffs[j])
+					t.cell(base_index+i,10).text = str(this_acc_diffs[j])
+				else:
+					t.cell(base_index+i,5).text = obser_name
+					t.cell(base_index+i,6).text = str(last_diffs[j])
+					t.cell(base_index+i,7).text = str(this_diffs[j])
+					t.cell(base_index+i,8).text = str(this_acc_diffs[j])
 
 		all_acc_diffs = []
 		#all_acc_diffs = (array(value_list, dtype=float) - \
 		#	array(init_values,dtype=float))*1000 + old_acc_values
 		all_acc_diffs = self.get_acc_values(sheet, value_list, init_values, old_acc_values)
 
+
 		t.cell(11,0).text = '累计变化量曲线图'
-		t.cell(11,1).merge(t.cell(11,9))
+		if '支撑轴力' in sheet:
+			t.cell(11,1).merge(t.cell(11,11))
+		else:
+			t.cell(11,1).merge(t.cell(11,9))
+
 
 		idx_list = []
 		for row_idx in row_list:
@@ -1398,7 +1462,11 @@ class MyDocx(object):
 			p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 		t.cell(12,0).text = '备注'
-		t.cell(12,1).merge(t.cell(12,9))
+		if '支撑轴力' in sheet:
+			t.cell(12,1).merge(t.cell(12,11))
+		else:
+			t.cell(12,1).merge(t.cell(12,9))
+
 		t.cell(12,1).text = '1、“-”为下降、“+”为上升；2、监测点布设图见附图'
 
 		#设置表格样式
@@ -1447,8 +1515,7 @@ class MyDocx(object):
 		如果只有一列，即当天的，那么上次变化值为nan
 		根据当天有效值的行数确定矩阵行数即为坐标的观测点行数范围，
 
-		如果该行数范围内前一天有None值，则略过改天。最终要求所有
-		有效值列都是有值的。如果当天的值都为None，那么跳过该sheet.
+		如果当天的值都为None，那么跳过该sheet.
 		'''
 		px = self.my_xlsx
 		d = self.docx
@@ -1467,10 +1534,7 @@ class MyDocx(object):
 		#遍历这个站所有有关的测量数据,绘制表格	
 		for sheet in related_sheets:
 			count_num += 1
-			#略过这几个观测sheet，excel表格有疑问
-			#if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
-			if sheet == '安薛区间混撑' or\
-				 sheet == '支撑轴力':
+			if sheet == '安薛区间混撑':
 				print("略过{}".format(sheet))
 				printl("%f@"%(v_percent))
 				continue
@@ -1481,11 +1545,14 @@ class MyDocx(object):
 			print("{}/{}'{}{}监测报表'".format(\
 				count_num, total_sheet_num, area_name, sheet))
 
-			#找到该区间所有观测点的邻近7天的有效数据值,
-			#包括行坐标，日期纵坐标和测量数据值矩阵!
-			row_list = []
-			date_list = []
-			value_list = []
+			#获取数据
+			row_list = []   #观测点行坐标
+			date_list = []  #7天日期 
+			value_list = [] #7天有效数据2维列表
+			initial_values = []
+			old_acc_values = []
+
+			#找到该区间所有观测点的邻近7天的有效数据值
 			row_list,date_list,value_list = \
 			self.find_avail_rows_dates_values(sheet,area_name,7)
 			#print("DEBUGdate_list=",date_list)
@@ -1497,38 +1564,37 @@ class MyDocx(object):
 			else:
 				print("共{}/{}天有效观测数据".format(len(date_list),7))
 
-			#从第三列获取到相应行的初始值和旧累计
-			#表格格式注意，第三列和第四列为初值，旧累计
+			#初始值和旧累计列
 			init_col,_ = px.get_item_point(sheet, '初值')
 			if init_col == None:
 				printl("Error, {}没有初值列!".format(sheet))
 				printl("%f@"%(v_percent))
 				continue
+			else:
+				initial_values = self.get_col_values(sheet, area_name, init_col)
+
 			old_acc_col,_ = px.get_item_point(sheet, '旧累计')
-			if old_acc_col == None:
-				printl("Error, {}没有旧累计列!".format(sheet))
-				printl("%f@"%(v_percent))
-				continue
-
-			initial_values = px.get_range_values(sheet, area_name, init_col)
-			old_acc_values = px.get_range_values(sheet, area_name, old_acc_col)
-			#处理旧累计, 旧累计None的设为0
-			ln_old_acc = len(old_acc_values)
-			for i in range(ln_old_acc):
-				if old_acc_values[i] == None:
-					old_acc_values[i] = 0
+			if old_acc_col != None:
+				old_acc_values = self.get_col_values(sheet, area_name, old_acc_col)
+				#处理旧累计, 旧累计None的设为0
+				ln_old_acc = len(old_acc_values)
+				for i in range(ln_old_acc):
+					if isnan(old_acc_values[i]):
+						old_acc_values[i] = 0
+			else:
+				old_acc_values = [0 for x in range(len(initial_values))]
 
 
-			######################################
-			#筛选出当天值非None的观测点，填写
+			###################################################
+			#筛选保留当天值非nan的观测点, 其余nan的观测点不填写
 			today_values = []
 			today_col, _ = px.get_item_point(sheet, self.date)
 			if today_col == None:
 				printl("Error, 没有{}当天值列,略过该表!".format(self.date))
 				continue
 
-			today_values = px.get_range_values(sheet, area_name, today_col)
-			if len(set(today_values)) == 1 and None in today_values:
+			today_values = self.get_col_values(sheet, area_name, today_col)
+			if isnan(today_values).sum() == len(today_values):
 				printl("Warning, 当天没有有效值，略过该表!")
 				continue
 
@@ -1541,13 +1607,14 @@ class MyDocx(object):
 			#print("DEBUG initial_values=",initial_values)
 			#print("DEBUG old_acc_values=",old_acc_values)
 
+			#筛选出非nan的index
 			avail_index = []
 			ln_today_values = len(today_values)
 			for i in range(ln_today_values):
-				if today_values[i] != None:
+				if not isnan(today_values[i]):
 					avail_index.append(i)
 
-			#只保留非None的数据
+			#通过非nan的indiex，筛选保留非nan的数据
 			row_list = [c_row_list[i] for _,i in enumerate(avail_index)]
 			initial_values = [c_initial_values[i] for _,i in enumerate(avail_index)]
 			old_acc_values = [c_old_acc_values[i] for _,i in enumerate(avail_index)]
@@ -1560,8 +1627,7 @@ class MyDocx(object):
 			if len(row_list) == 0:
 				print("所有点都没有有效值，略过该表")
 				continue
-			#######################################
-
+			###################################################
 
 
 			#计算每个表能填多少个观测点
