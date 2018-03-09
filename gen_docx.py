@@ -157,8 +157,8 @@ class MyDocx(object):
 			printl("1@ 生成首页")
 			pass
 
-
 		'''
+
 		#数据汇总分析页****
 		#12 percentage
 		printl("\n###2. 监测数据分析表###")
@@ -483,6 +483,70 @@ class MyDocx(object):
 	##################make_header_pages()################	
 
 
+	def get_col_values(self, sheet, area_name, col):
+		'''
+		获取指定列的值
+		根据不同的sheet，有不同的算法
+		比如倾斜会求每两排的差值
+		支撑轴力会求平方差再乘以系数
+		但是都只有一个值是动态，根据col的不同
+		'''
+		px = self.my_xlsx
+		sh = px.wb[sheet]
+		output_values = px.get_range_values(sheet, area_name, col)
+		ln = len(output_values)
+		#获取area的测量点行范围row_range
+		start_row, end_row = px.all_areas_row_range[sheet][area_name]
+
+		#建筑物倾斜的值每两个做差，然后把差值赋值回第一个，第二个设为None
+		if '建筑物倾斜' in sheet:
+			tmp_values = []
+			for i in range(ln-1):
+				if i%2 != 0:
+					continue
+				curr_v = output_values[i]
+				next_v = output_values[i+1]
+				diff_v = None
+				if next_v != None and curr_v != None:
+					diff_v = next_v - curr_v
+				tmp_values.append(diff_v)
+				tmp_values.append(None)
+			output_values = tmp_values
+
+		elif '支撑轴力' in sheet:
+			before_values = []
+			before_col,_ = px.get_item_point(sheet, '埋设前', from_last_search=False)
+			if before_col == None:
+				print("Error,缺少埋设前列!")
+				befor_values = [0 for x in range(ln)]
+			else:
+				for i in range(start_row, end_row+1):
+					before_values.append(sh.cell(i, before_col).value)
+			print("DEBUG 支撑轴力, 埋设前:{}".format(before_values))
+
+			factor_values = []
+			factor_col,_ = px.get_item_point(sheet, '率定系数', from_last_search=False)
+			if factor_col == None:
+				print("Error, 缺少率定系数列!")
+				factor_values = [1 for x in range(ln)]
+			else:
+				for i in range(start_row, end_row+1):
+					factor_values.append(sh.cell(i, factor_col).value)
+			print("DEBUG 支撑轴力, 率定系数:{}".format(factor_values))
+
+			tmp_values = []
+			#当天值和埋设前的平法差再乘以率定系数
+			tmp_values = (array(output_values, dtype=float)**2 - array(before_values, dtype=float)**2) * \
+				array(factor_values, dtype=float)
+
+			output_values = tmp_values
+
+
+
+		return array(output_values,dtype=float)
+	###########get_col_values()##########################
+
+
 	def get_diff_values(self, sheet, l_values, r_values):
 		'''
 		diff_values = (l-values - r_values)*1000
@@ -495,6 +559,12 @@ class MyDocx(object):
 			array(r_values, dtype=float))/15*1000
 			#print("DEBUG diff_values: {} = ({} - {})/15*1000".\
 			#	format(output_values,l_values,r_values))
+
+		elif '支撑轴力' in sheet:
+			output_values = (array(l_values, dtype=float) - \
+			array(r_values, dtype=float))
+			print("DEBUG 支撑轴力，变化值:",output_values)
+
 		else:
 			output_values = (array(l_values, dtype=float) - \
 			array(r_values, dtype=float))*1000
@@ -516,6 +586,14 @@ class MyDocx(object):
 			dtype=float)
 			#print("DEBUG acc_values: {} = ({} - {})/15*1000 + {}".\
 			#	format(output_values,l_values,r_values, o_acc_values))
+
+		elif '支撑轴力' in sheet:
+			output_values = (array(l_values, dtype=float) - \
+			array(r_values, dtype=float)) + array(o_acc_values,\
+			dtype=float)
+			print("DEBUG 支撑轴力 累计变化量:",output_values)
+
+
 		else:
 			output_values = (array(l_values, dtype=float) - \
 			array(r_values, dtype=float))*1000 + array(o_acc_values,\
@@ -558,9 +636,7 @@ class MyDocx(object):
 		sub_v_percent = v_percent/total_sheets_num
 		for sheet in related_sheets:
 			#略过这几个观测sheet，excel表格有疑问
-			#if sheet == '建筑物倾斜' or sheet == '安薛区间混撑' or\
-			if sheet == '安薛区间混撑' or\
-			 sheet == '支撑轴力':
+			if sheet == '安薛区间混撑':
 				print("暂时略过观测项目",sheet)
 				printl("%f@"%(sub_v_percent))
 				continue
@@ -597,19 +673,19 @@ class MyDocx(object):
 				printl("%f@"%(sub_v_percent))
 				continue
 			#获取当天数据列
-			today_range_values = px.get_range_values(sheet, area_name, today_col)
+			today_range_values = self.get_col_values(sheet, area_name, today_col)
 			#print("DEBUG sheet:{}, today_range_values:{}".format(sheet,today_range_values))
 
 			#如果所有值都为空就略过这一行的填写
-			if len(set(today_range_values)) == 1 and  None in today_range_values:
+			if isnan(today_range_values).sum() == len(today_range_values):
 				continue
 
 			#寻找前一天数据
 			last_date = px.get_value(sheet, today_row, today_col-1)
 			#print("DEBUG 前一天列坐标:'{}',值:'{}',值类型'{}'".format(today_col-1,last_date,str(type(last_date))))
 			if 'datetime' in str(type(last_date)):
-				last_range_values = px.get_range_values(sheet, area_name, today_col-1)
-				if len(set(last_range_values)) == 1 and None in last_range_values:
+				last_range_values = self.get_col_values(sheet, area_name, today_col-1)
+				if isnan(last_range_values).sum() == len(last_range_values):
 					continue
 			else:
 			#前面一列不是日期值，表示昨天值不存在
@@ -655,8 +731,6 @@ class MyDocx(object):
 				print("warning, 没有最大值!")
 				#略过这一行的填写
 				continue
-				max_obser_list.append("nan")
-				max_change_values.append("nan")
 
 			count_num += 1
 			#新加一行，写入测量项目sheet，写入这个测量点id
@@ -686,24 +760,24 @@ class MyDocx(object):
 			if init_col == None:
 				printl("Error, sheet:{}没有初值域名!".format(sheet))
 				continue
-			initial_range_values = px.get_range_values(sheet, area_name, init_col)
+			initial_range_values = self.get_col_values(sheet, area_name, init_col)
 			#printl("DEBUG '初始值列':{}".format(initial_range_values))
 			#获取'旧累计'这一列，在第4列
 			old_acc_col,_ = px.get_item_point(sheet, '旧累计')
-			old_acc_range_values = px.get_range_values(sheet, area_name, old_acc_col)
-			#处理旧累计，如果为None就设为0
-			ln = len(old_acc_range_values)
-			for i in range(ln):
-					if old_acc_range_values[i] == None:
-						old_acc_range_values[i] = 0
-			#printl("DEBUG '旧累计值列':{}".format(old_acc_range_values))
-			#这里是否需要另外的函数，如果轴力表的求累计变化量公式不一样
+			if old_acc_col != None:
+				old_acc_range_values = px.get_range_values(sheet, area_name, old_acc_col)
+				#处理旧累计，如果为None就设为0
+				ln = len(old_acc_range_values)
+				for i in range(ln):
+						if old_acc_range_values[i] == None:
+							old_acc_range_values[i] = 0
+			else:
+				#支撑轴力表不存在旧累计列
+				old_acc_range_values = [0 for x in range(len(initial_range_values))]
 			acc_values = self.get_acc_values(sheet,today_range_values,\
 				initial_range_values, old_acc_range_values)
-			#acc_values = (array(today_range_values, dtype=float) - \
-			#array(initial_range_values, dtype=float))*1000 + array(old_acc_range_values,\
-			#dtype=float)
 			#printl("DEBUG '本次累计值列':{}".format(acc_values))
+
 			acc_abs_values = [round(abs(v),2) for v in acc_values]
 			max_acc = get_max(acc_abs_values)
 
@@ -729,8 +803,6 @@ class MyDocx(object):
 			else:
 					print("warning, 没有最大累计值!")
 					continue
-					max_obser_list.append("nan")
-					max_acc_values.append("nan")				
 
 			s = ''
 			for obser in max_obser_list:

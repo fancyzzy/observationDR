@@ -189,6 +189,7 @@ class MyXlsx(object):
 		通过sheet，area和列坐标
 		返回area这一列的所有值, 到一个列表[]
 		列入返回1月1日这一列的衡山路站的测量值
+
 		'''
 		#print("sheet = {}, area_name = {}, col = {}".format(sheet,area_name,col))
 		sh = self.wb[sheet]
@@ -200,25 +201,6 @@ class MyXlsx(object):
 		for i in range(start_row, end_row+1):
 			#接受包含None值
 			range_values.append(sh.cell(i, col).value)
-
-
-		#建筑物倾斜的值每两个做差，然后把差值赋值回第一个，第二个设为None
-		tmp_values = []
-		ln = len(range_values)
-		if '建筑物倾斜' in sheet:
-			for i in range(ln-1):
-				if i%2 != 0:
-					continue
-				curr_v = range_values[i]
-				next_v = range_values[i+1]
-				diff_v = None
-				if next_v != None and curr_v != None:
-					diff_v = next_v - curr_v
-				tmp_values.append(diff_v)
-				tmp_values.append(None)
-
-			range_values = tmp_values
-			
 
 		return range_values
 	#########get_values()######################################
