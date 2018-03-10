@@ -99,10 +99,14 @@ class MyXlsx(object):
 
 		'''
 		#以初值列划定区间的行号范围
-		init_col,_ = self.get_item_point(sheet_name, '初值', False)
+		#混撑是以埋设前为基准划定区间范围
+		anchor_name = '初值'
+		if '混撑' in sheet_name:
+			anchor_name = '埋设前'
+		init_col,_ = self.get_item_point(sheet_name, anchor_name, False)
 
 		if not init_col:
-			print("Error, {}没有'初值'列".format(sheet_name))
+			print("Error, {}没有'{}'列!".format(sheet_name,anchor_name))
 			return None
 
 		sheet_areas_range = {}

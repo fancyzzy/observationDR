@@ -165,6 +165,7 @@ class MyDocx(object):
 			printl("DEBUG make_overview_pages error")
 		else:
 			self.docx.save(self.path)
+		'''
 
 
 		#页面布局为横向
@@ -256,6 +257,8 @@ class MyDocx(object):
 		else:
 			printl("2@ 生成平面布点图")
 			pass
+
+		'''
 
 		#保存
 		self.docx.save(self.path)
@@ -479,17 +482,20 @@ class MyDocx(object):
 	##################make_header_pages()################	
 
 
-	def get_col_values(self, sheet, area_name, col):
+	def get_col_values(self, sheet, area_name, col, d_obser_range, obser_list):
 		'''
 		获取指定列的值
 		根据不同的sheet，有不同的算法
 		比如倾斜会求每两排的差值
 		支撑轴力会求平方差再乘以系数
 		但是都只有一个值是动态，根据col的不同
+
+		d_obser_range :是点号的行范围字典,用于一个点号对应多行值，需要求平均的sheet
 		'''
 		px = self.my_xlsx
 		sh = px.wb[sheet]
 		output_values = px.get_range_values(sheet, area_name, col)
+		output_values = array(output_values, dtype=float)
 		ln = len(output_values)
 		#获取area的测量点行范围row_range
 		start_row, end_row = px.all_areas_row_range[sheet][area_name]
@@ -502,42 +508,116 @@ class MyDocx(object):
 					continue
 				curr_v = output_values[i]
 				next_v = output_values[i+1]
-				diff_v = None
-				if next_v != None and curr_v != None:
-					diff_v = next_v - curr_v
-				tmp_values.append(diff_v)
-				tmp_values.append(None)
-			output_values = tmp_values
+				tmp_values.append(next_v - curr_v)
+				tmp_values.append(nan)
+			output_values = array(tmp_values, dtype=float)
 
 		elif '支撑轴力' in sheet:
 			before_values = []
-			before_col,_ = px.get_item_point(sheet, '埋设前', from_last_search=False)
-			if before_col == None:
+			col,_ = px.get_item_point(sheet, '埋设前', from_last_search=False)
+			if col == None:
 				print("Error,缺少埋设前列!")
-				befor_values = [0 for x in range(ln)]
+				before_values = [None for x in range(ln)]
 			else:
 				for i in range(start_row, end_row+1):
-					before_values.append(sh.cell(i, before_col).value)
+					before_values.append(sh.cell(i, col).value)
+			before_values = array(before_values, dtype=float)
 
 			factor_values = []
-			factor_col,_ = px.get_item_point(sheet, '率定系数', from_last_search=False)
-			if factor_col == None:
+			col,_ = px.get_item_point(sheet, '率定系数', from_last_search=False)
+			if col == None:
 				print("Error, 缺少率定系数列!")
-				factor_values = [1 for x in range(ln)]
+				factor_values = [None for x in range(ln)]
 			else:
 				for i in range(start_row, end_row+1):
-					factor_values.append(sh.cell(i, factor_col).value)
+					factor_values.append(sh.cell(i, col).value)
+			factor_values = array(factor_values, dtype=float)
 
 			tmp_values = []
 			#当天值和埋设前的平法差再乘以率定系数
-			tmp_values = (array(output_values, dtype=float)**2 - array(before_values, dtype=float)**2) * \
-				array(factor_values, dtype=float)
+			tmp_values = (output_values**2 - before_values**2) * factor_values
 
 			output_values = tmp_values
 
+		elif '混撑' in sheet:
+			#算法, 单位mm所以要/10**9
+			#(初值**2 - 埋设前or当天值**2)*率定系数*混凝土支撑截面积*弹性模量/10**9
+			#求初值要加'-'
+			#如果是求初始轴力，那么output_values应该是当天值换成埋设前
+			initial_values = [] #初值
+			factor_values = [] #率定系数
+			area_values = [] #混凝土支撑截面积
+			elastic_values = [] #弹性模量
+			col,_ = px.get_item_point(sheet, '初值', from_last_search=False)
+			if col == None:
+				printt("Error, 缺少初值列")
+				initial_values = [None for x in range(ln)]
+			else:
+				for i in range(start_row, end_row+1):
+					initial_values.append(sh.cell(i, col).value)
+			initial_values = array(initial_values, dtype=float)
+
+			col,_ = px.get_item_point(sheet, '率定系数', from_last_search=False)
+			if col == None:
+				printt("Error, 缺少率定系数列")
+				factor_values = [None for x in range(ln)]
+			else:
+				for i in range(start_row, end_row+1):
+					factor_values.append(sh.cell(i, col).value)
+			factor_values = array(factor_values, dtype=float)
+
+			col,_ = px.get_item_point(sheet, '混凝土支撑截面积', from_last_search=False)
+			if col == None:
+				printt("Error, 缺少混凝土支撑截面积列")
+				area_values = [None for x in range(ln)]
+			else:
+				for i in range(start_row, end_row+1):
+					area_values.append(sh.cell(i, col).value)
+			area_values = array(area_values, dtype=float)
+
+			col,_ = px.get_item_point(sheet, '弹性模量', from_last_search=False)
+			if col == None:
+				printt("Error, 缺少弹性模量列")
+				elastic_values = [None for x in range(ln)]
+			else:
+				for i in range(start_row, end_row+1):
+					elastic_values.append(sh.cell(i, col).value)
+			elastic_values = array(elastic_values, dtype=float)
+
+			tmp_values = []
+			tmp_values = (initial_values**2 - output_values**2)\
+			 *factor_values *area_values *elastic_values /10**9
+
+			output_values = tmp_values
+
+			#求平均
+			tmp_values = []
+			#第一个观测点的行坐标为对照，用来获取对应的index
+			base,_ = d_obser_range[obser_list[0]]
+			start = 0
+			end = 0
+			for obser in obser_list:
+				start, end = d_obser_range[obser]
+				add_count = 0
+				v_sum = 0
+				for i in range(start-base, end-base+1):
+					if not isnan(output_values[i]):
+						v_sum += output_values[i]
+						add_count += 1
+				v_average = v_sum/(add_count)
+				#只把第一个值赋值为平均值，其他为nan
+				for i in range(start-base, end-base+1):
+					if i == start-base:
+						tmp_values.append(v_average)
+					else:
+						tmp_values.append(nan)
+
+			output_values = array(tmp_values, dtype=float)
+			#print("DEBUG 混撑平均值:",output_values)
 
 
-		return array(output_values,dtype=float)
+
+		return output_values
 	###########get_col_values()##########################
 
 
@@ -557,7 +637,11 @@ class MyDocx(object):
 		elif '支撑轴力' in sheet:
 			output_values = (array(l_values, dtype=float) - \
 			array(r_values, dtype=float))
-			print("DEBUG 支撑轴力，变化值:",output_values)
+			#print("DEBUG 支撑轴力，变化值:",output_values)
+
+		elif '混撑' in sheet:
+			output_values = (array(l_values, dtype=float) - \
+			array(r_values, dtype=float))
 
 		else:
 			output_values = (array(l_values, dtype=float) - \
@@ -578,17 +662,22 @@ class MyDocx(object):
 			output_values = (array(l_values, dtype=float) - \
 			array(r_values, dtype=float))/15*1000 + array(o_acc_values,\
 			dtype=float)
-			print("DEBUG 建筑物倾斜 累计变化量 acc_values: {} = ({} - {})/15*1000 + {}".\
-				format(output_values,l_values,r_values, o_acc_values))
+			#print("DEBUG 建筑物倾斜 累计变化量 acc_values: {} = ({} - {})/15*1000 + {}".\
+			#	format(output_values,l_values,r_values, o_acc_values))
 
 		elif '支撑轴力' in sheet:
 			output_values = (array(l_values, dtype=float) - \
 			array(r_values, dtype=float)) + array(o_acc_values,\
 			dtype=float)
-			print("DEBUG 支撑轴力 本次轴力:",l_values)
-			print("DEBUG 支撑轴力 初始轴力:",r_values)
-			print("DEBUG 支撑轴力 旧累计:",o_acc_values)
-			print("DEBUG 支撑轴力 累计变化量:",output_values)
+			#print("DEBUG 支撑轴力 本次轴力:",l_values)
+			#print("DEBUG 支撑轴力 初始轴力:",r_values)
+			#print("DEBUG 支撑轴力 旧累计:",o_acc_values)
+			#print("DEBUG 支撑轴力 累计变化量:",output_values)
+
+		elif '混撑' in sheet:
+			output_values = (array(l_values, dtype=float) - \
+			array(r_values, dtype=float)) + array(o_acc_values,\
+			dtype=float)
 
 
 		else:
@@ -632,11 +721,10 @@ class MyDocx(object):
 		#遍历这个区间站所存在的观测页表格	
 		sub_v_percent = v_percent/total_sheets_num
 		for sheet in related_sheets:
-			#略过这几个观测sheet，excel表格有疑问
-			if sheet == '安薛区间混撑':
-				print("暂时略过观测项目",sheet)
-				printl("%f@"%(sub_v_percent))
-				continue
+			#if '混撑' in sheet:
+			#	print("暂时略过观测项目",sheet)
+			#	printl("%f@"%(sub_v_percent))
+			#	continue
 			if '孔深测斜' in sheet:
 				printl("%f@"%(sub_v_percent))
 				continue
@@ -650,9 +738,9 @@ class MyDocx(object):
 			diff_abs_values = []      #变化量绝对值数据列表
 
 			col_alpha = 'B'
-			obser_col,_ = px.get_item_point(sheet,'点号',from_last_search=False)
+			obser_col,obser_row = px.get_item_point(sheet,'点号',from_last_search=False)
 			if obser_col == None:
-				obser_col,_ = px.get_item_point(sheet,'测点',from_last_search=False)
+				obser_col,obser_row = px.get_item_point(sheet,'测点',from_last_search=False)
 			if obser_col == 3:
 				col_alpha = 'C'
 			if obser_col == 4:
@@ -662,6 +750,19 @@ class MyDocx(object):
 				printl("%f@"%(sub_v_percent))
 				continue
 
+			#点号的行范围字典，适用于一个点号对应多行数值的sheet
+			d_obser_range = {}
+			obser_list = []
+			if '混撑' in sheet:
+				#以点号/测点为锚点，找每个点号/测点的行范围
+				d_obser_range = px.get_one_sheet_areas_range(sheet, obser_col, obser_row+1)
+				start, end = px.all_areas_row_range[sheet][area_name]
+				for i in range(start, end+1):
+					#获取第二列点号的值
+					obser_name = px.get_value(sheet, i, obser_col)
+					if obser_name != None:
+						obser_list.append(obser_name)
+
 			#获取当天的数据
 			#获取当天值这一列的坐标
 			today_col,today_row = px.get_item_point(sheet, self.date)
@@ -669,8 +770,14 @@ class MyDocx(object):
 				printl("Warning, {}的区间{}没有当天值列!".format(sheet,area_name))
 				printl("%f@"%(sub_v_percent))
 				continue
+
 			#获取当天数据列
-			today_range_values = self.get_col_values(sheet, area_name, today_col)
+			if '混撑' in sheet:
+				print("DBUEG 混撑，当天平均值")
+			today_range_values = self.get_col_values(sheet, area_name, today_col, d_obser_range, obser_list)
+			if '混撑' in sheet:
+				print("DEBUG 混撑当天轴力平均值:{}".format(today_range_values))
+
 			#print("DEBUG sheet:{}, today_range_values:{}".format(sheet,today_range_values))
 
 			#如果所有值都为空就略过这一行的填写
@@ -681,7 +788,8 @@ class MyDocx(object):
 			last_date = px.get_value(sheet, today_row, today_col-1)
 			#print("DEBUG 前一天列坐标:'{}',值:'{}',值类型'{}'".format(today_col-1,last_date,str(type(last_date))))
 			if 'datetime' in str(type(last_date)):
-				last_range_values = self.get_col_values(sheet, area_name, today_col-1)
+				last_range_values = self.get_col_values(sheet, area_name, today_col-1,\
+				 d_obser_range, obser_list) 
 				if isnan(last_range_values).sum() == len(last_range_values):
 					continue
 			else:
@@ -690,10 +798,16 @@ class MyDocx(object):
 				#不存在就略过这一行的数据
 				continue
 			#print("DEBUG lastday_range_values:",last_range_values)
+			if '混撑' in sheet:
+				print("DEBUG 混撑，前一天平均轴力:",last_range_values)
+
 
 			#找到其中绝对值最大为变化最大的
 			diff_original_values = self.get_diff_values(sheet, today_range_values,\
 				last_range_values)
+			if '混撑' in sheet:
+				print("DEBUG 混撑，本次变化:",diff_original_values)
+
 			#print("DEBUG 差值diff:",diff_original_values)
 			#如果都是nan就略过这一行的数据填写 
 			if isnan(diff_original_values).sum() == len(diff_original_values):
@@ -752,27 +866,43 @@ class MyDocx(object):
 			acc_values = [] #累计变化量列表
 			acc_abs_values = [] #累计变化量绝对值列表
 			#获取'初值'这一列，在第3列
-			#获取当天的数据
-			init_col,init_row = px.get_item_point(sheet, '初值')
+			#如果是混撑，换成‘埋设前’值
+			initial_name = '初值'
+			if '混撑' in sheet:
+				initial_name = '埋设前'
+
+			init_col,init_row = px.get_item_point(sheet, initial_name)
 			if init_col == None:
-				printl("Error, sheet:{}没有初值域名!".format(sheet))
+				printl("Error, sheet:{}没有{}列!".format(sheet,initial_name))
 				continue
-			initial_range_values = self.get_col_values(sheet, area_name, init_col)
+			initial_range_values = self.get_col_values(sheet, area_name, init_col,\
+				d_obser_range, obser_list)
+
+			if '混撑' in sheet:
+				initial_range_values = -initial_range_values
+				printl("DEBUG 混撑，初始轴力平均值:{}".format(initial_range_values))
+
 			#printl("DEBUG '初始值列':{}".format(initial_range_values))
 			#获取'旧累计'这一列，在第4列
 			old_acc_col,_ = px.get_item_point(sheet, '旧累计')
 			if old_acc_col != None:
-				old_acc_range_values = self.get_col_values(sheet, area_name, old_acc_col)
+				old_acc_range_values = self.get_col_values(sheet, area_name, old_acc_col,\
+					d_obser_range, obser_list)
 				#处理旧累计，如果为None就设为0
 				ln = len(old_acc_range_values)
 				for i in range(ln):
 						if isnan(old_acc_range_values[i]):
 							old_acc_range_values[i] = 0
 			else:
-				#支撑轴力表不存在旧累计列
+				#支撑轴力/混撑不存在旧累计列
 				old_acc_range_values = [0 for x in range(len(initial_range_values))]
+
 			acc_values = self.get_acc_values(sheet,today_range_values,\
 				initial_range_values, old_acc_range_values)
+
+			if '混撑' in sheet:
+				printl("DEBUG 混撑, 本次累计:{}".format(acc_values))
+
 			#printl("DEBUG '本次累计值列':{}".format(acc_values))
 
 			acc_abs_values = [round(abs(v),2) for v in acc_values]
@@ -846,7 +976,7 @@ class MyDocx(object):
 			tr = row._tr
 			trPr = tr.get_or_add_trPr()
 			trHeight = OxmlElement('w:trHeight')
-			trHeight.set(qn('w:val'), "480")
+			trHeight.set(qn('w:val'), "420")
 			trHeight.set(qn('w:hRule'), "atLeast")
 			trPr.append(trHeight)
 
@@ -1299,7 +1429,7 @@ class MyDocx(object):
 		#本次轴力 
 		this_values = list(map(lambda x:round(x,1),value_list[0]))
 		this_values = array(this_values)
-		print("DEBUG 本次轴力:",this_values)
+		#print("DEBUG 本次轴力:",this_values)
 
 		ln_row = len(row_list)
 		ln_date = len(date_list)
@@ -1365,7 +1495,7 @@ class MyDocx(object):
 			this_diffs = array([None for x in range(ln_row)],dtype=float)
 			last_diffs = array([None for x in range(ln_row)],dtype=float)
 			last_diffs = array([None for x in range(ln_row)],dtype=float)
-		print("DEBUG 沉降监测报表，本次累计: this_acc_diffs=",this_acc_diffs)
+		#print("DEBUG 沉降监测报表，本次累计: this_acc_diffs=",this_acc_diffs)
 
 		#以第二列点号为锚点，找每个点号的深度范围
 		obser_col,_ = px.get_item_point(sheet,'点号',from_last_search=False)
