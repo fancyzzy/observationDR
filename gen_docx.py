@@ -158,6 +158,7 @@ class MyDocx(object):
 			pass
 
 
+		'''
 		#数据汇总分析页****
 		#12 percentage
 		printl("\n###2. 监测数据分析表###")
@@ -165,7 +166,7 @@ class MyDocx(object):
 			printl("DEBUG make_overview_pages error")
 		else:
 			self.docx.save(self.path)
-		'''
+
 
 
 		#页面布局为横向
@@ -200,6 +201,7 @@ class MyDocx(object):
 		new_section.header_distance = Cm(1)
 		new_section.footer_distance = Cm(1)
 
+		'''
 		#沉降监测表页
 		#45 percent in pages
 		printl("\n###4. 沉降监测报表###")
@@ -208,6 +210,8 @@ class MyDocx(object):
 			printl("DEBUG make_settlement_pages error")
 		else:
 			self.docx.save(self.path)
+
+		'''
 
 		#测斜监测表页
 		#35 percent in pages
@@ -1300,7 +1304,7 @@ class MyDocx(object):
 	#################make_security_pages()###############################
 
 
-	def find_avail_rows_dates_values(self, sheet, area_name, needed_num=7):
+	def find_avail_rows_dates_values(self, sheet, area_name, needed_num, d_obser_range, obser_list):
 		'''
 		找到needed_num = 7天的有效值列
 		返回三个列表:
@@ -1323,7 +1327,9 @@ class MyDocx(object):
 		if today_col_index == None:
 			return None, None, None
 
-		today_values = self.get_col_values(sheet, area_name, today_col_index)
+	
+		today_values = self.get_col_values(sheet, area_name, today_col_index, \
+			d_obser_range, obser_list)
 		date_list.append(self.date)
 		value_list.append(today_values)
 		already_number = 1
@@ -1335,7 +1341,8 @@ class MyDocx(object):
 			if not 'datetime' in str(type(v_date)):
 				break
 			date_list.append(v_date)
-			lastday_values = self.get_col_values(sheet, area_name, col_index)
+			lastday_values = self.get_col_values(sheet, area_name, col_index, \
+				d_obser_range, obser_list)
 			value_list.append(lastday_values)
 			already_number += 1
 			if already_number == needed_num:
@@ -1357,7 +1364,7 @@ class MyDocx(object):
 		px = self.my_xlsx
 
 		col_num = 10
-		if '支撑轴力' in sheet:
+		if '支撑轴力' in sheet or '混撑' in sheet:
 			col_num = 12
 
 		t = d.add_table(rows=13, cols=col_num, style='settlement_table')
@@ -1365,10 +1372,10 @@ class MyDocx(object):
 		t_string = '沉降变化量(mm)'
 		if '建筑物倾斜' in sheet:
 			t_string = '位移变化量(‰)'
-		elif '支撑轴力' in sheet:
+		elif '支撑轴力' in sheet or '混撑' in sheet:
 			t_string = '变化量(kN)'
 
-		if '支撑轴力' in sheet:
+		if '支撑轴力' in sheet or '混撑' in sheet:
 			t.cell(0,0).merge(t.cell(0,11))
 			s1 = "仪器型号："
 			s2 = " "*25 + "仪器出厂编号："
@@ -1441,7 +1448,7 @@ class MyDocx(object):
 		old_acc_values = array(old_acc_values, dtype=float)
 
 		round_num = 2
-		if '支撑轴力' in sheet:
+		if '支撑轴力' in sheet or '混撑' in sheet:
 			round_num = 1
 
 		if ln_date > 2:
@@ -1515,7 +1522,7 @@ class MyDocx(object):
 				obser_name = px.get_value(sheet,row_list[i],obser_col)
 			else:
 				obser_name = 'Error'
-			if '支撑轴力' in sheet:
+			if '支撑轴力' in sheet or '混撑' in sheet:
 				t.cell(base_index+i,0).text = obser_name
 				#本次轴力:
 				t.cell(base_index+i,1).text = str(this_values[i])
@@ -1542,7 +1549,7 @@ class MyDocx(object):
 				else:
 					obser_name = 'Error'
 
-				if '支撑轴力' in sheet:
+				if '支撑轴力' in sheet or '混撑' in sheet:
 					t.cell(base_index+i,6).text = obser_name
 					t.cell(base_index+i,7).text = str(this_values[j])
 					t.cell(base_index+i,8).text = str(last_diffs[j])
@@ -1561,7 +1568,7 @@ class MyDocx(object):
 
 
 		t.cell(11,0).text = '累计变化量曲线图'
-		if '支撑轴力' in sheet:
+		if '支撑轴力' in sheet or '混撑' in sheet:
 			t.cell(11,1).merge(t.cell(11,11))
 		else:
 			t.cell(11,1).merge(t.cell(11,9))
@@ -1592,7 +1599,7 @@ class MyDocx(object):
 			p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 		t.cell(12,0).text = '备注'
-		if '支撑轴力' in sheet:
+		if '支撑轴力' in sheet or '混撑' in sheet:
 			t.cell(12,1).merge(t.cell(12,11))
 		else:
 			t.cell(12,1).merge(t.cell(12,9))
@@ -1665,8 +1672,9 @@ class MyDocx(object):
 		for sheet in related_sheets:
 			count_num += 1
 			if sheet == '安薛区间混撑':
-				print("略过{}".format(sheet))
-				printl("%f@"%(v_percent))
+				pass
+
+			else:
 				continue
 			if '测斜' in sheet:
 				printl("%f@"%(v_percent))
@@ -1682,9 +1690,31 @@ class MyDocx(object):
 			initial_values = []
 			old_acc_values = []
 
+			#点号的行范围字典，适用于一个点号对应多行数值的sheet
+			d_obser_range = {}
+			obser_list = []
+
+			obser_col,obser_row = px.get_item_point(sheet,'点号',from_last_search=False)
+			if obser_col == None:
+				obser_col,obser_row = px.get_item_point(sheet,'测点',from_last_search=False)
+			if obser_col == None:
+				printl("Error, {}无观测点列!".format(sheet))
+				printl("%f@"%(v_percent))
+				continue
+
+			if '混撑' in sheet:
+				#以点号/测点为锚点，找每个点号/测点的行范围
+				d_obser_range = px.get_one_sheet_areas_range(sheet, obser_col, obser_row+1)
+				start, end = px.all_areas_row_range[sheet][area_name]
+				for i in range(start, end+1):
+					#获取第二列点号的值
+					obser_name = px.get_value(sheet, i, obser_col)
+					if obser_name != None:
+						obser_list.append(obser_name)
+
 			#找到该区间所有观测点的邻近7天的有效数据值
 			row_list,date_list,value_list = \
-			self.find_avail_rows_dates_values(sheet,area_name,7)
+			self.find_avail_rows_dates_values(sheet,area_name,7,d_obser_range,obser_list)
 			#print("DEBUGdate_list=",date_list)
 			if row_list == None:
 				printl("Warning, 该区间'{}'在观测页'{}'没有{}当天值列!".format(\
@@ -1695,17 +1725,25 @@ class MyDocx(object):
 				print("共{}/{}天有效观测数据".format(len(date_list),7))
 
 			#初始值和旧累计列
-			init_col,_ = px.get_item_point(sheet, '初值')
+			initial_name = '初值'
+			if '混撑' in sheet:
+				initial_name = '埋设前'
+
+			init_col,_ = px.get_item_point(sheet, initial_name)
 			if init_col == None:
 				printl("Error, {}没有初值列!".format(sheet))
 				printl("%f@"%(v_percent))
 				continue
 			else:
-				initial_values = self.get_col_values(sheet, area_name, init_col)
+				initial_values = self.get_col_values(sheet, area_name, init_col, \
+					d_obser_range,obser_list)
+				if '混撑' in sheet:
+					initial_values = -initial_values
 
 			old_acc_col,_ = px.get_item_point(sheet, '旧累计')
 			if old_acc_col != None:
-				old_acc_values = self.get_col_values(sheet, area_name, old_acc_col)
+				old_acc_values = self.get_col_values(sheet, area_name, old_acc_col, \
+					d_obser_range,obser_list)
 				#处理旧累计, 旧累计None的设为0
 				ln_old_acc = len(old_acc_values)
 				for i in range(ln_old_acc):
@@ -1723,7 +1761,8 @@ class MyDocx(object):
 				printl("Error, 没有{}当天值列,略过该表!".format(self.date))
 				continue
 
-			today_values = self.get_col_values(sheet, area_name, today_col)
+			today_values = self.get_col_values(sheet, area_name, today_col, \
+				d_obser_range,obser_list)
 			if isnan(today_values).sum() == len(today_values):
 				printl("Warning, 当天没有有效值，略过该表!")
 				continue
