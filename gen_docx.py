@@ -124,6 +124,15 @@ class MyDocx(object):
 		self.my_xlsx = my_xlsx
 		self.my_plot = draw_plot.MyPlot()
 
+		#签名文件列表
+		self.sig_list = []
+		item_list = get_file_list(os.path.join(self.xlsx_path,'签名'), [])
+		for item in item_list:
+			sufx = os.path.basename(item)
+			if '.png' in sufx or '.PNG' in sufx:
+				self.sig_list.append(item)
+		print("DEBUG self.sig_list=",self.sig_list)
+
 	#########__init__()#####################################
 
 	def get_table_num(self):
@@ -476,6 +485,26 @@ class MyDocx(object):
 		result = True
 		return result
 	##################make_header_pages()################	
+
+
+	def get_value_by_field(self, sheet, area_name, field_name):
+		'''
+		根据要获取的列域名，获取area_name的第一行的值
+		'''
+		px = self.my_xlsx
+		field_value = ''
+
+		field_col,field_row = px.get_item_point(sheet, field_name)
+		if field_col and field_row:
+			row_start, row_end = px.all_areas_row_range[sheet][area_name]
+			field_value = px.get_value(sheet, row_start, field_col)
+
+		if field_value == None:
+			field_value = ' '
+		#print("DEBUG '{}'在{}:{}的值为:{}".format(field_name,sheet,area_name,field_value))
+
+		return field_value
+	################get_value_by_field()##################
 
 
 	def get_col_values(self, sheet, area_name, col, d_obser_range, obser_list):
@@ -916,8 +945,10 @@ class MyDocx(object):
 				s += max_v + '\n'
 			row.cells[2].text = s.strip('\n')
 
-			#日变量报警值空着
-			row.cells[3].text = ' '
+			#日变量报警值
+			field_name = '日变量报警值'
+			field_value = self.get_value_by_field(sheet, area_name, field_name)
+			row.cells[3].text = field_value
 
 			#求本次累计值 = 当前值-初值+旧累计值
 			acc_values = [] #累计变化量列表
@@ -1000,9 +1031,13 @@ class MyDocx(object):
 			row.cells[5].text = s.strip('\n')
 
 			#累计变量报警值 空着
-			row.cells[6].text = ' '
+			field_name = '累计变量报警值'
+			field_value = self.get_value_by_field(sheet, area_name, field_name)
+			row.cells[6].text = field_value
 			#累计变量控制值 空着
-			row.cells[7].text = ' '
+			field_name = '累计变量控制值'
+			field_value = self.get_value_by_field(sheet, area_name, field_name)
+			row.cells[7].text = field_value
 
 			#增加进度
 			printl("%f@"%(sub_v_percent))
@@ -1399,7 +1434,7 @@ class MyDocx(object):
 	##############find_avail_rows_dates_values()#############################################
 
 
-	def draw_settlement_table(self, sheet, row_list, date_list, value_list,\
+	def draw_settlement_table(self, sheet, area_name, row_list, date_list, value_list,\
 		 init_values, old_acc_values, cell_row=8):
 		'''
 		画沉降监测表格
@@ -1422,11 +1457,15 @@ class MyDocx(object):
 		elif '支撑轴力' in sheet or '混撑' in sheet or '锚索轴力' in sheet:
 			t_string = '变化量(kN)'
 
+		device_name = self.get_value_by_field(sheet, area_name, '仪器型号')
+		device_code = self.get_value_by_field(sheet, area_name, '仪器出厂编号')
+		check_date = self.get_value_by_field(sheet, area_name, '检定日期')
+		s1 = "仪器型号：%s"%(device_name)
+		s2 = " "*25 + "仪器出厂编号：%s"%(device_code)
+		s3 = " "*25 + "检定日期：%s"%(check_date)
+
 		if '支撑轴力' in sheet or '混撑' in sheet or '锚索轴力' in sheet:
 			t.cell(0,0).merge(t.cell(0,11))
-			s1 = "仪器型号："
-			s2 = " "*25 + "仪器出厂编号："
-			s3 = " "*25 + "检定日期："
 			t.cell(0,0).text = s1+s2+s3
 			t.cell(1,0).merge(t.cell(2,0))
 			t.cell(1,1).merge(t.cell(1,4))
@@ -1451,9 +1490,6 @@ class MyDocx(object):
 			t.cell(2,10).text = '累计\n变量'
 		else:
 			t.cell(0,0).merge(t.cell(0,9))
-			s1 = "仪器型号："
-			s2 = " "*25 + "仪器出厂编号："
-			s3 = " "*25 + "检定日期："
 			t.cell(0,0).text = s1+s2+s3
 			t.cell(1,0).merge(t.cell(2,0))
 			t.cell(1,1).merge(t.cell(1,3))
@@ -1908,11 +1944,11 @@ class MyDocx(object):
 				p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
 	
 				#制表
-				self.draw_settlement_table(sheet, sub_row_list, date_list,\
+				self.draw_settlement_table(sheet, area_name, sub_row_list, date_list,\
 				 sub_value_list, sub_initial_values, sub_old_acc_values, total_row//2)
 
 				#页尾
-				self.write_settlement_foot()
+				self.write_settlement_foot(sheet, area_name)
 				printl("%f@"%(sub_v_percent))
 	#############multi_settlement_table()################################
 
@@ -1972,28 +2008,70 @@ class MyDocx(object):
 
 	################write_settlement_header()########################
 
+	def insert_signature(self, r, name):
+		'''
+		插入签名图片
+		'''
+		#print("DEBUG file_list=",file_list)
+		print("添加签名",name)
+		if len(self.sig_list) == 0:
+			return
 
-	def write_settlement_foot(self):
+		for item in self.sig_list:
+			sufx = os.path.basename(item)
+			#print("DEBUG item=",sufx)
+			if '.png' in sufx or '.PNG' in sufx:
+				if name in sufx:
+					try:
+						r.add_picture(item, width=Cm(2), height=Cm(0.5))
+						print('签名已添加:%s'%item)
+					except Exception as e:
+						pass
+						print("Error: {}, item: {}".format(e,item))
+					return True
+		return False
+	##########insert_signature()#####################################
+
+
+	def write_settlement_foot(self, sheet, area_name):
 		'''
 		沉降变化表/测斜表页脚信息
 		'''
 		d = self.docx
+
 		p = d.add_paragraph()
+		person_name = self.get_value_by_field(sheet, area_name, '现场监测人')
 		s = "现场监测人："
-		p.add_run(s)
+		r = p.add_run(s)
+		if not self.insert_signature(r,person_name):
+			r = p.add_run(person_name)
+
+
+		person_name = self.get_value_by_field(sheet, area_name, '计算人')
 		s = " "*28 + "计算人："
-		p.add_run(s)
+		r = p.add_run(s)
+		if not self.insert_signature(r,person_name):
+			r = p.add_run(person_name)
+
+		person_name = self.get_value_by_field(sheet, area_name, '校核人')
 		s = " "*24 + "校核人："
-		p.add_run(s)
+		r = p.add_run(s)
+		self.insert_signature(r,person_name)
+		if not self.insert_signature(r,person_name):
+			r = p.add_run(person_name)
+
 		for r in p.runs:
 			r.font.size = Pt(11)
 		p.paragraph_format.space_before = 0
 		p.paragraph_format.space_after = 0
 
-
 		p = d.add_paragraph()
+		person_name = self.get_value_by_field(sheet, area_name, '监测项目负责人')
 		s = "检测项目负责人："
-		p.add_run(s)
+		r = p.add_run(s)
+		if not self.insert_signature(r,person_name):
+			r = p.add_run(person_name)
+
 		s = " "*20 + "第三方监测单位："
 		p.add_run(s)
 		p.add_run(self.proj.third_observer)
@@ -2021,6 +2099,8 @@ class MyDocx(object):
 			count_num += 1
 			#test debug only one area
 			#if '衡山路站' in area_name:
+			if not '天目山路站' in area_name:
+				continue
 			if True:
 				printl("[{}/{}]沉降监测表:'{}'".format(\
 					count_num, total_num, area_name))		
@@ -2033,7 +2113,7 @@ class MyDocx(object):
 	################make_settlement_pages()##########################
 
 
-	def one_inclinometer_table(self, sub_obser_list, d_obser_data, max_deep_values):
+	def one_inclinometer_table(self, sheet, area_name, sub_obser_list, d_obser_data, max_deep_values):
 		'''
 		一个测斜监测表, 含有两个或者一个观测点，按照深度的变化数据
 		input:
@@ -2046,9 +2126,14 @@ class MyDocx(object):
 		#画表
 		t = d.add_table(rows=51, cols=9, style = 'Table Grid')
 		t.cell(0,0).merge(t.cell(0,8))
-		s1 = "仪器型号："
-		s2 = " "*20 + "仪器出厂编号："
-		s3 = " "*20 + "检定日期："
+
+
+		device_name = self.get_value_by_field(sheet, area_name, '仪器型号')
+		device_code = self.get_value_by_field(sheet, area_name, '仪器出厂编号')
+		check_date = self.get_value_by_field(sheet, area_name, '检定日期')
+		s1 = "仪器型号：%s"%(device_name)
+		s2 = " "*20 + "仪器出厂编号：%s"%(device_code)
+		s3 = " "*20 + "检定日期：%s"%(check_date)
 		t.cell(0,0).text = s1+s2+s3
 
 		t.cell(1,0).text = '测点'
@@ -2223,6 +2308,8 @@ class MyDocx(object):
 		count_num = 0
 		v_percent = 35/len(d_area_obser.keys())
 		for area_name in d_area_obser.keys():
+			if not '天目山路站' in area_name:
+				continue
 			count_num += 1
 			count += 1
 			obser_list = d_area_obser[area_name]
@@ -2364,11 +2451,11 @@ class MyDocx(object):
 				p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
 
 				#画表填值
-				self.one_inclinometer_table(sub_obser_list, d_obser_data,\
+				self.one_inclinometer_table(inc_sheet, area_name, sub_obser_list, d_obser_data,\
 					max_deep_values)
 
 				#页面尾信息
-				self.write_settlement_foot()
+				self.write_settlement_foot(inc_sheet, area_name)
 				#该区间第几个子表计数	
 				n+=1
 				printl("%f@"%(sub_v_percent))

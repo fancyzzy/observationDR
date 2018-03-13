@@ -282,7 +282,7 @@ if __name__ == '__main__':
 	i,_ = my_xlsx.get_item_point('地表沉降', sd)
 	print("i=",i)
 
-	x = my_xlsx.get_value('地表沉降',2,8)
+	x = my_xlsx.get_value('地表沉降',32,614)
 	print("x=",x)
 	print("type(x)=",str(type(x)))
 	print("datetime.datetime==type(x)",'datetime'in str(type(x)))
