@@ -2048,15 +2048,14 @@ class MyDocx(object):
 
 
 		person_name = self.get_value_by_field(sheet, area_name, '计算人')
-		s = " "*28 + "计算人："
+		s = " "*18 + "计算人："
 		r = p.add_run(s)
 		if not self.insert_signature(r,person_name):
 			r = p.add_run(person_name)
 
 		person_name = self.get_value_by_field(sheet, area_name, '校核人')
-		s = " "*24 + "校核人："
+		s = " "*18 + "校核人："
 		r = p.add_run(s)
-		self.insert_signature(r,person_name)
 		if not self.insert_signature(r,person_name):
 			r = p.add_run(person_name)
 
