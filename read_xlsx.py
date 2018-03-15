@@ -209,6 +209,20 @@ class MyXlsx(object):
 		return range_values
 	#########get_values()######################################
 
+	def get_rows_col_values(self, sheet, rows, col):
+		'''
+		获取多行的值
+		'''
+		sh = self.wb[sheet]
+		values = []
+
+		for row in rows:
+			s_value = sh.cell(row,col).value
+			values.append(s_value)
+
+		return values
+	#########get_rows_col_values()################################
+
 
 	def get_avail_rows_values(self, sheet, rows, col, accept_none = False):
 		'''

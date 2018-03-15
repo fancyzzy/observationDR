@@ -34,6 +34,7 @@ PRO_PATH = []
 PRO_BAK_PATH = os.path.join(os.getcwd(), 'project_backup')
 PRO_BAK_TXT = os.path.join(PRO_BAK_PATH, 'all_projects.txt')
 
+
 class MyPro(object):
 	def __init__(self, parent_top, file_path=None):
 		print("__init__ MyPro")

@@ -138,6 +138,9 @@ class MyDocx(object):
 	def get_table_num(self):
 		return len(self.docx.tables)
 
+	###############get_table_num###########################
+
+
 	def gen_docx(self):
 		'''
 		生成docx文件
@@ -173,6 +176,7 @@ class MyDocx(object):
 			printl("DEBUG make_overview_pages error")
 		else:
 			self.docx.save(self.path)
+
 
 		#页面布局为横向
 		new_section = self.docx.add_section(WD_SECTION.NEW_PAGE)
@@ -485,6 +489,22 @@ class MyDocx(object):
 		result = True
 		return result
 	##################make_header_pages()################	
+
+	def get_values_by_field(self, sheet, row_list, field_name):
+		'''
+		根据要获取的列域名，得到row_list的行的数值
+		'''
+		px = self.my_xlsx
+		value_list = []
+		field_col,_ = px.get_item_point(sheet, field_name)
+		if field_col:
+			print("DEBUG sheet:{}, row_list={}, field_col={}".format(sheet, row_list, field_col))
+			value_list = px.get_rows_col_values(sheet,row_list,field_col)
+
+
+		return value_list
+
+	#######get_values_by_field()###########################
 
 
 	def get_value_by_field(self, sheet, area_name, field_name):
@@ -909,12 +929,14 @@ class MyDocx(object):
 			#列出所有max 点
 			max_obser_list = []
 			max_change_values = []
+			row_list = []
 			row_start, row_end = px.all_areas_row_range[sheet][area_name]
 			if max_change != 0 and not isnan(max_change):
 				for i, v in enumerate(diff_abs_values):
 					if max_change == v:
 						#找到区间的行范围, 加上最大值的相对index就是最大值的row_index
 						row_index = i + row_start
+						row_list.append(row_index)
 						s_index = col_alpha + '%d'%row_index
 						obser_id = px.wb[sheet][s_index].value
 						max_obser_list.append(obser_id)
@@ -934,6 +956,49 @@ class MyDocx(object):
 			row = t.add_row()
 			#监测项目
 			row.cells[0].text = sheet
+
+
+			#日变量报警值
+			field_name = '日变量报警值'
+			field_values = self.get_values_by_field(sheet, row_list, field_name)
+			s = ''
+			if len(field_values) == 0: 
+				s = ' '
+			else:
+				for value in field_values:
+					if value == None:
+						s += ' ' + '\n'
+					else:
+						s += value + '\n'
+			row.cells[3].text = s.strip('\n')
+
+			'''
+			ln = len(field_values)
+			cell = row.cells[3]
+			p_cell = row.cells[3].paragraphs[0]
+			runs = []
+			r = None
+			if ln == 0: 
+				cell.text = ' '
+			else:
+				for i in range(ln):
+					if i != ln-1:	
+						if field_values[i] == None:
+							r = p_cell.add_run(' \n')
+						else:
+							r = p_cell.add_run(field_values[i] + '\n')
+					else:
+						if field_values[i] == None:
+							r = p_cell.add_run(' ')
+						else:
+							r = p_cell.add_run(field_values[i])
+						r.font.bold = True
+					runs.append(r)
+
+			print("DEBUGGGGG 这个单元格一共有多少个r:",len(runs))
+			'''
+
+
 			#本次变化最大点
 			s = ''
 			for obser in max_obser_list:
@@ -945,10 +1010,7 @@ class MyDocx(object):
 				s += max_v + '\n'
 			row.cells[2].text = s.strip('\n')
 
-			#日变量报警值
-			field_name = '日变量报警值'
-			field_value = self.get_value_by_field(sheet, area_name, field_name)
-			row.cells[3].text = field_value
+
 
 			#求本次累计值 = 当前值-初值+旧累计值
 			acc_values = [] #累计变化量列表
@@ -999,6 +1061,7 @@ class MyDocx(object):
 			#列出所有max 点
 			max_obser_list = []
 			max_acc_values = []
+			row_list =[]
 			#printl("DEBUG '最大累计变化值'是:{}".format(max_change))
 			row_start, row_end = px.all_areas_row_range[sheet][area_name]
 			if max_acc != 0 and not isnan(max_acc):
@@ -1006,6 +1069,7 @@ class MyDocx(object):
 						if max_acc == v:
 							#找到区间的行范围, 加上最大值的相对index就是最大值的row_index
 							row_index = i + row_start
+							row_list.append(row_index)
 							s_index = col_alpha + '%d'%row_index
 							obser_id = px.wb[sheet][s_index].value
 							max_obser_list.append(obser_id)
@@ -1030,14 +1094,33 @@ class MyDocx(object):
 			#累计变化率
 			row.cells[5].text = s.strip('\n')
 
-			#累计变量报警值 空着
+			#累计变量报警值
 			field_name = '累计变量报警值'
-			field_value = self.get_value_by_field(sheet, area_name, field_name)
-			row.cells[6].text = field_value
+			field_values = self.get_values_by_field(sheet, row_list, field_name)
+			#print("DEBUG 累计变量报警值 数列:",field_values)
+			s = ''
+			if len(field_values) == 0: 
+				s = ' '
+			else:
+				for value in field_values:
+					if value == None:
+						s += ' ' + '\n'
+					else:
+						s += value + '\n'
+			row.cells[6].text = s.strip('\n')
 			#累计变量控制值 空着
 			field_name = '累计变量控制值'
-			field_value = self.get_value_by_field(sheet, area_name, field_name)
-			row.cells[7].text = field_value
+			field_values = self.get_values_by_field(sheet, row_list, field_name)
+			s = ''
+			if len(field_values) == 0: 
+				s = ' '
+			else:
+				for value in field_values:
+					if value == None:
+						s += ' ' + '\n'
+					else:
+						s += value + '\n'
+			row.cells[7].text = s.strip('\n')
 
 			#增加进度
 			printl("%f@"%(sub_v_percent))
@@ -1686,7 +1769,10 @@ class MyDocx(object):
 		else:
 			t.cell(12,1).merge(t.cell(12,9))
 
-		t.cell(12,1).text = '1、“-”为下降、“+”为上升；2、监测点布设图见附图'
+		#填写 备注
+		note = self.get_value_by_field(sheet, area_name, '备注')
+		#t.cell(12,1).text = '1、“-”为下降、“+”为上升；2、监测点布设图见附图'
+		t.cell(12,1).text = note
 
 		#设置表格样式
 		t.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -2013,7 +2099,7 @@ class MyDocx(object):
 		插入签名图片
 		'''
 		#print("DEBUG file_list=",file_list)
-		print("添加签名",name)
+		#print("添加签名",name)
 		if len(self.sig_list) == 0:
 			return
 
@@ -2048,13 +2134,13 @@ class MyDocx(object):
 
 
 		person_name = self.get_value_by_field(sheet, area_name, '计算人')
-		s = " "*18 + "计算人："
+		s = " "*8 + "计算人："
 		r = p.add_run(s)
 		if not self.insert_signature(r,person_name):
 			r = p.add_run(person_name)
 
 		person_name = self.get_value_by_field(sheet, area_name, '校核人')
-		s = " "*18 + "校核人："
+		s = " "*8 + "校核人："
 		r = p.add_run(s)
 		if not self.insert_signature(r,person_name):
 			r = p.add_run(person_name)
@@ -2071,7 +2157,7 @@ class MyDocx(object):
 		if not self.insert_signature(r,person_name):
 			r = p.add_run(person_name)
 
-		s = " "*20 + "第三方监测单位："
+		s = " "*8 + "第三方监测单位："
 		p.add_run(s)
 		p.add_run(self.proj.third_observer)
 		for r in p.runs:
@@ -2149,10 +2235,13 @@ class MyDocx(object):
 			t.cell(3,3+4*i).text = '累计变化(mm)'
 			t.cell(3,4+4*i).merge(t.cell(49,4+4*i))
 		t.cell(50,0).merge(t.cell(50,8))
-		s1 = '说明：1: 孔底起测; '
-		s2 = '2: "-"为向坑外倾斜，"+"为向坑内倾斜; '
-		s3 = '3: 日变化量报警值±2mm/d，累计变化量报警值±24mm.'
-		t.cell(50,0).text = s1+s2+s3 
+		#填写 说明
+		note = self.get_value_by_field(sheet, area_name, '备注')
+		t.cell(50,0).text = note 
+		#s1 = '说明：1: 孔底起测; '
+		#s2 = '2: "-"为向坑外倾斜，"+"为向坑内倾斜; '
+		#s3 = '3: 日变化量报警值±2mm/d，累计变化量报警值±24mm.'
+		#t.cell(50,0).text = s1+s2+s3 
 
 		#填数据
 		ln_deep = len(max_deep_values)
@@ -2454,6 +2543,7 @@ class MyDocx(object):
 					max_deep_values)
 
 				#页面尾信息
+				#p = d.add_paragraph()
 				self.write_settlement_foot(inc_sheet, area_name)
 				#该区间第几个子表计数	
 				n+=1

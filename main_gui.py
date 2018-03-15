@@ -255,6 +255,7 @@ class MyTop(object):
 		'''
 		根据选择的工程文件，显示工程
 		'''
+
 		project_path = self.p_name.get()
 		print("DEBUG display_project:",project_path)
 		if project_path and os.path.exists(project_path):
@@ -262,7 +263,8 @@ class MyTop(object):
 		else:
 			s = ("没有找到项目文件:{}\n".format(project_path))
 			showinfo(message = s)
-		pass
+			#从备份项目列表文件中删除
+
 	###############display_project()##############################
 
 
