@@ -26,6 +26,7 @@ from my_log import QUE
 from my_log import SENTINEL
 from my_log import LOG_PATH
 from time import clock
+import my_bak
 
 L_THREADS = []
 
@@ -285,6 +286,37 @@ class MyTop(object):
 	############update_title()####################################		
 
 
+	def bak_dir_files(self):
+		'''
+		保存所有工程文件
+		签名，布点图等
+		'''
+
+		if self.my_proj == None:
+			return
+
+		if self.f_path == None:
+			return 
+
+		if self.my_proj.project_bak_dir == None:
+			return
+
+		bak_path = self.my_proj.project_bak_dir
+		dst_path = os.path.dirname(self.f_path)
+
+		layout_bak_path = os.path.join(bak_path,'平面布点图')			
+		sig_bak_path = os.path.join(bak_path,'签名')
+
+		layout_path = os.path.join(dst_path, '平面布点图')
+		sig_path = os.path.join(dst_path, '签名')
+
+		my_bak.bak_directory(layout_path, layout_bak_path)
+		my_bak.bak_directory(sig_path, sig_bak_path)
+		return
+
+
+	###########bak_all_files()###################################
+
 	def load_xlsx(self):
 		'''
 		读取解析xlsx数据库
@@ -456,6 +488,10 @@ class MyTop(object):
 				printl("备份日志文件成功")
 			else:
 				printl("备份日志文件失败")
+
+			#备份签名和平面布点图文件夹:	
+			print("DEbug,开始备份文件夹\n")
+			self.bak_dir_files()
 			printl("日报文件存储于: %s\n"%(docx_path))
 		else:
 			printl("日报生成遇到问题\n")
