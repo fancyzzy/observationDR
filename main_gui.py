@@ -470,7 +470,7 @@ class MyTop(object):
 		s_interval = "%d分%.2f秒"%(s_min,s_sec)
 
 		if result:
-			s = "生成日报文件成功!\n表格: %d个\n用时: %s\n %s"%(table_num,s_interval,docx_path)
+			s = "生成日报文件成功!\n完成表格: %d个\n用时: %s\n %s"%(table_num,s_interval,docx_path)
 			print(s)
 			self.popup_window(s)
 		else:

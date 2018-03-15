@@ -126,11 +126,11 @@ class MyDocx(object):
 
 		#签名文件列表
 		self.sig_list = []
-		item_list = get_file_list(os.path.join(self.xlsx_path,'签名'), [])
+		sig_path = os.path.join(self.xlsx_path,'签名')
+		item_list = os.listdir(sig_path)
 		for item in item_list:
-			sufx = os.path.basename(item)
-			if '.png' in sufx or '.PNG' in sufx:
-				self.sig_list.append(item)
+			if '.png' in item or '.PNG' in item:
+				self.sig_list.append(os.path.join(sig_path, item))
 		print("DEBUG self.sig_list=",self.sig_list)
 
 	#########__init__()#####################################
@@ -259,6 +259,7 @@ class MyDocx(object):
 		new_section.right_margin = Cm(2.54)
 		new_section.header_distance = Cm(1.5)
 		new_section.footer_distance = Cm(1.75)
+
 
 		#平面布点图表
 		printl("\n###7. 平面布点图###")
@@ -417,7 +418,7 @@ class MyDocx(object):
 
 		p = d.add_paragraph()
 		p.style = styles['my_header']
-		p.add_run("报        警： 是         否")
+		p.add_run("报        警： 是         否 √")
 
 		p = d.add_paragraph()
 		p.style = styles['my_header']
@@ -498,7 +499,7 @@ class MyDocx(object):
 		value_list = []
 		field_col,_ = px.get_item_point(sheet, field_name)
 		if field_col:
-			print("DEBUG sheet:{}, row_list={}, field_col={}".format(sheet, row_list, field_col))
+			#print("DEBUG sheet:{}, row_list={}, field_col={}".format(sheet, row_list, field_col))
 			value_list = px.get_rows_col_values(sheet,row_list,field_col)
 
 
@@ -838,9 +839,8 @@ class MyDocx(object):
 		#遍历这个区间站所存在的观测页表格	
 		sub_v_percent = v_percent/total_sheets_num
 		for sheet in related_sheets:
-			if '锚索轴力' in sheet:
-				print("DEBUG 锚索轴力 数据分析表")
-			print("")
+			#if '锚索轴力' in sheet:
+			#	print("DEBUG 锚索轴力 数据分析表")
 			if '孔深测斜' in sheet:
 				printl("%f@"%(sub_v_percent))
 				continue
@@ -893,6 +893,7 @@ class MyDocx(object):
 
 			#如果所有值都为空就略过这一行的填写
 			if isnan(today_range_values).sum() == len(today_range_values):
+				printl("没有当天数据!")
 				continue
 
 			#寻找前一天数据
@@ -902,11 +903,13 @@ class MyDocx(object):
 				last_range_values = self.get_col_values(sheet, area_name, today_col-1,\
 				 d_obser_range, obser_list) 
 				if isnan(last_range_values).sum() == len(last_range_values):
+					printl("没有前一天数据!")
 					continue
 			else:
 			#前面一列不是日期值，表示昨天值不存在
 				last_range_values = None
 				#不存在就略过这一行的数据
+				printl("Warning, 没有前一天数据值列!")
 				continue
 			#print("DEBUG 上一次值lastday_range_values:",last_range_values)
 
@@ -917,6 +920,7 @@ class MyDocx(object):
 
 			#如果都是nan就略过这一行的数据填写 
 			if isnan(diff_original_values).sum() == len(diff_original_values):
+				printl("变化值全部为空!")
 				continue
 
 			#求出绝对值最大的值
@@ -947,7 +951,7 @@ class MyDocx(object):
 				print("本次变化最大点:{},值:{}".format(\
 					max_obser_list, max_change_values))
 			else:
-				print("warning, 没有最大值!")
+				printl("warning, 没有最大值!")
 				#略过这一行的填写
 				continue
 
@@ -961,6 +965,7 @@ class MyDocx(object):
 			#日变量报警值
 			field_name = '日变量报警值'
 			field_values = self.get_values_by_field(sheet, row_list, field_name)
+			#print("DEBUG 日变量报警值:",field_values)
 			s = ''
 			if len(field_values) == 0: 
 				s = ' '
@@ -1080,7 +1085,7 @@ class MyDocx(object):
 					print("本次累计最大点:{},值:{}".format(\
 						max_obser_list,max_acc_values))
 			else:
-					print("warning, 没有最大累计值!")
+					printl("warning, 没有最大累计值!")
 					continue
 
 			s = ''
@@ -1224,9 +1229,6 @@ class MyDocx(object):
 		v_percent = 12/total_num
 		is_written = False
 		for area_name in areas:
-			print("area:'%s'",area_name)
-			#test debug only one area
-			#if '衡山路站' in area_name:
 			#if '天目山路站' in area_name or '安薛区间' in area_name:
 			if True:
 				printl("[{}/{}]数据分析表:'{}'".format(\
@@ -1544,8 +1546,8 @@ class MyDocx(object):
 		device_code = self.get_value_by_field(sheet, area_name, '仪器出厂编号')
 		check_date = self.get_value_by_field(sheet, area_name, '检定日期')
 		s1 = "仪器型号：%s"%(device_name)
-		s2 = " "*25 + "仪器出厂编号：%s"%(device_code)
-		s3 = " "*25 + "检定日期：%s"%(check_date)
+		s2 = " "*12 + "仪器出厂编号：%s"%(device_code)
+		s3 = " "*12 + "检定日期：%s"%(check_date)
 
 		if '支撑轴力' in sheet or '混撑' in sheet or '锚索轴力' in sheet:
 			t.cell(0,0).merge(t.cell(0,11))
@@ -2066,7 +2068,7 @@ class MyDocx(object):
 		p = d.add_paragraph()
 		p.add_run("施工单位：")
 		p.add_run(self.proj.builder).underline = True
-		p.add_run(" "*15 + "编号：")
+		p.add_run(" "*12 + "编号：")
 		p.add_run(self.proj.code).underline = True
 		for r in p.runs:
 			r.font.size = Pt(11)
@@ -2134,13 +2136,13 @@ class MyDocx(object):
 
 
 		person_name = self.get_value_by_field(sheet, area_name, '计算人')
-		s = " "*8 + "计算人："
+		s = " "*6 + "计算人："
 		r = p.add_run(s)
 		if not self.insert_signature(r,person_name):
 			r = p.add_run(person_name)
 
 		person_name = self.get_value_by_field(sheet, area_name, '校核人')
-		s = " "*8 + "校核人："
+		s = " "*6 + "校核人："
 		r = p.add_run(s)
 		if not self.insert_signature(r,person_name):
 			r = p.add_run(person_name)
@@ -2157,7 +2159,7 @@ class MyDocx(object):
 		if not self.insert_signature(r,person_name):
 			r = p.add_run(person_name)
 
-		s = " "*8 + "第三方监测单位："
+		s = " "*6 + "第三方监测单位："
 		p.add_run(s)
 		p.add_run(self.proj.third_observer)
 		for r in p.runs:
@@ -2184,8 +2186,8 @@ class MyDocx(object):
 			count_num += 1
 			#test debug only one area
 			#if '衡山路站' in area_name:
-			if not '天目山路站' in area_name:
-				continue
+			#if not '天目山路站' in area_name:
+			#	continue
 			if True:
 				printl("[{}/{}]沉降监测表:'{}'".format(\
 					count_num, total_num, area_name))		
@@ -2217,8 +2219,8 @@ class MyDocx(object):
 		device_code = self.get_value_by_field(sheet, area_name, '仪器出厂编号')
 		check_date = self.get_value_by_field(sheet, area_name, '检定日期')
 		s1 = "仪器型号：%s"%(device_name)
-		s2 = " "*20 + "仪器出厂编号：%s"%(device_code)
-		s3 = " "*20 + "检定日期：%s"%(check_date)
+		s2 = " "*12 + "仪器出厂编号：%s"%(device_code)
+		s3 = " "*12 + "检定日期：%s"%(check_date)
 		t.cell(0,0).text = s1+s2+s3
 
 		t.cell(1,0).text = '测点'
@@ -2396,8 +2398,8 @@ class MyDocx(object):
 		count_num = 0
 		v_percent = 35/len(d_area_obser.keys())
 		for area_name in d_area_obser.keys():
-			if not '天目山路站' in area_name:
-				continue
+			#if not '天目山路站' in area_name:
+			#	continue
 			count_num += 1
 			count += 1
 			obser_list = d_area_obser[area_name]
@@ -2581,7 +2583,7 @@ class MyDocx(object):
 		p = d.add_paragraph()
 		p.add_run("施工监测单位：")
 		p.add_run(self.proj.builder_observer)
-		p.add_run(" "*50 + "第三方监测单位：")
+		p.add_run(" "*30 + "第三方监测单位：")
 		p.add_run(self.proj.third_observer)
 		for r in p.runs:
 			r.font.size = Pt(12)
@@ -2590,8 +2592,8 @@ class MyDocx(object):
 		t = d.add_table(rows=8, cols=13, style='blasting_style')
 		t.cell(0,0).merge(t.cell(0,12))
 		s1 = "仪器型号："
-		s2 = " "*50 + "仪器出厂编号： "
-		s3 = " "*50 + "检定日期："
+		s2 = " "*30 + "仪器出厂编号： "
+		s3 = " "*30 + "检定日期："
 		t.cell(0,0).text = s1+s2+s3
 		t.cell(1,0).merge(t.cell(3,0))
 		t.cell(1,0).text = "测量时间"
@@ -2636,11 +2638,11 @@ class MyDocx(object):
 		p = d.add_paragraph()
 		s = "现场监测人："
 		p.add_run(s)
-		s = " "*40 + "计算人："
+		s = " "*30 + "计算人："
 		p.add_run(s)
-		s = " "*40 + "校核人："
+		s = " "*30 + "校核人："
 		p.add_run(s)
-		s = " "*40 + "监测项目负责人："
+		s = " "*30 + "监测项目负责人："
 		p.add_run(s)
 
 		#表格样式，字体 宋体
@@ -2667,16 +2669,16 @@ class MyDocx(object):
 		'''
 		d = self.docx
 		#获取文件夹下的所有文件地址:
-		file_list = get_file_list(os.path.join(self.xlsx_path,'平面布点图'), [])
+		layout_path = os.path.join(self.xlsx_path,'平面布点图')
+		file_list = os.listdir(layout_path)
+		print("DEBUG 平面布点图文件:",file_list)
 		for item in file_list:
-			if os.path.isfile(item):
-				sufx = os.path.basename(item)
-				if '.xlsx' in sufx or '.docx' in sufx or '.dr' in sufx or '.txt' in sufx:
-					continue
-					
+			item_path = os.path.join(layout_path, item)
+			if os.path.isfile(item_path) and ('.png' in item or '.PNG' in item or '.jpg' in item \
+				or '.JPG' in item or 'jpeg' in item):
 				try:
-					d.add_picture(item, width=Cm(25), height=Cm(14))
-					printl(item)
+					d.add_picture(item_path, width=Cm(25), height=Cm(14))
+					print("插入平面布点图: %s"%(item))
 				except Exception as e:
 					pass
 					print("Error: {}, item: {}".format(e,item))
