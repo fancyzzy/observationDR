@@ -343,7 +343,9 @@ class MyTop(object):
 		#LOG_PATH[0] = os.path.join(os.path.dirname(self.f_path), 'my_log.txt')
 		LOG_PATH[0] = os.path.join(self.my_proj.project_bak_dir, 'my_log.txt')
 		print("DEBUG LOG_PATH=",LOG_PATH)
-
+		#fron now on, log can be recorded at the right bakup place
+		printl("\n")
+		printl("开始生成日报，时间:{}".format(str(datetime.now())))
 		try:
 			#检查日期是否合法	
 			datetime_value = datetime.strptime(s, '%Y/%m/%d')
@@ -460,7 +462,7 @@ class MyTop(object):
 		#send the finish flag
 		outqueue.put(SENTINEL)
 		print("日报线程结束")
-	##########fun_gen_report()################################################
+	##########run_gen_report()################################################
 
 	def update(self):
 		global QUE
