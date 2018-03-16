@@ -126,6 +126,7 @@ class MyDocx(object):
 		#报警实例
 		self.alarm_feature = alarm_feature
 		self.my_alarm = MyAlarm()
+		self.alarm_r = None
 
 		#签名文件列表
 		self.sig_list = []
@@ -172,6 +173,8 @@ class MyDocx(object):
 			printl("1@ 生成首页")
 			pass
 
+		'''
+
 		#数据汇总分析页****
 		#12 percentage
 		printl("\n###2. 监测数据分析表###")
@@ -180,7 +183,6 @@ class MyDocx(object):
 		else:
 			self.docx.save(self.path)
 
-		'''
 
 
 		#页面布局为横向
@@ -215,6 +217,7 @@ class MyDocx(object):
 		new_section.header_distance = Cm(1)
 		new_section.footer_distance = Cm(1)
 
+		'''
 		#沉降监测表页
 		#45 percent in pages
 		printl("\n###4. 沉降监测报表###")
@@ -224,6 +227,7 @@ class MyDocx(object):
 		else:
 			self.docx.save(self.path)
 
+		'''
 		#测斜监测表页
 		#35 percent in pages
 		printl("\n###5. 测斜监测报表###")
@@ -275,6 +279,9 @@ class MyDocx(object):
 			pass
 		'''
 
+		#alarm
+		if self.alarm_r and self.my_alarm.alarm_on:
+			self.alarm_r.text = "报        警： 是 √         否"
 
 		#保存
 		self.docx.save(self.path)
@@ -424,7 +431,8 @@ class MyDocx(object):
 
 		p = d.add_paragraph()
 		p.style = styles['my_header']
-		p.add_run("报        警： 是         否 √")
+		self.alarm_r = p.add_run()
+		self.alarm_r.text = "报        警： 是         否 √"
 
 		p = d.add_paragraph()
 		p.style = styles['my_header']
@@ -1560,6 +1568,15 @@ class MyDocx(object):
 		elif '支撑轴力' in sheet or '混撑' in sheet or '锚索轴力' in sheet:
 			t_string = '变化量(kN)'
 
+
+		#日变量报警值
+		field_name = '日变量报警值'
+		diff_thresh_values = self.get_values_by_field(sheet, row_list, field_name)
+		#累计变量报警值
+		field_name = '累计变量报警值'
+		acc_thresh_values = self.get_values_by_field(sheet, row_list, field_name)
+
+
 		device_name = self.get_value_by_field(sheet, area_name, '仪器型号')
 		device_code = self.get_value_by_field(sheet, area_name, '仪器出厂编号')
 		check_date = self.get_value_by_field(sheet, area_name, '检定日期')
@@ -1708,24 +1725,56 @@ class MyDocx(object):
 			else:
 				obser_name = 'Error'
 			if '支撑轴力' in sheet or '混撑' in sheet or '锚索轴力' in sheet:
+				#监测点号
 				t.cell(base_index+i,0).text = obser_name
+				r_name = t.cell(base_index+i,0).paragraphs[0].runs[0]
 				#本次轴力:
 				t.cell(base_index+i,1).text = str(this_values[i])
 				#上次变量
 				t.cell(base_index+i,2).text = str(last_diffs[i])
 				#本次变量
 				t.cell(base_index+i,3).text = str(this_diffs[i])
+				if self.set_cell_text_by_field_value(t.cell(base_index+i,3),\
+					this_diffs[i],diff_thresh_values[i]):
+					r_name.bold = True
+					#备注
+					t.cell(base_index+i,5).text = '报警'
+					t.cell(base_index+i,5).paragraphs[0].runs[0].bold=True
+
 				#累计变量
 				t.cell(base_index+i,4).text = str(this_acc_diffs[i])
+				if self.set_cell_text_by_field_value(t.cell(base_index+i,4),\
+					this_acc_diffs[i],acc_thresh_values[i]):
+					r_name.bold = True
+					#备注
+					t.cell(base_index+i,5).text = '报警'
+					t.cell(base_index+i,5).paragraphs[0].runs[0].bold=True
 
 			else:
+				#监测点号
 				t.cell(base_index+i,0).text = obser_name
+				r_name = t.cell(base_index+i,0).paragraphs[0].runs[0]
 				#上次变量
 				t.cell(base_index+i,1).text = str(last_diffs[i])
 				#本次变量
 				t.cell(base_index+i,2).text = str(this_diffs[i])
+				if self.set_cell_text_by_field_value(t.cell(base_index+i,2),\
+					this_diffs[i],diff_thresh_values[i]):
+					r_name.bold = True
+					#备注
+					t.cell(base_index+i,4).text = '报警'
+					t.cell(base_index+i,4).paragraphs[0].runs[0].bold=True
+
 				#累计变量
 				t.cell(base_index+i,3).text = str(this_acc_diffs[i])
+				if self.set_cell_text_by_field_value(t.cell(base_index+i,3),\
+					this_acc_diffs[i],acc_thresh_values[i]):
+					r_name.bold = True
+					#备注
+					t.cell(base_index+i,4).text = '报警'
+					t.cell(base_index+i,4).paragraphs[0].runs[0].bold=True
+
+
 			#另外一侧的表格
 			j = i+cell_row
 			if ln_row > j:
@@ -1736,15 +1785,49 @@ class MyDocx(object):
 
 				if '支撑轴力' in sheet or '混撑' in sheet or '锚索轴力' in sheet:
 					t.cell(base_index+i,6).text = obser_name
+					r_name = t.cell(base_index+i,6).paragraphs[0].runs[0]
+
 					t.cell(base_index+i,7).text = str(this_values[j])
 					t.cell(base_index+i,8).text = str(last_diffs[j])
 					t.cell(base_index+i,9).text = str(this_diffs[j])
+					if self.set_cell_text_by_field_value(t.cell(base_index+i,9),\
+					this_diffs[j],diff_thresh_values[j]):
+						r_name.bold = True
+						#备注
+						t.cell(base_index+i,11).text = '报警'
+						t.cell(base_index+i,11).paragraphs[0].runs[0].bold=True
+
+
+
 					t.cell(base_index+i,10).text = str(this_acc_diffs[j])
+					if self.set_cell_text_by_field_value(t.cell(base_index+i,10),\
+					this_acc_diffs[j],acc_thresh_values[j]):
+						r_name.bold = True
+						#备注
+						t.cell(base_index+i,11).text = '报警'
+						t.cell(base_index+i,11).paragraphs[0].runs[0].bold=True
+
 				else:
 					t.cell(base_index+i,5).text = obser_name
+					r_name = t.cell(base_index+i,5).paragraphs[0].runs[0]
+
 					t.cell(base_index+i,6).text = str(last_diffs[j])
 					t.cell(base_index+i,7).text = str(this_diffs[j])
+					if self.set_cell_text_by_field_value(t.cell(base_index+i,7),\
+					this_diffs[j],diff_thresh_values[j]):
+						r_name.bold = True
+						#备注
+						t.cell(base_index+i,9).text = '报警'
+						t.cell(base_index+i,9).paragraphs[0].runs[0].bold=True
+
+
 					t.cell(base_index+i,8).text = str(this_acc_diffs[j])
+					if self.set_cell_text_by_field_value(t.cell(base_index+i,8),\
+					this_acc_diffs[j],acc_thresh_values[j]):
+						r_name.bold = True
+						#备注
+						t.cell(base_index+i,9).text = '报警'
+						t.cell(base_index+i,9).paragraphs[0].runs[0].bold=True
 
 		all_acc_diffs = []
 		#all_acc_diffs = (array(value_list, dtype=float) - \
@@ -2704,6 +2787,21 @@ class MyDocx(object):
 		return True
 	#####################concatenate_new_docx()#######################
 
+	def set_cell_text_by_field_value(self, cell, value, thresh):
+		'''
+		根据对比设置cell的text是否是bold
+		True表示报警
+		'''
+		if self.alarm_feature:
+			if 	not self.my_alarm.compare_threshold_safe(value,thresh):
+					r = cell.paragraphs[0].runs[0]
+					r.bold = True  
+					return True
+
+		return False
+	##########set_cell_text_by_filed_value()#########################
+
+
 
 	def set_cell_text_by_field_values(self, cell, cell_texts, cell_values, thresh_values):
 		'''
@@ -2763,7 +2861,8 @@ class MyAlarm(object):
 				pass
 			return False
 
-		if threshold == None or threshold.strip(' ') == '':
+		#print("DEBUG threshold=",threshold)
+		if threshold == None or str(threshold).strip(' ') == '':
 			return True
 		if not is_number(value):
 			print("Error，不是有效的数值:{}".format(value))
@@ -2772,6 +2871,7 @@ class MyAlarm(object):
 			value = float(value)
 
 
+		threshold = str(threshold)
 		min_thr = None
 		max_thr = None
 		#有两组值的情况:
@@ -2785,18 +2885,27 @@ class MyAlarm(object):
 
 			if is_number(min_thr.strip('±')):
 				min_thr = float(min_thr.strip('±'))
+			else:
+				min_thr = None
 			if is_number(max_thr.strip('±')):
 				max_thr = float(max_thr.strip('±'))
-		else:
-			if '±' in threshold:
-				min_thr = -float(threshold.strip(' ').strip('±'))
-				max_thr = float(threshold.strip(' ').strip('±'))
-
-			#只有一组值的情况,当做最大值来对待
 			else:
-				max_thr = float(threshold.strip(' '))
+				max_thr = None
+		else:
+			if is_number(threshold.strip(' ').strip('±')):
+				if '±' in threshold:
+					min_thr = -float(threshold.strip(' ').strip('±'))
+					max_thr = float(threshold.strip(' ').strip('±'))
+	
+				#只有一组值的情况,当做最大值来对待
+				else:
+					max_thr = float(threshold.strip(' '))
+			else:
+				return True
+				#max_thr == None
+				#min_thr == None
 
-		print("DEBUG value:{}, min_thr:{}, max_thr{}".format(value,min_thr,max_thr))
+		printl("DEBUG value:{}, min_thr:{}, max_thr{}".format(value,min_thr,max_thr))
 
 		if max_thr != None:
 			if value >= max_thr:
