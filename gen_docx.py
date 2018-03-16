@@ -1026,7 +1026,6 @@ class MyDocx(object):
 			row.cells[2].text = s.strip('\n')
 
 
-
 			#求本次累计值 = 当前值-初值+旧累计值
 			acc_values = [] #累计变化量列表
 			acc_abs_values = [] #累计变化量绝对值列表
@@ -1098,16 +1097,6 @@ class MyDocx(object):
 					printl("warning, 没有最大累计值!")
 					continue
 
-			s = ''
-			for obser in max_obser_list:
-					s += obser + '\n'
-			#累计变化最大点
-			row.cells[4].text = s.strip('\n')
-			s = ''
-			for max_acc_v in max_acc_values:
-					s += max_acc_v + '\n'
-			#累计变化率
-			row.cells[5].text = s.strip('\n')
 
 			#累计变量报警值
 			field_name = '累计变量报警值'
@@ -1123,7 +1112,25 @@ class MyDocx(object):
 					else:
 						s += value + '\n'
 			row.cells[6].text = s.strip('\n')
-			#累计变量控制值 空着
+
+
+			#累计变化最大点
+			if not self.alarm_feature:
+				s = ''
+				for obser in max_obser_list:
+					s += obser + '\n' 
+				row.cells[4].text = s.strip('\n')
+			else:
+				self.set_cell_text_by_field_values(row.cells[4], max_obser_list, max_acc_values, field_values)
+
+
+			#累计变化率
+			s = ''
+			for max_acc_v in max_acc_values:
+					s += max_acc_v + '\n'
+			row.cells[5].text = s.strip('\n')	
+
+			#累计变量控制值
 			field_name = '累计变量控制值'
 			field_values = self.get_values_by_field(sheet, row_list, field_name)
 			s = ''
@@ -1136,6 +1143,7 @@ class MyDocx(object):
 					else:
 						s += value + '\n'
 			row.cells[7].text = s.strip('\n')
+
 
 			#增加进度
 			printl("%f@"%(sub_v_percent))
@@ -2731,6 +2739,7 @@ class MyDocx(object):
 						r.font.bold = True
 		print("DEBUG, 填写单元格，并且对比报警值结束")
 		return
+	###############set_cell_text_by_field_values()################
 ########################class MyDocx()####################################
 
 class MyAlarm(object):
@@ -2769,9 +2778,10 @@ class MyAlarm(object):
 		if '/' in threshold:
 			v = threshold.strip(' ').split('/')
 			min_thr, max_thr = v[0], v[1]
-			if '+' in v[0] and '-' in v[1]:
-				min_thr = v[1]
+			if '+' in v[0]:
 				max_thr = v[0]
+			if '-' in v[1]:
+				min_thr = v[1]
 
 			if is_number(min_thr.strip('±')):
 				min_thr = float(min_thr.strip('±'))
@@ -2786,7 +2796,7 @@ class MyAlarm(object):
 			else:
 				max_thr = float(threshold.strip(' '))
 
-		#print("DEBUG value:{}, min_thr:{}, max_thr{}".format(value,min_thr,max_thr))
+		print("DEBUG value:{}, min_thr:{}, max_thr{}".format(value,min_thr,max_thr))
 
 		if max_thr != None:
 			if value >= max_thr:
