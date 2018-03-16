@@ -113,7 +113,7 @@ def delete_item(item):
 
 
 class MyDocx(object):
-	def __init__(self, docx_path, proj_info, my_xlsx):
+	def __init__(self, docx_path, proj_info, my_xlsx, alarm_feature=True):
 		self.proj = ProInfo(*proj_info)
 		self.docx = None
 		self.path = docx_path
@@ -123,6 +123,9 @@ class MyDocx(object):
 		#xlsx实例
 		self.my_xlsx = my_xlsx
 		self.my_plot = draw_plot.MyPlot()
+		#报警实例
+		self.alarm_feature = alarm_feature
+		self.my_alarm = MyAlarm()
 
 		#签名文件列表
 		self.sig_list = []
@@ -176,6 +179,8 @@ class MyDocx(object):
 			printl("DEBUG make_overview_pages error")
 		else:
 			self.docx.save(self.path)
+
+		'''
 
 
 		#页面布局为横向
@@ -268,6 +273,7 @@ class MyDocx(object):
 		else:
 			printl("2@ 生成平面布点图")
 			pass
+		'''
 
 
 		#保存
@@ -1003,12 +1009,16 @@ class MyDocx(object):
 			print("DEBUGGGGG 这个单元格一共有多少个r:",len(runs))
 			'''
 
-
 			#本次变化最大点
-			s = ''
-			for obser in max_obser_list:
-				s += obser + '\n' 
-			row.cells[1].text = s.strip('\n')
+			if not self.alarm_feature:
+				s = ''
+				for obser in max_obser_list:
+					s += obser + '\n' 
+				row.cells[1].text = s.strip('\n')
+			else:
+				self.set_cell_text_by_field_values(row.cells[1], max_obser_list, max_change_values, field_values)
+
+
 			#日变化速率
 			s = ''
 			for max_v in max_change_values:
@@ -2687,6 +2697,116 @@ class MyDocx(object):
 	#####################concatenate_new_docx()#######################
 
 
+	def set_cell_text_by_field_values(self, cell, cell_texts, cell_values, thresh_values):
+		'''
+		根据对比cell_values是否超出thresh_values
+		对cell的数据进行bold
+		'''
+		ln_cell = len(cell_texts)
+		ln_thresh = len(thresh_values)
+		if ln_cell != ln_thresh:
+			printl("Warning, 单元格值数目和报警值数目长度不匹配")
+
+		p_cell = cell.paragraphs[0]
+		r = None
+		if ln_cell == 0: 
+			printl("warning, 单元格没有值！")
+			cell.text = ' '
+		else:
+			for i in range(ln_cell):
+				if i != ln_cell-1:	
+					if cell_texts[i] == None:
+						r = p_cell.add_run(' \n')
+					else:
+						r = p_cell.add_run(cell_texts[i] + '\n')
+				else:
+					if cell_texts[i] == None:
+						r = p_cell.add_run(' ')
+					else:
+						r = p_cell.add_run(cell_texts[i])
+				if i < ln_thresh and thresh_values[i]:
+					if 	not self.my_alarm.compare_threshold_safe(cell_values[i],\
+						thresh_values[i]):
+						print("达到报警点！cell值:'{}',报警值:'{}'".format(cell_values[i],thresh_values[i]))
+						r.font.bold = True
+		print("DEBUG, 填写单元格，并且对比报警值结束")
+		return
+########################class MyDocx()####################################
+
+class MyAlarm(object):
+	def __init__(self):
+		self.alarm_on = False
+	#############__init__()##############
+
+
+	def compare_threshold_safe(self, value, threshold):
+		'''
+		比较报警值，如果大于大的或者小于小的就返回False
+		安全就True
+		'''
+		is_safe = True
+
+		def is_number(s):
+			try:
+				float(s)
+				return True
+			except ValueError:
+				pass
+			return False
+
+		if threshold == None or threshold.strip(' ') == '':
+			return True
+		if not is_number(value):
+			print("Error，不是有效的数值:{}".format(value))
+			return True
+		else:
+			value = float(value)
+
+
+		min_thr = None
+		max_thr = None
+		#有两组值的情况:
+		if '/' in threshold:
+			v = threshold.strip(' ').split('/')
+			min_thr, max_thr = v[0], v[1]
+			if '+' in v[0] and '-' in v[1]:
+				min_thr = v[1]
+				max_thr = v[0]
+
+			if is_number(min_thr.strip('±')):
+				min_thr = float(min_thr.strip('±'))
+			if is_number(max_thr.strip('±')):
+				max_thr = float(max_thr.strip('±'))
+		else:
+			if '±' in threshold:
+				min_thr = -float(threshold.strip(' ').strip('±'))
+				max_thr = float(threshold.strip(' ').strip('±'))
+
+			#只有一组值的情况,当做最大值来对待
+			else:
+				max_thr = float(threshold.strip(' '))
+
+		#print("DEBUG value:{}, min_thr:{}, max_thr{}".format(value,min_thr,max_thr))
+
+		if max_thr != None:
+			if value >= max_thr:
+				self.alarm_on = True
+				return False
+
+		if min_thr != None:
+			if value <= min_thr:
+				self.alarm_on = True
+				return False
+
+		return True
+	#####compare_threshold_safe()#########	
+
+
+
+
+
+############class MyAlarm()#####################################3
+
 
 def thread_test():
 	import threading
@@ -2714,7 +2834,7 @@ def run_test():
 	 '中铁隧道勘察设计研究院有限公司', xlsx_path, date_v]
 
 	my_xlsx = read_xlsx.MyXlsx(xlsx_path)
-	my_docx = MyDocx(docx_path, project_info, my_xlsx)
+	my_docx = MyDocx(docx_path, project_info, my_xlsx, True)
 
 	res = my_docx.gen_docx()	
 	if res:
@@ -2727,4 +2847,3 @@ if __name__ == '__main__':
 	#测试
 	#run_test()
 	thread_test()
-
