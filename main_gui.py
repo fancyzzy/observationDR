@@ -28,6 +28,23 @@ from my_log import LOG_PATH
 from time import clock
 import my_bak
 
+#debug
+import traceback
+'''
+from inspect import getframeinfo, stack
+
+def debuginfo(message):
+	len_stack = len(stack())
+	print("len_stack=",len_stack)
+	for i in range(0, len_stack):
+	    caller = getframeinfo(stack()[i][0])
+	    print("[%d]%s:%d - %s" % (i,caller.filename, caller.lineno, message))
+
+def grr(arg):
+    debuginfo(arg)
+'''
+
+
 L_THREADS = []
 
 my_color_office_blue ='#%02x%02x%02x' % (43,87,154)
@@ -417,6 +434,7 @@ class MyTop(object):
 		print("run_gen_report start")
 		global QUE
 		global SENTINEL
+		global PRO_INFO
 		outqueue = QUE
 
 		start = clock()
@@ -430,7 +448,8 @@ class MyTop(object):
 		#获取xlsx数据源
 		#12% percent
 		if not self.my_xlsx:
-			outqueue.put('加载数据源...')
+			outqueue.put("加载数据源'{}'...".format(\
+				os.path.basename(PRO_INFO[D['xlsx_path']])))
 			if not self.load_xlsx():
 				print("12@加载数据源失败!")
 				self.button_gen.config(bg=my_color_light_orange,relief='raised',\
@@ -454,9 +473,13 @@ class MyTop(object):
 			my_docx = gen_docx.MyDocx(docx_path, project_info, self.my_xlsx)
 			result = my_docx.gen_docx()
 		except Exception as e:
+			#这里加上哪个文件，哪一行
 			s = "Error, 生成日报错误:{}".format(e)
 			printl(s,False)
-			self.popup_window(s, True)
+			s = traceback.format_exc()
+			printl("原因:'{}'".format(s),False)
+
+			self.popup_window('遇到错误:%s'%(s.split('File')[-1]), True)
 
 		#debug percentage not 100%
 		self.prog.p_bar["value"]=100.

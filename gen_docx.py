@@ -173,9 +173,8 @@ class MyDocx(object):
 			printl("1@ 生成首页")
 			pass
 
-		'''
 
-		#数据汇总分析页****
+		#数据分析表****
 		#12 percentage
 		printl("\n###2. 监测数据分析表###")
 		if not self.make_overview_pages():
@@ -217,7 +216,6 @@ class MyDocx(object):
 		new_section.header_distance = Cm(1)
 		new_section.footer_distance = Cm(1)
 
-		'''
 		#沉降监测表页
 		#45 percent in pages
 		printl("\n###4. 沉降监测报表###")
@@ -227,7 +225,6 @@ class MyDocx(object):
 		else:
 			self.docx.save(self.path)
 
-		'''
 		#测斜监测表页
 		#35 percent in pages
 		printl("\n###5. 测斜监测报表###")
@@ -277,7 +274,6 @@ class MyDocx(object):
 		else:
 			printl("2@ 生成平面布点图")
 			pass
-		'''
 
 		#alarm
 		if self.alarm_r and self.my_alarm.alarm_on:
@@ -516,7 +512,6 @@ class MyDocx(object):
 			#print("DEBUG sheet:{}, row_list={}, field_col={}".format(sheet, row_list, field_col))
 			value_list = px.get_rows_col_values(sheet,row_list,field_col)
 
-
 		return value_list
 
 	#######get_values_by_field()###########################
@@ -660,10 +655,13 @@ class MyDocx(object):
 				start, end = d_obser_range[obser]
 				add_count = 0
 				v_sum = 0
+				#v_average = nan
 				for i in range(start-base, end-base+1):
 					if not isnan(output_values[i]):
 						v_sum += output_values[i]
 						add_count += 1
+				#if add_count != 0:
+				#	v_average = v_sum/(add_count)
 				v_average = v_sum/(add_count)
 				#只把第一个值赋值为平均值，其他为nan
 				for i in range(start-base, end-base+1):
@@ -821,7 +819,7 @@ class MyDocx(object):
 	##########get_acc_values()###########################
 
 
-	def one_overview_table(self, area_name,v_percent):
+	def one_overview_table(self, area_name, v_percent, per_s):
 		'''
 		一个区间的各种观测监信息汇总表
 		'''
@@ -859,8 +857,8 @@ class MyDocx(object):
 				printl("%f@"%(sub_v_percent))
 				continue
 
-			print("{}/{}'{}{}数据'".format(\
-				count_num, total_sheets_num, area_name,sheet))
+			printl("{}数据分析表:'{}'({}/{}:{})".format(per_s,\
+				area_name, count_num, total_sheets_num, sheet))
 			#获取数据
 			today_range_values = [] #当天数据列表
 			last_range_values = []  #前一天数据列表
@@ -988,7 +986,7 @@ class MyDocx(object):
 					if value == None:
 						s += ' ' + '\n'
 					else:
-						s += value + '\n'
+						s += str(value) + '\n'
 			row.cells[3].text = s.strip('\n')
 
 			'''
@@ -1109,7 +1107,7 @@ class MyDocx(object):
 			#累计变量报警值
 			field_name = '累计变量报警值'
 			field_values = self.get_values_by_field(sheet, row_list, field_name)
-			#print("DEBUG 累计变量报警值 数列:",field_values)
+			print("DEBUG 累计变量报警值 数列:",field_values)
 			s = ''
 			if len(field_values) == 0: 
 				s = ' '
@@ -1118,7 +1116,7 @@ class MyDocx(object):
 					if value == None:
 						s += ' ' + '\n'
 					else:
-						s += value + '\n'
+						s += str(value) + '\n'
 			row.cells[6].text = s.strip('\n')
 
 
@@ -1149,7 +1147,7 @@ class MyDocx(object):
 					if value == None:
 						s += ' ' + '\n'
 					else:
-						s += value + '\n'
+						s += str(value) + '\n'
 			row.cells[7].text = s.strip('\n')
 
 
@@ -1257,8 +1255,8 @@ class MyDocx(object):
 		for area_name in areas:
 			#if '天目山路站' in area_name or '安薛区间' in area_name:
 			if True:
-				printl("[{}/{}]数据分析表:'{}'".format(\
-					count_num, total_num, area_name))
+				per_s = '[{}/{}]'.format(count_num, total_num)
+				printl("[{}]数据分析表:'{}'".format(per_s, area_name))
 				ss = '表' + '%d'%count_num + area_name + table_cap
 				p = d.add_paragraph()
 				p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -1267,7 +1265,7 @@ class MyDocx(object):
 				r = p.add_run(ss)
 				r.font.size = Pt(12)
 
-				is_written,t = self.one_overview_table(area_name,v_percent)
+				is_written,t = self.one_overview_table(area_name,v_percent,per_s)
 				if not is_written:
 					#删除表和表头
 					delete_item(t)
@@ -2875,6 +2873,7 @@ class MyAlarm(object):
 		min_thr = None
 		max_thr = None
 		#有两组值的情况:
+		print("DEBUG threshold: '{}'".format(threshold))
 		if '/' in threshold:
 			v = threshold.strip(' ').split('/')
 			min_thr, max_thr = v[0], v[1]
@@ -2905,7 +2904,7 @@ class MyAlarm(object):
 				#max_thr == None
 				#min_thr == None
 
-		printl("DEBUG value:{}, min_thr:{}, max_thr{}".format(value,min_thr,max_thr))
+		print("DEBUG value: {}, min_thr: {}, max_thr: {}".format(value,min_thr,max_thr))
 
 		if max_thr != None:
 			if value >= max_thr:
