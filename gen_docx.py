@@ -547,11 +547,28 @@ class MyDocx(object):
 
 		d_obser_range :是点号的行范围字典,用于一个点号对应多行值，需要求平均的sheet
 		'''
+		def is_number(s):
+			try:
+				float(s)
+				return True
+			except:
+				pass
+			return False
+
 		px = self.my_xlsx
 		sh = px.wb[sheet]
 		output_values = px.get_range_values(sheet, area_name, col)
-		output_values = array(output_values, dtype=float)
 		ln = len(output_values)
+		try:
+			output_values = array(output_values, dtype=float)
+		except:
+			print("DEBUG,有非数值value: {}在sheet: {}, area_name: {}, col: {}".\
+				format(output_values,sheet,area_name,col))
+			for i in range(ln):
+				if not is_number(output_values[i]):
+					output_values[i] = None
+			output_values = array(output_values, dtype=float)
+
 		#获取area的测量点行范围row_range
 		start_row, end_row = px.all_areas_row_range[sheet][area_name]
 
