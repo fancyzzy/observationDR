@@ -29,7 +29,7 @@ def printl(s,que_output=True):
 	if '@' in s:
 		pass
 	else:
-		print(s)
+		print('LOG: {}'.format(s))
 		write_log(s, LOG_PATH[0])
 
 	if que_output:

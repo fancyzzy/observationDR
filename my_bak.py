@@ -11,7 +11,7 @@ import os
 def bak_directory(s_dir, bak_dir):
 	is_existed = False
 	if os.path.exists(bak_dir) and os.path.isdir(bak_dir):
-		print('文件夹已经存在, 进行增量备份')
+		print('{}文件夹已经存在, 进行增量备份'.format(bak_dir))
 		file_list = os.listdir(s_dir)
 		existed_list = os.listdir(bak_dir)
 		new_file_list = list(set(file_list)-set(existed_list))

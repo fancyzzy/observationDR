@@ -149,7 +149,7 @@ class MyDocx(object):
 		'''
 		生成docx文件
 		'''
-		printl("\n{}日报:".format(self.str_date))
+		printl("\ngen_docx:{}日报:".format(self.str_date),False)
 
 		#if not self.path or not os.path.exists(self.path):
 		if not self.path:
@@ -655,14 +655,13 @@ class MyDocx(object):
 				start, end = d_obser_range[obser]
 				add_count = 0
 				v_sum = 0
-				#v_average = nan
+				v_average = nan
 				for i in range(start-base, end-base+1):
 					if not isnan(output_values[i]):
 						v_sum += output_values[i]
 						add_count += 1
-				#if add_count != 0:
-				#	v_average = v_sum/(add_count)
-				v_average = v_sum/(add_count)
+				if add_count != 0:
+					v_average = v_sum/(add_count)
 				#只把第一个值赋值为平均值，其他为nan
 				for i in range(start-base, end-base+1):
 					if i == start-base:
@@ -905,7 +904,8 @@ class MyDocx(object):
 
 			#如果所有值都为空就略过这一行的填写
 			if isnan(today_range_values).sum() == len(today_range_values):
-				printl("没有当天数据!")
+				printl("{}数据分析表:'{}'({}/{}:{}, 没有当天数据!)".format(per_s,\
+				area_name, count_num, total_sheets_num, sheet))
 				continue
 
 			#寻找前一天数据
@@ -1855,7 +1855,7 @@ class MyDocx(object):
 		except Exception as e:
 			print("画图有问题: ",e)
 		if fig_path == None or not os.path.exists(fig_path):
-			printl("ERROR, fig_path not exists!")
+			printl("ERROR, fig_path not exists!",Flase)
 			#fit_path = dummy.png
 		else:
 			#插入曲线图
@@ -1911,7 +1911,7 @@ class MyDocx(object):
 	##################draw_settlement_table()###################################
 
 
-	def multi_settlement_table(self, area_name,v_percent):
+	def multi_settlement_table(self, area_name,v_percent,per_s):
 		'''
 		一个区间的多个沉降观测表
 
@@ -1943,8 +1943,10 @@ class MyDocx(object):
 			if '测斜' in sheet:
 				printl("%f@"%(v_percent))
 				continue
-			print("{}/{}'{}{}监测报表'".format(\
-				count_num, total_sheet_num, area_name, sheet))
+			printl("{}沉降监测表:'{}'{}/{}({})".format(per_s, area_name,\
+				count_num, total_sheet_num,sheet))
+			#print("{}/{}'{}{}监测报表'".format(\
+			#	count_num, total_sheet_num, area_name, sheet))
 
 			#获取数据
 			row_list = []   #观测点行坐标
@@ -2096,8 +2098,10 @@ class MyDocx(object):
 				sub_old_acc_values = old_acc_values[start:end]
 				start = end 
 
-				printl("'{}'{}监测报表{}/{}".format(\
-					area_name, sheet,i,split_num))
+				#printl("'{}'{}监测报表{}/{}".format(\
+				#	area_name, sheet,i,split_num))
+				printl("{}沉降监测表:'{}'{}/{}({}{}/{})".format(per_s, area_name,\
+					count_num, total_sheet_num,sheet,i,split_num))
 				###new page###########
 				if self.allow_page_break:
 					d.add_page_break()
@@ -2279,6 +2283,7 @@ class MyDocx(object):
 
 		total_num = len(areas)
 		count_num = 0
+		per_s = ''
 		#45 percent
 		v_percent = 45/total_num
 		for area_name in areas:
@@ -2288,9 +2293,9 @@ class MyDocx(object):
 			#if not '天目山路站' in area_name:
 			#	continue
 			if True:
-				printl("[{}/{}]沉降监测表:'{}'".format(\
-					count_num, total_num, area_name))		
-				self.multi_settlement_table(area_name,v_percent)
+				per_s = '[{}/{}]'.format(count_num,total_num)
+				printl("{}沉降监测表:'{}'".format(per_s, area_name))		
+				self.multi_settlement_table(area_name,v_percent, per_s)
 
 
 		result = True

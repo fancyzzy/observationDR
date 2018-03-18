@@ -465,6 +465,7 @@ class MyTop(object):
 			outqueue.put('12@数据源已加载')
 			pass
 
+		printl("开始生成{}监测日报:".format(project_info[-1]))
 		#生成日报
 		result = None
 		try:
@@ -482,7 +483,8 @@ class MyTop(object):
 			self.popup_window('遇到错误:%s'%(s.split('File')[-1]), True)
 
 		#debug percentage not 100%
-		self.prog.p_bar["value"]=100.
+		if result != None:
+			self.prog.p_bar["value"]=100.
 		table_num = my_docx.get_table_num()
 
 		end = clock()
@@ -519,7 +521,7 @@ class MyTop(object):
 			self.bak_dir_files()
 			printl("日报文件存储于: %s\n"%(docx_path))
 		else:
-			printl("日报生成遇到问题\n")
+			printl("日报生成遇到问题\n",False)
 		#send the finish flag
 		outqueue.put(SENTINEL)
 		print("日报线程结束")
