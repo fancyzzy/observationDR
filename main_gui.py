@@ -347,6 +347,7 @@ class MyTop(object):
 		xlsx_data_path = PRO_INFO[D['xlsx_path']]
 		try:
 			self.my_xlsx = read_xlsx.MyXlsx(xlsx_data_path)
+			print("加载数据源成功，self.my_xlsx=",self.my_xlsx)
 		except Exception as e:
 			print("Error! 加载excel数据源错误:{}".format(e))
 			self.popup_window(e,error=True)
@@ -465,7 +466,7 @@ class MyTop(object):
 			outqueue.put('12@数据源已加载')
 			pass
 
-		printl("开始生成{}监测日报:".format(project_info[-1]))
+		printl("开始生成监测日报")
 		#生成日报
 		result = None
 		try:

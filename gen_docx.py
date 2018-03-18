@@ -2873,12 +2873,10 @@ class MyAlarm(object):
 		else:
 			value = float(value)
 
-
 		threshold = str(threshold)
 		min_thr = None
 		max_thr = None
 		#有两组值的情况:
-		print("DEBUG threshold: '{}'".format(threshold))
 		if '/' in threshold:
 			v = threshold.strip(' ').split('/')
 			min_thr, max_thr = v[0], v[1]
@@ -2909,7 +2907,8 @@ class MyAlarm(object):
 				#max_thr == None
 				#min_thr == None
 
-		print("DEBUG value: {}, min_thr: {}, max_thr: {}".format(value,min_thr,max_thr))
+		print("DEBUG value: {}, min_thr: {}, max_thr: {}, threshold: '{}'".\
+			format(value,min_thr,max_thr,threshold))
 
 		if max_thr != None:
 			if value >= max_thr:
