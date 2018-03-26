@@ -7,8 +7,11 @@
 .idea/vcs.xml
 project_backup
 project_backup/*
+project_template
+project_template/*
 __pycache__/*
 inclinometer_fig.PNG
 temped_fig.png
 temped_fig.png
 temped_fig.png
+project_backup/all_projects.txt

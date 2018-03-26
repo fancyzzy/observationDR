@@ -118,12 +118,13 @@ class MyPro(object):
 		fm_xlsx = tk.Frame(self.pro_top)
 		tk.Label(fm_xlsx, text='* excel数据源: ').pack(side=tk.LEFT)
 		self.v_xlsx_path = tk.StringVar()
+		self.v_xlsx_path.set('汇总数据源')
 		tk.Entry(fm_xlsx, width=65, textvariable=self.v_xlsx_path)\
 		.pack(side=tk.LEFT)
 		tk.Button(fm_xlsx, text="...", width=5, command=self.select_xlsx)\
 		.pack(side=tk.LEFT)
 		fm_xlsx.pack()
-		tk.Label(self.pro_top, text="注: 请把 '平面布点图' 文件夹放到excel数据源所在目录下").\
+		tk.Label(self.pro_top, text="注: '平面布点图'和'签名'在'数据源'同目录下").\
 		pack()
 
 		tk.Label(self.pro_top, text='').pack()

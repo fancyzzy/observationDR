@@ -309,7 +309,7 @@ class MyTop(object):
 	def bak_dir_files(self):
 		'''
 		保存所有工程文件
-		签名，布点图等
+		数据源,签名，布点图等
 		'''
 
 		if self.my_proj == None:
@@ -322,16 +322,10 @@ class MyTop(object):
 			return
 
 		bak_path = self.my_proj.project_bak_dir
-		dst_path = os.path.dirname(self.f_path)
-
-		layout_bak_path = os.path.join(bak_path,'平面布点图')			
-		sig_bak_path = os.path.join(bak_path,'签名')
-
-		layout_path = os.path.join(dst_path, '平面布点图')
-		sig_path = os.path.join(dst_path, '签名')
-
-		my_bak.bak_directory(layout_path, layout_bak_path)
-		my_bak.bak_directory(sig_path, sig_bak_path)
+		target_proj_path = os.path.dirname(self.f_path)
+		#bak_proj_path = os.path.join(bak_path, os.path.basename(target_proj_path))
+		print("Debug 备份文件夹路径:",bak_path)
+		my_bak.bak_directory(target_proj_path, bak_path)
 		return
 
 
@@ -519,7 +513,7 @@ class MyTop(object):
 				printl("备份日志文件失败")
 
 			#备份签名和平面布点图文件夹:	
-			print("DEbug,开始备份文件夹\n")
+			print("DEbug,开始备份工程项目文件夹\n")
 			self.bak_dir_files()
 			printl("日报文件存储于: %s\n"%(docx_path))
 		else:

@@ -19,7 +19,7 @@ def bak_directory(s_dir, bak_dir):
 			print("有新文件:",new_file_list)
 			for file in new_file_list:
 				full_path = os.path.join(s_dir, file)
-				if os.path.isfile(full_paht):
+				if os.path.isfile(full_path):
 					try:
 						shutil.copy(full_path, bak_dir)
 					except Exception as e:
