@@ -8,33 +8,42 @@ import shutil
 import os
 
 
-def bak_directory(s_dir, bak_dir):
+def bak_directory(s_dir, bak_dir, overwrite=True):
 	is_existed = False
-	if os.path.exists(bak_dir) and os.path.isdir(bak_dir):
-		print('{}文件夹已经存在, 进行增量备份'.format(bak_dir))
-		file_list = os.listdir(s_dir)
-		existed_list = os.listdir(bak_dir)
-		new_file_list = list(set(file_list)-set(existed_list))
-		if len(new_file_list) > 0: 
-			print("有新文件:",new_file_list)
-			for file in new_file_list:
-				full_path = os.path.join(s_dir, file)
-				if os.path.isfile(full_path):
-					try:
-						shutil.copy(full_path, bak_dir)
-					except Exception as e:
-						print("Error!, e:{}".format(e))
-				elif os.path.isdir(full_path):
-					bak_directory(full_path, os.path.join(bak_dir,file))
+	if not overwrite:
+		if os.path.exists(bak_dir) and os.path.isdir(bak_dir):
+			print('{}文件夹已经存在, 进行增量备份'.format(bak_dir))
+			file_list = os.listdir(s_dir)
+			existed_list = os.listdir(bak_dir)
+			new_file_list = list(set(file_list)-set(existed_list))
+			if len(new_file_list) > 0: 
+				print("有新文件:",new_file_list)
+				for file in new_file_list:
+					full_path = os.path.join(s_dir, file)
+					if os.path.isfile(full_path):
+						try:
+							shutil.copy(full_path, bak_dir)
+						except Exception as e:
+							print("Error!, e:{}".format(e))
+					elif os.path.isdir(full_path):
+						bak_directory(full_path, os.path.join(bak_dir,file))
+			else:
+				print("没有文件要备份")
 		else:
-			print("没有文件要备份")
+			try:
+				shutil.copytree(s_dir, bak_dir)
+			except Exception as e:
+				print("ERROR, e: {}".format(e))
+				return False
 	else:
+		print("DEBUG 全部覆盖备份:")
 		try:
 			shutil.copytree(s_dir, bak_dir)
 		except Exception as e:
 			print("ERROR, e: {}".format(e))
 			return False
 	print("bak done:{} -> {}".format(s_dir,bak_dir))
+	return True
 ##################bak_dir()###############################
 
 
