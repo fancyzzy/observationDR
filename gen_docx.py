@@ -204,7 +204,7 @@ class MyDocx(object):
 		else:
 			pass
 
-		#页面布局为纵向横向
+		#页面布局为纵向
 		new_section = self.docx.add_section()
 		new_section.orientation = WD_ORIENT.PORTRAIT
 		new_section.page_width = Mm(210)
@@ -254,7 +254,7 @@ class MyDocx(object):
 			printl("1@ 生成爆破监测表")
 			pass
 
-		#页面布局
+		#页面布局为横向
 		new_section = self.docx.add_section(WD_SECTION.NEW_PAGE)
 		new_section.orientation = WD_ORIENT.LANDSCAPE
 		new_section.page_width = Mm(297)
@@ -285,6 +285,7 @@ class MyDocx(object):
 		printl("saved in:'{}'".format(self.path))
 		return True
 	#######gen_docx()####################################
+
 
 	def set_document_style(self):
 		'''

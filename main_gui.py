@@ -27,6 +27,7 @@ from my_log import SENTINEL
 from my_log import LOG_PATH
 from time import clock
 import my_bak
+import call_vba
 
 #debug
 import traceback
