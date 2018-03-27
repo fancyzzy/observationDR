@@ -74,6 +74,7 @@ class MyTop(object):
 		self.is_generating = False
 		#工程信息实例
 		self.my_proj = None
+		self.fail_count = 0
 
 		#菜单
 		self.menu_bar = tk.Menu(self.top)
@@ -281,15 +282,20 @@ class MyTop(object):
 		'''
 		根据选择的工程文件，显示工程
 		'''
-
 		project_path = self.p_name.get()
 		print("DEBUG display_project:",project_path)
 		if project_path and os.path.exists(project_path):
 			self.my_proj = MyPro(self.top, project_path)
+			self.fail_count = 0
 		else:
+			self.fail_count += 1
 			s = ("没有找到项目文件:{}\n".format(project_path))
 			showinfo(message = s)
 			#从备份项目列表文件中删除
+			if self.fail_count == 3:
+				s = '请删除记录文件中不存在的工程地址\n{}'.format(PRO_BAK_TXT)
+				showinfo(message = s)
+				os.system(PRO_BAK_TXT)
 
 	###############display_project()##############################
 
