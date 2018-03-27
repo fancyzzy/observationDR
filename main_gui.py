@@ -29,6 +29,7 @@ from time import clock
 import my_bak
 import call_vba
 import new_project
+import tooltip
 
 #debug
 import traceback
@@ -68,12 +69,15 @@ class MyTop(object):
 		self.top.bind("<FocusIn>", self.enter_top)
 
 		#工程文件路径
+		#注意f_path的os.sep不对，需要normpath
 		self.f_path = None
 		#xlsx类实例
 		self.my_xlsx = None
 		self.is_generating = False
 		#工程信息实例
 		self.my_proj = None
+		#工程信息实例暂时值，只有当project_info点了确认，才会赋值给self.my_proj
+		self.my_proj_tmp = None
 		self.fail_count = 0
 
 		#菜单
@@ -140,6 +144,9 @@ class MyTop(object):
 		fm_title = tk.Frame(self.fm_pro)
 		self.label_title = tk.Label(fm_title, text='XX工程监测日报',\
 			font = ('楷体', 28, 'bold'), fg= my_color_orange)
+		self.label_title.bind('<Button-1>', self.open_proj_folder)
+		s = "提示: 点击标题可以打开项目工程文件夹"
+		tooltip.ToolTip(self.label_title, msg=None, msgFunc=lambda : s, follow=True, delay=0.01)
 		self.label_title.pack()
 		self.label_area = tk.Label(fm_title, text='XX区间',\
 			font = ('楷体', 28, 'bold'), fg= my_color_orange)
@@ -231,7 +238,28 @@ class MyTop(object):
 			if len(PRO_PATH) > 0:
 				self.f_path = PRO_PATH[-1]
 
+			#还原工程列表原有的选择:
+			if self.my_proj:
+				self.p_name.set(self.my_proj.project_path)
+			else:
+				self.p_name.set('')
+
+
 	#########enter_top()###############################################
+
+
+	def open_proj_folder(self,event):
+		'''
+		打开project文件夹
+		'''
+		print("open_proj_folder:",self.f_path)
+		folder = os.path.dirname(self.f_path)
+		folder = os.path.normpath(folder)
+		print("folder=",folder)
+
+		os.system("explorer.exe " + r"%s"%folder)
+
+	#############open_proj_folder()###################################
 
 
 	def new_project(self):
@@ -246,7 +274,7 @@ class MyTop(object):
 
 		#file_path=None 表示项目工程.dr文件为none，意为新建文件工程
 		#self.my_proj = MyPro(self.top, file_path=None)
-		self.my_proj = new_proj.my_proj
+		self.my_proj_tmp = new_proj.my_proj
 
 		print("new project done")
 
@@ -264,7 +292,8 @@ class MyTop(object):
 			initialdir=desktop_dir)
 		if self.f_path and os.path.exists(self.f_path):
 			self.f_path = os.path.normpath(self.f_path)
-			self.my_proj = MyPro(self.top, self.f_path)
+			self.my_proj_tmp = MyPro(self.top, self.f_path)
+			self.my_proj_tmp.pro_top.grab_set()
 		else:
 			pass
 	##################open_project()#####################################
@@ -275,9 +304,9 @@ class MyTop(object):
 		更改工程信息
 		'''
 		if self.f_path and os.path.exists(self.f_path):
-			self.my_proj = MyPro(self.top, self.f_path)
+			self.my_proj_tmp = MyPro(self.top, self.f_path)
 			#get focus, always in the front
-			self.my_proj.pro_top.grab_set()
+			self.my_proj_tmp.pro_top.grab_set()
 		else:
 			pass
 	#############update_project()#################################
@@ -290,9 +319,9 @@ class MyTop(object):
 		project_path = self.p_name.get()
 		print("DEBUG display_project:",project_path)
 		if project_path and os.path.exists(project_path):
-			self.my_proj = MyPro(self.top, project_path)
+			self.my_proj_tmp = MyPro(self.top, project_path)
 			#get focus, always in the front
-			self.my_proj.pro_top.grab_set()
+			self.my_proj_tmp.pro_top.grab_set()
 			self.fail_count = 0
 		else:
 			self.fail_count += 1
@@ -309,7 +338,7 @@ class MyTop(object):
 
 	def update_title(self):
 		global PRO_INFO
-		global IS_UPDATED
+		print("DEBUG, PRO_INFO now is:",PRO_INFO)
 		if is_project_updated():
 			self.label_title.config(text=PRO_INFO[D['name']])
 			self.label_area.config(text=PRO_INFO[D['area']])
@@ -322,8 +351,12 @@ class MyTop(object):
 				#更新菜单项可用
 				self.file_menu.entryconfig("更改工程",state="normal")
 
+			#更新工程项目实例
+			self.my_proj = self.my_proj_tmp
+
 			#重置excel数据源
 			self.my_xlsx = None
+			set_project_updated_false()
 	############update_title()####################################		
 
 
@@ -413,6 +446,7 @@ class MyTop(object):
 		docx_path = os.path.join(os.path.dirname(self.f_path), docx_name)
 		#my_log.txt写在备份区
 		#LOG_PATH[0] = os.path.join(os.path.dirname(self.f_path), 'my_log.txt')
+		#print("DEBUG self.my_proj.project_bak_dir:",self.my_proj.project_bak_dir)
 		LOG_PATH[0] = os.path.join(self.my_proj.project_bak_dir, 'my_log.txt')
 		print("DEBUG LOG_PATH=",LOG_PATH)
 		#fron now on, log can be recorded at the right bakup place

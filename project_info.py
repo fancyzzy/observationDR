@@ -20,13 +20,21 @@ import shutil
 #工程项目名, 编号， 施工单位， 监理单位， 监测单位, 区间
 D = {"name":0,"area":1,"code":2,"contract":3,"builder":4,"supervisor":5,\
  "third_observer":6,"builder_observer":7, "xlsx_path":8,"date":9}
+#注意main_gui会用到PRO_INFO，但是只有开始import，所以PRO_INFO一定不能赋值操作
+#要保证PRO_INFO的id不变！
 PRO_INFO = ["xxx工程","xx区间","xx编号","xx合同","xx施工单位","xx监理单位",\
 "xx第三方监测单位","xx施工方监测单位","数据源文件地址","x年x月x日"]
+PRO_INFO_BEFORE = PRO_INFO[:]
 
 IS_UPDATED = False
 def is_project_updated():
+	print("DEBUG IS_UPDATED= ",IS_UPDATED)
 	return IS_UPDATED
 
+def set_project_updated_false():
+	global IS_UPDATED
+	IS_UPDATED = False
+	
 #工程文件目录
 PRO_PATH = []
 
@@ -220,6 +228,7 @@ class MyPro(object):
 		#创建备份文件夹，以项目名称命名
 		p_name = self.v_name.get()
 		self.project_bak_dir = os.path.join(PRO_BAK_PATH, p_name)
+		print("备份文件夹：",self.project_bak_dir)
 		if not os.path.isdir(self.project_bak_dir):
 			os.mkdir(self.project_bak_dir)
 
@@ -234,8 +243,16 @@ class MyPro(object):
 		'''
 		退出按钮函数
 		'''
+		global PRO_INFO
+		global PRO_INFO_BEFORE
 		global IS_UPDATED
+		print("DEBUG discard_project点击了取消")
 		IS_UPDATED = False
+
+		#还原回去
+		for i in range(len(PRO_INFO)):
+			PRO_INFO[i] = PRO_INFO_BEFORE[i]
+		print("还原PRO_INFO:",PRO_INFO)
 		self.pro_top.destroy()
 
 	##########discard_project()#####################
@@ -247,11 +264,17 @@ class MyPro(object):
 		'''
 		global PRO_INFO
 		global IS_UPDATED
+		global PRO_INFO_BEFORE
+		#注意这里[:]用来防止id变更
 		PRO_INFO[:] = [self.v_name.get(), self.v_area.get(), self.v_code.get(),\
 		 self.v_contract.get(), self.v_builder.get(), self.v_supervisor.get(), \
 		 self.v_third_observer.get(), self.v_builder_observer.get(),\
 		  self.v_xlsx_path.get(), 'x年x月x日']
 		IS_UPDATED = True
+		#更新备份的PRO_INFO
+		for i in range(len(PRO_INFO)):
+			PRO_INFO_BEFORE[i] = PRO_INFO[i]
+		print("DEBUG 同步PRO_INFO_BEFORE:",PRO_INFO_BEFORE)
 
 	###########update_project_info()#################
 
