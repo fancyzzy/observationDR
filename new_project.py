@@ -117,8 +117,8 @@ class NewProj(object):
 			print("DEBUG 项目文件地址保存为:",self.proj_dir_path)
 			os.mkdir(self.proj_dir_path)
 			if self.copy_data_template():
-				showinfo(message ="创建文件夹成功!\n{}".format(self.proj_dir_path))
 				self.pro_top.destroy()
+				showinfo(message ="创建文件夹成功!\n{}".format(self.proj_dir_path))
 
 				#显示project_info实例,并且配置工程项目名称，和数据源
 				self.my_proj.v_name.set(self.v_proj_name.get())

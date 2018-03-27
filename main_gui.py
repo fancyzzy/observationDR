@@ -258,7 +258,10 @@ class MyTop(object):
 		选择工程dr文件，打开并且显示工程信息
 		'''
 		print("Opened project")
-		self.f_path = askopenfilename(filetypes=[("监测日报项目文件","dr")])
+		desktop_dir = os.path.join(os.path.expanduser('~'), 'Desktop')
+
+		self.f_path = askopenfilename(filetypes=[("监测日报项目文件","dr")],\
+			initialdir=desktop_dir)
 		if self.f_path and os.path.exists(self.f_path):
 			self.f_path = os.path.normpath(self.f_path)
 			self.my_proj = MyPro(self.top, self.f_path)
@@ -273,6 +276,8 @@ class MyTop(object):
 		'''
 		if self.f_path and os.path.exists(self.f_path):
 			self.my_proj = MyPro(self.top, self.f_path)
+			#get focus, always in the front
+			self.my_proj.pro_top.grab_set()
 		else:
 			pass
 	#############update_project()#################################
@@ -286,6 +291,8 @@ class MyTop(object):
 		print("DEBUG display_project:",project_path)
 		if project_path and os.path.exists(project_path):
 			self.my_proj = MyPro(self.top, project_path)
+			#get focus, always in the front
+			self.my_proj.pro_top.grab_set()
 			self.fail_count = 0
 		else:
 			self.fail_count += 1
