@@ -174,7 +174,7 @@ class MyPro(object):
 		xlsx_path = askopenfilename(filetypes=[("excel数据源文件","xlsx")],title="选择数据源",\
 			initialdir=initial_path)
 		#xlsx_path = askdirectory(title="选择数据源文件夹")
-		print("DEBUG xlsx_path=",xlsx_path)
+		#print("DEBUG xlsx_path=",xlsx_path)
 		if xlsx_path and os.path.exists(xlsx_path):
 			xlsx_path = os.path.normpath(xlsx_path)
 			self.v_xlsx_path.set(xlsx_path)
@@ -252,7 +252,7 @@ class MyPro(object):
 		#还原回去
 		for i in range(len(PRO_INFO)):
 			PRO_INFO[i] = PRO_INFO_BEFORE[i]
-		print("还原PRO_INFO:",PRO_INFO)
+		#print("DEBUG, 还原PRO_INFO:",PRO_INFO)
 		self.pro_top.destroy()
 
 	##########discard_project()#####################

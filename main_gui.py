@@ -48,7 +48,6 @@ def grr(arg):
 '''
 
 
-L_THREADS = []
 
 my_color_office_blue ='#%02x%02x%02x' % (43,87,154)
 my_color_orange ='#%02x%02x%02x' % (192,121,57)
@@ -407,10 +406,10 @@ class MyTop(object):
 			return False
 
 		#备份
-		if self.my_proj.bak_file(xlsx_data_path):
-			printl("备份数据源成功")
-		else:
-			printl("备份数据源失败")
+		#if self.my_proj.bak_file(xlsx_data_path):
+		#	printl("备份数据源成功")
+		#else:
+		#	printl("备份数据源失败")
 
 		print("load finished")
 		return True
@@ -424,7 +423,6 @@ class MyTop(object):
 
 		global D
 		global PRO_INFO
-		global L_THREADS
 		global QUE
 		global LOG_PATH
 		outqueue = QUE
@@ -471,10 +469,10 @@ class MyTop(object):
 		#启动生成日报线程，防止主界面freeze
 		t = threading.Thread(target=self.run_gen_report,args=(docx_path,\
 			project_info))
-		L_THREADS.append(t)
 		t.start()	
 
 		#更新主GUI
+		#起timer线程，每隔250毫秒更新主GUI
 		self.top.after(250, self.update)
 
 		return True
@@ -503,8 +501,7 @@ class MyTop(object):
 		#获取xlsx数据源
 		#12% percent
 		if not self.my_xlsx:
-			outqueue.put("加载数据源'{}'...".format(\
-				os.path.basename(PRO_INFO[D['xlsx_path']])))
+			outqueue.put("加载数据源'{}'...".format(PRO_INFO[D['xlsx_path']]))
 			if not self.load_xlsx():
 				print("12@加载数据源失败!")
 				self.button_gen.config(bg=my_color_light_orange,relief='raised',\
@@ -553,6 +550,7 @@ class MyTop(object):
 			s = "生成日报文件成功!\n完成表格: %d个\n用时: %s\n %s"%(table_num,s_interval,docx_path)
 			print(s)
 			self.popup_window(s)
+			os.system(docx_path)
 		else:
 			s = "日报文件生成失败!"
 			print(s)
@@ -601,7 +599,10 @@ class MyTop(object):
 				else:
 					s = msg
 					self.prog.update_log(s)
-				self.top.after(250, self.update)
+				if not self.is_generating:
+					self.top.after(25, self.update)
+				else:
+					self.top.after(250, self.update)
 
 			else:
 				s = "收到sentinel"
