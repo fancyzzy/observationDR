@@ -343,10 +343,14 @@ class MyTop(object):
 			return
 
 		bak_path = self.my_proj.project_bak_dir
-		target_proj_path = os.path.dirname(self.f_path)
+		src_proj_path = os.path.dirname(self.f_path)
 		#bak_proj_path = os.path.join(bak_path, os.path.basename(target_proj_path))
-		print("Debug 备份文件夹路径:",bak_path)
-		my_bak.bak_directory(target_proj_path, bak_path)
+		print("Debug, 从'{}'备份到'{}'".format(src_proj_path,bak_path))
+		my_bak.copyTree(src_proj_path, bak_path)
+		#在D盘备份
+		bak_path = os.path.join(r"D:\监测助手备份",os.path.basename(self.my_proj.project_bak_dir))
+		print("Debug, 从'{}'备份到'{}'".format(src_proj_path,bak_path))
+		my_bak.copyTree(src_proj_path, bak_path)
 		return
 
 
@@ -533,7 +537,7 @@ class MyTop(object):
 			else:
 				printl("备份日志文件失败")
 
-			#备份签名和平面布点图文件夹:	
+			#备份工程文件夹下所有文件:	
 			print("DEbug,开始备份工程项目文件夹\n")
 			self.bak_dir_files()
 			printl("日报文件存储于: %s\n"%(docx_path))
