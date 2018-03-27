@@ -28,6 +28,7 @@ from my_log import LOG_PATH
 from time import clock
 import my_bak
 import call_vba
+import new_project
 
 #debug
 import traceback
@@ -237,8 +238,15 @@ class MyTop(object):
 		新建空的工程文件
 		'''
 		print("new project")
-		#None 表示新建文件工程
-		self.my_proj = MyPro(self.top, None)
+
+
+		#创建新的工程
+		new_proj = new_project.NewProj(self.top)
+
+		#file_path=None 表示项目工程.dr文件为none，意为新建文件工程
+		#self.my_proj = MyPro(self.top, file_path=None)
+		self.my_proj = new_proj.my_proj
+
 		print("new project done")
 
 	#########new_project()###############################################

@@ -13,6 +13,7 @@ from tkinter.filedialog import askdirectory
 
 #拷贝文件
 import my_bak
+import project_info
 
 #获取桌面
 import os
@@ -32,6 +33,12 @@ class NewProj(object):
 
 		#以项目名称命名的文件夹路径
 		self.proj_dir_path = None
+
+		#project info instance
+		#file_path=None 表示项目工程.dr文件为none，意为新建文件工程
+		self.my_proj = project_info.MyPro(parent_top, file_path=None)
+		#隐藏
+		self.my_proj.pro_top.withdraw()
 
 		#工程项目名称
 		tk.Label(self.pro_top, text='').pack()
@@ -110,12 +117,21 @@ class NewProj(object):
 			print("DEBUG 项目文件地址保存为:",self.proj_dir_path)
 			os.mkdir(self.proj_dir_path)
 			if self.copy_data_template():
-				showinfo(message ="创建{}成功!".format(self.proj_dir_path))
+				showinfo(message ="创建文件夹成功!\n{}".format(self.proj_dir_path))
 				self.pro_top.destroy()
+
+				#显示project_info实例,并且配置工程项目名称，和数据源
+				self.my_proj.v_name.set(self.v_proj_name.get())
+				data_source = os.path.join(self.proj_dir_path,'数据源\汇总数据源.xlsx')
+				self.my_proj.v_xlsx_path.set(data_source)
+				self.my_proj.initial_dir = self.proj_dir_path
+				self.my_proj.pro_top.deiconify()
+				#Always get focused
+				self.my_proj.pro_top.grab_set()
 				return
 		else:
 			print("DEBUG here")
-			s = "项目文件夹已经存在!"
+			s = "创建失败，同名文件夹已经存在!"
 			showerror(message=s)
 			return
 

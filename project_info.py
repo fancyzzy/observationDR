@@ -44,10 +44,14 @@ class MyPro(object):
 		self.pro_top.title("工程信息")
 		self.pro_top.geometry('680x320+400+280')
 		#Always get focused
-		self.pro_top.grab_set()
+		#self.pro_top.grab_set()
+
 
 		self.project_path = file_path
 		self.project_bak_dir = None
+		#保存.dr文件的默认文件夹
+		#从new_proj文件时获取
+		self.initial_dir = None
 
 		#工程项目名称
 		tk.Label(self.pro_top, text='').pack()
@@ -118,13 +122,13 @@ class MyPro(object):
 		fm_xlsx = tk.Frame(self.pro_top)
 		tk.Label(fm_xlsx, text='* excel数据源: ').pack(side=tk.LEFT)
 		self.v_xlsx_path = tk.StringVar()
-		self.v_xlsx_path.set('汇总数据源')
+		self.v_xlsx_path.set('汇总数据源.xlsx')
 		tk.Entry(fm_xlsx, width=65, textvariable=self.v_xlsx_path)\
 		.pack(side=tk.LEFT)
 		tk.Button(fm_xlsx, text="...", width=5, command=self.select_xlsx)\
 		.pack(side=tk.LEFT)
 		fm_xlsx.pack()
-		tk.Label(self.pro_top, text="注: '平面布点图'和'签名'在'数据源'同目录下").\
+		tk.Label(self.pro_top, text="注: '平面布点图'和'签名'文件夹需要和'数据源文件.xlsx'同一目录").\
 		pack()
 
 		tk.Label(self.pro_top, text='').pack()
@@ -153,7 +157,14 @@ class MyPro(object):
 		选择数据源文件
 		'''
 		print("select xlsx file")
-		xlsx_path = askopenfilename(filetypes=[("excel数据源文件","xlsx")],title="选择数据源")
+		initial_path = None
+		xlsx_path = self.v_xlsx_path.get()
+		if os.path.exists(xlsx_path):
+			initial_path = os.path.dirname(xlsx_path)
+		else:
+			initial_path = os.path.join(os.path.expanduser('~'), 'Desktop')
+		xlsx_path = askopenfilename(filetypes=[("excel数据源文件","xlsx")],title="选择数据源",\
+			initialdir=initial_path)
 		#xlsx_path = askdirectory(title="选择数据源文件夹")
 		print("DEBUG xlsx_path=",xlsx_path)
 		if xlsx_path and os.path.exists(xlsx_path):
@@ -188,9 +199,12 @@ class MyPro(object):
 			#保存时，打开文件保存对话框，选择保存的文件
 			project_name = self.v_name.get() + ".dr"
 			desktop_dir = os.path.join(os.path.expanduser('~'), 'Desktop')
+
+			if self.initial_dir == None:
+				self.initial_dir = desktop_dir
 			self.project_path = asksaveasfilename(initialfile= project_name,\
 				filetypes=[("监测日报项目文件","dr")], title="保存工程文件",\
-				 initialdir=desktop_dir)
+				 initialdir=self.initial_dir)
 
 			#asksavesasfilename Cancel:
 			if not self.project_path:
