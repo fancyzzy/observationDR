@@ -11,7 +11,7 @@ from tkinter.messagebox import showinfo
 from tkinter.messagebox import showwarning
 import os
 from tkinter.filedialog import askopenfilename
-#from tkinter.filedialog import askdirectory
+from tkinter.filedialog import askdirectory
 
 #拷贝文件
 import shutil
@@ -23,7 +23,7 @@ D = {"name":0,"area":1,"code":2,"contract":3,"builder":4,"supervisor":5,\
 #注意main_gui会用到PRO_INFO，但是只有开始import，所以PRO_INFO一定不能赋值操作
 #要保证PRO_INFO的id不变！
 PRO_INFO = ["xxx工程","xx区间","xx编号","xx合同","xx施工单位","xx监理单位",\
-"xx第三方监测单位","xx施工方监测单位","数据源文件地址","x年x月x日"]
+"xx第三方监测单位","xx施工方监测单位","数据源文件夹地址","x年x月x日"]
 PRO_INFO_BEFORE = PRO_INFO[:]
 
 IS_UPDATED = False
@@ -60,6 +60,8 @@ class MyPro(object):
 		#保存.dr文件的默认文件夹
 		#从new_proj文件时获取
 		self.initial_dir = None
+		if file_path:
+			self.initial_dir = os.path.dirname(file_path)
 
 		#工程项目名称
 		tk.Label(self.pro_top, text='').pack()
@@ -128,15 +130,15 @@ class MyPro(object):
 
 		#xlsx数据源
 		fm_xlsx = tk.Frame(self.pro_top)
-		tk.Label(fm_xlsx, text='* excel数据源: ').pack(side=tk.LEFT)
+		tk.Label(fm_xlsx, text='* excel数据源文件夹地址: ').pack(side=tk.LEFT)
 		self.v_xlsx_path = tk.StringVar()
-		self.v_xlsx_path.set('汇总数据源.xlsx')
+		self.v_xlsx_path.set('~/xx工程/数据源/')
 		tk.Entry(fm_xlsx, width=65, textvariable=self.v_xlsx_path)\
 		.pack(side=tk.LEFT)
 		tk.Button(fm_xlsx, text="...", width=5, command=self.select_xlsx)\
 		.pack(side=tk.LEFT)
 		fm_xlsx.pack()
-		tk.Label(self.pro_top, text="注: '平面布点图'和'签名'文件夹需要和'数据源文件.xlsx'同一目录").\
+		tk.Label(self.pro_top, text="注: '平面布点图'和'签名'文件夹在'数据源'文件夹内").\
 		pack()
 
 		tk.Label(self.pro_top, text='').pack()
@@ -166,13 +168,14 @@ class MyPro(object):
 		'''
 		print("select xlsx file")
 		initial_path = None
-		xlsx_path = self.v_xlsx_path.get()
-		if os.path.exists(xlsx_path):
-			initial_path = os.path.dirname(xlsx_path)
+		print("DEBUG self.initial_dir=",self.initial_dir)
+		if self.initial_dir and os.path.exists(self.initial_dir):
+			initial_path = self.initial_dir
 		else:
 			initial_path = os.path.join(os.path.expanduser('~'), 'Desktop')
-		xlsx_path = askopenfilename(filetypes=[("excel数据源文件","xlsx")],title="选择数据源",\
-			initialdir=initial_path)
+		#xlsx_path = askopenfilename(filetypes=[("excel数据源文件","xlsx")],title="选择数据源",\
+		#	initialdir=initial_path)
+		xlsx_path = askdirectory(title="选择数据源文件夹",	initialdir=initial_path)
 		#xlsx_path = askdirectory(title="选择数据源文件夹")
 		#print("DEBUG xlsx_path=",xlsx_path)
 		if xlsx_path and os.path.exists(xlsx_path):
@@ -180,6 +183,7 @@ class MyPro(object):
 			self.v_xlsx_path.set(xlsx_path)
 		else:
 			pass
+		print("DEBUG 数据源路径选择为:",self.v_xlsx_path.get())
 
 	#########select_xlsx()######################
 
@@ -232,6 +236,7 @@ class MyPro(object):
 		if not os.path.isdir(self.project_bak_dir):
 			os.mkdir(self.project_bak_dir)
 
+		#保存/覆盖.dr工程文件
 		self.bak_file(self.project_path)
 
 		self.pro_top.destroy()
@@ -274,7 +279,7 @@ class MyPro(object):
 		#更新备份的PRO_INFO
 		for i in range(len(PRO_INFO)):
 			PRO_INFO_BEFORE[i] = PRO_INFO[i]
-		print("DEBUG 同步PRO_INFO_BEFORE:",PRO_INFO_BEFORE)
+		#print("DEBUG 同步PRO_INFO_BEFORE:",PRO_INFO_BEFORE)
 
 	###########update_project_info()#################
 
@@ -371,6 +376,27 @@ class MyPro(object):
 				return True
 	###############load_project()#####################
 
+	def copy_file(self, file_path, dst_path):
+		'''
+		拷贝文件到指定位置
+		'''
+		if os.path.isfile(file_path):
+			if dst_path == None:
+				print("Error, dst_path:NONE!")
+				return False
+			else:
+				try:
+					shutil.copy(file_path, dst_path)
+				except Exception as e:
+					print("拷贝Error:",e)
+					return False
+
+		else:
+			print("Error, file_path:{}不存在!".format(file_path))
+			return Fasle
+
+		return True
+	################copy_file()########################	
 
 	def bak_file(self,file_path):
 		'''

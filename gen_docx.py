@@ -118,7 +118,7 @@ class MyDocx(object):
 		self.docx = None
 		self.path = docx_path
 		self.date = proj_info[-1]
-		self.xlsx_path = os.path.dirname(proj_info[-2])
+		self.xlsx_path = proj_info[-2]
 		self.str_date = date_to_str(self.date)
 		#xlsx实例
 		self.my_xlsx = my_xlsx
@@ -129,12 +129,17 @@ class MyDocx(object):
 		self.alarm_r = None
 
 		#签名文件列表
+		#felix
 		self.sig_list = []
 		sig_path = os.path.join(self.xlsx_path,'签名')
-		item_list = os.listdir(sig_path)
-		for item in item_list:
-			if '.png' in item or '.PNG' in item:
-				self.sig_list.append(os.path.join(sig_path, item))
+		if os.path.exists(sig_path):
+			item_list = os.listdir(sig_path)
+			for item in item_list:
+				if '.png' in item or '.PNG' in item:
+					self.sig_list.append(os.path.join(sig_path, item))
+		else:
+			print("warning, 签名文件夹不存在！")
+			print("DEBUG sig_path=",sig_path)
 		print("DEBUG self.sig_list=",self.sig_list)
 
 	#########__init__()#####################################
@@ -2792,6 +2797,9 @@ class MyDocx(object):
 		d = self.docx
 		#获取文件夹下的所有文件地址:
 		layout_path = os.path.join(self.xlsx_path,'平面布点图')
+		if not os.path.exists(layout_path):
+			print("warning!, 平面布点图文件不存在！")
+			return False
 		file_list = os.listdir(layout_path)
 		print("DEBUG 平面布点图文件:",file_list)
 		for item in file_list:

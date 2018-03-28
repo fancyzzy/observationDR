@@ -337,7 +337,7 @@ class MyTop(object):
 
 	def update_title(self):
 		global PRO_INFO
-		print("DEBUG, PRO_INFO now is:",PRO_INFO)
+		#print("DEBUG, PRO_INFO now is:",PRO_INFO)
 		if is_project_updated():
 			self.label_title.config(text=PRO_INFO[D['name']])
 			self.label_area.config(text=PRO_INFO[D['area']])
@@ -384,9 +384,38 @@ class MyTop(object):
 		print("Debug, 从'{}'备份到'{}'".format(src_proj_path,bak_path))
 		my_bak.copyTree(src_proj_path, bak_path)
 		return
-
-
 	###########bak_all_files()###################################
+
+
+	def merge_xlsx(self):
+		'''
+		合并数据源文件夹下的所有
+		xlsx文件，生成'汇总数据源.xslx'
+		'''
+		global PRO_INFO
+		print("start to use VBA to merge")
+		xlsx_data_path = PRO_INFO[D['xlsx_path']]
+		#调用merge.xlsm文件的VBA
+		xlsm_path = os.path.join(xlsx_data_path,'merge.xlsm')
+		#如果不存在，则从安装目录考过来:
+		if not os.path.exists(xlsm_path):
+			print("merge.xlsm文件不存在，进行拷贝:")
+			xlsm_bak_path = os.path.join(os.getcwd(),"project_template/数据源/merge.xlsm")	
+			if self.my_proj.copy_file(xlsm_bak_path, xlsm_data_path):
+				print("DEBUG xlsm拷贝成功！")
+			else:
+				print("DEBUG, xlsm拷贝失败!")
+
+		printl("合并数据源...")
+		my_vba = call_vba.MyVBA(xlsm_path)
+		if my_vba.call_vba():
+			printl("合并成功！")
+			return True
+		else:
+			printl("合并失败！")
+			return False
+	###############merge_xlsx()##################################
+
 
 	def load_xlsx(self):
 		'''
@@ -395,21 +424,40 @@ class MyTop(object):
 		import read_xlsx
 		global PRO_INFO
 		global D
-		print("start to load xlsx database")
-		xlsx_data_path = PRO_INFO[D['xlsx_path']]
+
+		#先合并数据源
 		try:
-			self.my_xlsx = read_xlsx.MyXlsx(xlsx_data_path)
-			print("加载数据源成功，self.my_xlsx=",self.my_xlsx)
+			self.merge_xlsx()
 		except Exception as e:
-			print("Error! 加载excel数据源错误:{}".format(e))
-			self.popup_window(e,error=True)
+			print("merge failed, e",e)
+			s = "合并数据源出错，可能由于有其他正在打开的excel，请关闭后再次尝试.\n%s"%(e)
+			self.popup_window(s,True)
 			return False
 
-		#备份
-		#if self.my_proj.bak_file(xlsx_data_path):
-		#	printl("备份数据源成功")
-		#else:
-		#	printl("备份数据源失败")
+		print("start to load xlsx database")
+		xlsx_data_path = PRO_INFO[D['xlsx_path']]
+		#数据源文件夹中使用合并过后生成的‘汇总数据源.xslx’文件:
+		xlsx_data_file = os.path.join(xlsx_data_path,'汇总数据源.xlsx')
+		printl("加载数据源'{}'...".format(xlsx_data_file))
+		if xlsx_data_file and os.path.exists(xlsx_data_file):
+			try:
+				self.my_xlsx = read_xlsx.MyXlsx(xlsx_data_file)
+				print("加载数据源成功，self.my_xlsx=",self.my_xlsx)
+			except Exception as e:
+				print("Error! 加载excel数据源错误:{}".format(e))
+				self.popup_window(e,error=True)
+				return False
+	
+			#备份
+			#if self.my_proj.bak_file(xlsx_data_file):
+			#	printl("备份数据源成功")
+			#else:
+			#	printl("备份数据源失败")
+		else:
+			s = "Error! 汇总数据源.xlsx文件不存在"
+			print("Error! 汇总数据源.xlsx文件不存在")
+			self.popup_window(s,error=True)
+			return False
 
 		print("load finished")
 		return True
@@ -501,7 +549,7 @@ class MyTop(object):
 		#获取xlsx数据源
 		#12% percent
 		if not self.my_xlsx:
-			outqueue.put("加载数据源'{}'...".format(PRO_INFO[D['xlsx_path']]))
+			#outqueue.put("加载数据源'{}'...".format(PRO_INFO[D['xlsx_path']]))
 			if not self.load_xlsx():
 				print("12@加载数据源失败!")
 				self.button_gen.config(bg=my_color_light_orange,relief='raised',\

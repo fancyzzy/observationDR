@@ -122,7 +122,7 @@ class NewProj(object):
 
 				#显示project_info实例,并且配置工程项目名称，和数据源
 				self.my_proj.v_name.set(self.v_proj_name.get())
-				data_source = os.path.join(self.proj_dir_path,'数据源\汇总数据源.xlsx')
+				data_source = os.path.join(self.proj_dir_path,'数据源'+os.path.sep)
 				self.my_proj.v_xlsx_path.set(data_source)
 				self.my_proj.initial_dir = self.proj_dir_path
 				self.my_proj.pro_top.deiconify()
