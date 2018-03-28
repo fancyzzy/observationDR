@@ -390,7 +390,7 @@ class MyTop(object):
 	def merge_xlsx(self):
 		'''
 		合并数据源文件夹下的所有
-		xlsx文件，生成'汇总数据源.xslx'
+		xlsx文件，生成'output.xslx'
 		'''
 		global PRO_INFO
 		print("start to use VBA to merge")
@@ -401,10 +401,11 @@ class MyTop(object):
 		if not os.path.exists(xlsm_path):
 			print("merge.xlsm文件不存在，进行拷贝:")
 			xlsm_bak_path = os.path.join(os.getcwd(),"project_template/数据源/merge.xlsm")	
-			if self.my_proj.copy_file(xlsm_bak_path, xlsm_data_path):
+			if self.my_proj.copy_file(xlsm_bak_path, xlsx_data_path):
 				print("DEBUG xlsm拷贝成功！")
 			else:
 				print("DEBUG, xlsm拷贝失败!")
+				return False
 
 		printl("合并数据源...")
 		my_vba = call_vba.MyVBA(xlsm_path)
@@ -436,8 +437,8 @@ class MyTop(object):
 
 		print("start to load xlsx database")
 		xlsx_data_path = PRO_INFO[D['xlsx_path']]
-		#数据源文件夹中使用合并过后生成的‘汇总数据源.xslx’文件:
-		xlsx_data_file = os.path.join(xlsx_data_path,'汇总数据源.xlsx')
+		#数据源文件夹中使用合并过后生成的‘output.xslx’文件:
+		xlsx_data_file = os.path.join(xlsx_data_path,'output.xlsx')
 		printl("加载数据源'{}'...".format(xlsx_data_file))
 		if xlsx_data_file and os.path.exists(xlsx_data_file):
 			try:
@@ -454,8 +455,8 @@ class MyTop(object):
 			#else:
 			#	printl("备份数据源失败")
 		else:
-			s = "Error! 汇总数据源.xlsx文件不存在"
-			print("Error! 汇总数据源.xlsx文件不存在")
+			s = "Error! output.xlsx文件不存在"
+			print("Error! output.xlsx文件不存在")
 			self.popup_window(s,error=True)
 			return False
 
@@ -598,7 +599,10 @@ class MyTop(object):
 			s = "生成日报文件成功!\n完成表格: %d个\n用时: %s\n %s"%(table_num,s_interval,docx_path)
 			print(s)
 			self.popup_window(s)
-			os.system(docx_path)
+			print("DEBUG, os.system start")
+			cmd = "start " + docx_path
+			os.system(cmd)
+			print("DEBUG, os.system done")
 		else:
 			s = "日报文件生成失败!"
 			print(s)
