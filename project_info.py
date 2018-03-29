@@ -322,7 +322,7 @@ class MyPro(object):
 				buff = fobj.readline().decode('utf-8').strip(os.linesep)
 				if buff == '':
 					break
-				#这个怎么产生的?
+				#这个怎么产生的?, 2018.3.29. BOM!
 				if buff == '\ufeff':
 					continue
 				else:

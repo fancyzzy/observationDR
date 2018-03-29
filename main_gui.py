@@ -31,6 +31,9 @@ import call_vba
 import new_project
 import tooltip
 
+#解决utf-8 BOM:b'\xef\xbb\xbf', '\ufeff'
+import codecs
+
 #debug
 import traceback
 '''
@@ -103,6 +106,7 @@ class MyTop(object):
 			while True:
 				n += 1
 				buff = fobj.readline().decode('utf-8').strip(os.linesep)
+				#print("DEBUG read PRO_BAK_TXT, buff=",buff)
 				if buff == '':
 					break
 				else:
@@ -316,15 +320,24 @@ class MyTop(object):
 		根据选择的工程文件，显示工程
 		'''
 		project_path = self.p_name.get()
-		print("DEBUG display_project:",project_path)
+		#解决BOM标识符, 由于windows记事本使用UTF8BOM导致。
+		if project_path.encode('utf-8')[:3] == codecs.BOM_UTF8:
+			print("warning, yes there is BOM")
+			print(project_path[:3].encode('utf-8'))
+			project_path = project_path[3:]
+		else:
+			print("no, bom")
+		#print("DEBUG,存在与否: ",os.path.exists(project_path))
+		#print("byte: ",project_path.encode('utf-8'))
 		if project_path and os.path.exists(project_path):
 			self.my_proj_tmp = MyPro(self.top, project_path)
 			#get focus, always in the front
 			self.my_proj_tmp.pro_top.grab_set()
 			self.fail_count = 0
 		else:
+			#print("byte: ",project_path.encode('utf-8'))
 			self.fail_count += 1
-			s = ("没有找到项目文件:{}\n".format(project_path))
+			s = ("没有找到项目文件:\n '{}'".format(project_path))
 			showinfo(message = s)
 			#从备份项目列表文件中删除
 			if self.fail_count == 3:
