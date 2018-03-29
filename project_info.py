@@ -15,6 +15,7 @@ from tkinter.filedialog import askdirectory
 
 #拷贝文件
 import shutil
+import codecs
 
 
 #工程项目名, 编号， 施工单位， 监理单位， 监测单位, 区间
@@ -56,6 +57,7 @@ class MyPro(object):
 
 
 		self.project_path = file_path
+		print("DEBUG file_path:{},self.project_path:{}".format(file_path,self.project_path))
 		self.project_bak_dir = None
 		#保存.dr文件的默认文件夹
 		#从new_proj文件时获取
@@ -319,7 +321,19 @@ class MyPro(object):
 		with open(PRO_BAK_TXT, "rb") as fobj:
 			all_projects_list = []
 			while True:
-				buff = fobj.readline().decode('utf-8').strip(os.linesep)
+				buff = fobj.readline()
+				#去掉BOM
+				if buff[:3] == codecs.BOM_UTF8:
+					print("warning,buff,头部有BOM")
+					buff = buff[3:]
+				if buff[-3:] == codecs.BOM_UTF8:
+					buff = buff[:-3]
+					print("warning,buff,尾部有BOM")
+
+				#buff = fobj.readline().decode('utf-8').strip(os.linesep)
+				buff = buff.decode('utf-8').strip(os.linesep)
+
+
 				if buff == '':
 					break
 				#这个怎么产生的?, 2018.3.29. BOM!
@@ -332,6 +346,8 @@ class MyPro(object):
 
 		#将最新的项目文件移到最前面
 		f_path = os.path.normpath(self.project_path)
+		print("DEBUG self.project_path=",self.project_path)
+		print("DEBUG 最新的path=",f_path)
 		if f_path in all_projects_list:
 			all_projects_list.remove(f_path)
 		all_projects_list.insert(0,f_path)

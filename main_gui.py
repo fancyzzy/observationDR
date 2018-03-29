@@ -322,13 +322,18 @@ class MyTop(object):
 		project_path = self.p_name.get()
 		#解决BOM标识符, 由于windows记事本使用UTF8BOM导致。
 		if project_path.encode('utf-8')[:3] == codecs.BOM_UTF8:
-			print("warning, yes there is BOM")
-			print(project_path[:3].encode('utf-8'))
-			project_path = project_path[3:]
-		else:
-			print("no, bom")
-		#print("DEBUG,存在与否: ",os.path.exists(project_path))
+			print("warning, 头部有BOM")
+			#print(project_path[:3].encode('utf-8'))
+			project_path = project_path.encode('utf-8').decode('utf-8-sig')
+
+		#判断尾部是否有BOM
+		if project_path.encode('utf-8')[-3:] == codecs.BOM_UTF8:
+			print("warning, 尾部有BOM")
+			#print(project_path[-3:].encode('utf-8'))
+			project_path = project_path.encode('utf-8')[:-3].decode('utf-8')
+
 		#print("byte: ",project_path.encode('utf-8'))
+		#print("DEBUG projec_path:",project_path)
 		if project_path and os.path.exists(project_path):
 			self.my_proj_tmp = MyPro(self.top, project_path)
 			#get focus, always in the front
@@ -377,6 +382,7 @@ class MyTop(object):
 		保存所有工程文件
 		数据源,签名，布点图等
 		'''
+		global PRO_INFO
 
 		if self.my_proj == None:
 			return
@@ -396,6 +402,19 @@ class MyTop(object):
 		bak_path = os.path.join(r"D:\监测助手备份",os.path.basename(self.my_proj.project_bak_dir))
 		print("Debug, 从'{}'备份到'{}'".format(src_proj_path,bak_path))
 		my_bak.copyTree(src_proj_path, bak_path)
+
+		#备份output.xlsx -> output_20180101.xlsx
+		xlsx_data_path = PRO_INFO[D['xlsx_path']]
+		#调用merge.xlsm文件的VBA
+		output_path = os.path.join(xlsx_data_path,'output.xlsx')
+		new_name = os.path.join(bak_path, 'output')
+		s_now = datetime.now().strftime("%Y%m%d")
+		new_name = new_name +  ("_%s.xlsx"%s_now)
+		if self.my_proj.copy_file(output_path, new_name):
+			print("备份'{}'成功".format(new_name))
+		else:
+			print("备份'{}'失败".format(new_name))
+
 		return
 	###########bak_all_files()###################################
 
