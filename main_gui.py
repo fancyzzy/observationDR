@@ -232,7 +232,7 @@ class MyTop(object):
 
 	def enter_top(self,event):  
 		'''
-		当焦点在主界面时，根据工程是否存在，刷新主界面的显示内容
+		当焦点回到主界面时，根据工程是否存在，刷新主界面的显示内容
 		'''
 		global PRO_PATH
 		if event.widget == self.top:
@@ -253,7 +253,7 @@ class MyTop(object):
 
 	def open_proj_folder(self,event):
 		'''
-		打开project文件夹
+		打开工程所在的文件夹
 		'''
 		print("open_proj_folder:",self.f_path)
 		folder = os.path.dirname(self.f_path)
@@ -267,7 +267,7 @@ class MyTop(object):
 
 	def new_project(self):
 		'''
-		新建空的工程文件
+		新建工程文件夹
 		'''
 		print("new project")
 
@@ -317,7 +317,7 @@ class MyTop(object):
 
 	def display_project(self):
 		'''
-		根据选择的工程文件，显示工程
+		根据工程列表中选择的工程文件，显示工程
 		'''
 		project_path = self.p_name.get()
 		#解决BOM标识符, 由于windows记事本使用UTF8BOM导致。
@@ -354,6 +354,10 @@ class MyTop(object):
 
 
 	def update_title(self):
+		'''
+		根据当前的工程项目，
+		刷新主界面显示
+		'''
 		global PRO_INFO
 		#print("DEBUG, PRO_INFO now is:",PRO_INFO)
 		if is_project_updated():

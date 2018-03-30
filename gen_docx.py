@@ -5,6 +5,7 @@
 '''
 
 from docx import Document
+#段落样式
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.text import WD_LINE_SPACING
 from docx.enum.section import WD_ORIENT
@@ -1094,7 +1095,7 @@ class MyDocx(object):
 				initial_range_values, old_acc_range_values)
 
 			if '混撑' in sheet:
-				printl("DEBUG 混撑, 本次累计:{}".format(acc_values))
+				print("DEBUG 混撑, 本次累计:{}".format(acc_values))
 
 			#printl("DEBUG '本次累计值列':{}".format(acc_values))
 
